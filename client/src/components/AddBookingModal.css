@@ -1,0 +1,330 @@
+/* Add Booking Modal Styles - Enhanced with Accessibility & Animations */
+
+/* Modal Container with Animation */
+.booking-details-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000 !important;
+  padding: 10px;
+  padding-top: 20px;
+  box-sizing: border-box;
+  margin: 0 !important;
+  transform: none !important;
+  animation: modalFadeIn 0.3s ease-out;
+  backdrop-filter: blur(2px);
+}
+
+/* Fade-in animation for modal */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    background-color: rgba(0, 0, 0, 0);
+  }
+  to {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Slide-up animation for modal content */
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Enhanced Add New Booking Modal - Compact Design with Accessibility */
+.add-booking-modal-content {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 8px;
+  width: 360px;
+  height: auto;
+  max-height: 70vh;
+  position: fixed;
+  top: 50%;
+  left: 50%; /* Centered horizontally */
+  transform: translate(-50%, -50%);
+  font-family: "Glacial Indifference", sans-serif;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  overflow-y: auto;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modalSlideUp 0.3s ease-out;
+  outline: none; /* Remove default focus outline - we'll use custom styling */
+}
+
+/* Focus styling for modal content when focused */
+.add-booking-modal-content:focus-visible {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 3px rgba(0, 123, 255, 0.5);
+}
+
+/* Center the entire modal content */
+.add-booking-modal-content .booking-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+/* Add New Booking Modal specific title styling */
+.add-booking-modal-content .booking-details h3 {
+  color: #000000;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 14px;
+  font-family: "Glacial Indifference", sans-serif;
+  letter-spacing: 0.5px;
+}
+
+/* Booking Form */
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+}
+
+/* Form Groups */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  width: 100%;
+  margin: 0 0 4px 0;
+}
+
+/* Container for horizontally aligned info display fields */
+.info-display-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+/* Info display form groups - labels and values close together */
+.add-booking-modal-content .form-group.info-display {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 4px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+  min-width: fit-content !important;
+  width: auto !important;
+}
+
+.add-booking-modal-content .form-group.info-display label {
+  font-weight: 700 !important;
+  color: #333333 !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+  font-family: "Glacial Indifference", sans-serif !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  display: inline-block !important;
+  max-width: none !important;
+}
+
+.add-booking-modal-content .form-value-display {
+  font-weight: 400 !important;
+  color: #333333 !important;
+  font-size: 14px !important;
+  font-family: "Glacial Indifference", sans-serif !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  flex: none !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+/* Input field form groups - reduced spacing */
+.add-booking-modal-content .form-group.input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+/* Form Inputs and Selects */
+.add-booking-modal-content .form-group input,
+.add-booking-modal-content .form-group select {
+  padding: 6px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #333333;
+  font-size: 12px;
+  font-family: "Glacial Indifference", sans-serif;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.add-booking-modal-content .form-group input:disabled {
+  background-color: #f5f5f5;
+  color: #666;
+  border-color: #ddd;
+}
+
+.add-booking-modal-content .form-group input:focus,
+.add-booking-modal-content .form-group select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Customer Autocomplete Styles */
+.customer-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1001;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.customer-suggestion {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  color: #ffffff;
+  font-size: 12px;
+  border-bottom: 1px solid #333;
+}
+
+.customer-suggestion:last-child {
+  border-bottom: none;
+}
+
+.customer-suggestion:hover {
+  background-color: #2a2a2a;
+}
+
+.customer-suggestion .customer-name {
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.customer-details {
+  font-size: 10px;
+  color: #888;
+  line-height: 1.2;
+}
+
+/* Scrollbar styles for suggestions */
+.customer-suggestions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.customer-suggestions::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.customer-suggestions::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border-radius: 3px;
+}
+
+.customer-suggestions::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}
+
+/* Submit Button */
+.add-booking-modal-content .submit-button {
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  width: 100%;
+  height: 48px;
+  font-family: "Glacial Indifference", sans-serif;
+  margin: 16px 0 0 0;
+  transition: background-color 0.3s ease;
+}
+
+.add-booking-modal-content .submit-button:hover {
+  background-color: #333333;
+}
+
+/* Compact submit button */
+.add-booking-modal-content .submit-button.compact {
+  width: 60%;
+  max-width: 200px;
+  margin: 16px auto 0 auto;
+}
+
+/* Close Button */
+.add-booking-modal-content .close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #000000;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-booking-modal-content .close-button:hover {
+  background-color: #f0f0f0;
+  color: #000000;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}

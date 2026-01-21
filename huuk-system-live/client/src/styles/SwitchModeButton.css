@@ -1,0 +1,128 @@
+.switch-mode-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  z-index: 10000;
+  outline: none;
+}
+
+.switch-mode-tooltip {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  position: absolute;
+  right: 40px;
+  top: -58px;
+  transform: translateY(50%) translateX(0);
+  z-index: 10001;
+  background-color: rgba(20, 20, 20, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+  font-family: "Quicksand", sans-serif;
+  font-size: 13px;
+}
+
+/* Show tooltip on hover */
+.switch-mode-container:hover .switch-mode-tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(50%) translateX(-10px);
+}
+
+.switch-mode-button {
+  position: relative;
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  overflow: visible;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Plus icon initially visible */
+.icon-plus {
+  display: inline-block;
+  font-size: 24px;
+  color: white;
+  background: #3b82f6; /* Blue */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 40px;
+  font-weight: bold;
+  user-select: none;
+  transition: opacity 0.3s ease;
+}
+
+/* Plus icon fade out on hover */
+.switch-mode-container:hover .icon-plus {
+  opacity: 0;
+}
+
+/* Close icon wrapper (red circle with ×) initially hidden and scaled down */
+.icon-close-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  opacity: 0;
+  background-color: #88bffa;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  user-select: none;
+  pointer-events: auto;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 2;
+}
+
+/* Close icon fade and scale in on hover */
+.switch-mode-container:hover .icon-close-wrapper {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* White user-arrow icon initially transparent and translated down */
+.icon-user-arrow {
+  position: absolute;
+  left: 50%;
+  bottom: 100%; /* place above the button */
+  transform: translateX(-50%) translateY(10px); /* start slightly below */
+  width: 50px;
+  height: 50px;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  stroke: white;
+  z-index: 3;
+}
+
+/* White user-arrow slides up and fades in on hover */
+.switch-mode-container:hover .icon-user-arrow {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Close icon text layering */
+.icon-close {
+  position: relative;
+  z-index: 2;
+}

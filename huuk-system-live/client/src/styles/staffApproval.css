@@ -1,0 +1,255 @@
+.layout-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.staff-approval-container {
+  padding: 5px;
+  max-width: 100%;
+  width: 100%;
+  margin-left: 0;
+  font-family: "Quicksand", sans-serif;
+  background-color: #1a1a1a;
+  color: #fff;
+  border-radius: 10px;
+  margin-top: 0;
+  transition: margin-left 0.3s ease, width 0.3s ease;
+  box-sizing: border-box;
+  height: calc(100vh - 30px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.header.minimized + .staff-approval-container {
+  margin-left: 0;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.header img {
+  height: 40px; /* Adjust logo size */
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.staff-approval-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0;
+  table-layout: fixed;
+  flex-grow: 1;
+  margin-bottom: 5px;
+}
+
+.staff-approval-table th,
+.staff-approval-table td {
+  padding: 4px 6px;
+  text-align: center;
+  word-wrap: break-word;
+  overflow: hidden;
+}
+
+.staff-approval-table th {
+  font-weight: bolder;
+  text-transform: uppercase;
+  border-bottom: 2px solid #1f1e1e; /* Underline for the first row */
+  text-align: center;
+}
+
+.staff-approval-table td {
+  border-bottom: none; /* Remove grid lines */
+  font-weight: bolder;
+  text-align: center;
+}
+
+.icon-menu {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  cursor: pointer;
+}
+
+.status-cell {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  background-color: #0e0d0f;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  display: block;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  width: 140px;
+  font-family: "Quicksand", sans-serif;
+  margin: 0 auto;
+}
+
+.dropdown-toggle:hover {
+  background-color: #0e0d0f;
+  color: #857f7f;
+}
+
+.dropdown-toggle:active {
+  color: #857f7f;
+}
+
+.triangle {
+  font-size: 12px;
+}
+
+.dropdown-menu {
+  display: block;
+  position: absolute;
+  background-color: #0e0d0f;
+  padding: 6px 8px;
+  border-radius: 6px;
+  z-index: 1;
+  min-width: 100px;
+  font-weight: 300;
+  width: 140px;
+  text-align: center;
+  top: 100%;
+  left: 0;
+  margin-top: 0px;
+}
+
+.dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 6px 14px;
+  border: none;
+  background: none;
+  text-align: center;
+  cursor: pointer;
+  font-family: "Quicksand", sans-serif;
+  color: white;
+}
+
+.dropdown-menu button:hover {
+  background-color: #636363;
+  color: white;
+  font-family: "Quicksand", sans-serif;
+}
+
+.status-indicator.approved .status-approved {
+  color: white;
+  background-color: #0e0d0f;
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 100;
+  width: 140px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.status-indicator.rejected .status-rejected {
+  color: white;
+  background-color: #0e0d0f;
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 100;
+  width: 140px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.icon-right {
+  display: inline-block;
+  margin-left: 8px;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.status-approved .status-icon {
+  background-color: #22c55e;
+  color: white;
+}
+
+.status-rejected .status-icon {
+  background-color: #ef4444;
+  color: white;
+}
+
+.pagination {
+  margin-top: 0;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bolder;
+  padding: 3px 0;
+  flex-shrink: 0;
+}
+
+.pagination button {
+  padding: 6px 12px;
+  background-color: #636363;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: "Quicksand", sans-serif;
+}
+
+.pagination button:disabled {
+  background-color: #1a1a1a;
+  border: 1px #464343;
+  border-color: #1a1a1a;
+  cursor: not-allowed;
+  color: white;
+}
+
+.pagination span {
+  padding: 6px;
+}

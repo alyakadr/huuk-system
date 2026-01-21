@@ -1,0 +1,61 @@
+name: Deploy Frontend to Ruzentra
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd client
+        npm ci --only=production
+        
+    - name: Build React app
+      run: |
+        cd client
+        npm run build
+      env:
+        REACT_APP_API_URL: https://huuk-system-production.up.railway.app
+        CI: false
+        
+    - name: List build contents
+      run: |
+        echo "Build directory contents:"
+        ls -la client/build/
+        
+    - name: Deploy to FTP
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      with:
+        server: 101.99.69.151
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./client/build/
+        server-dir: /public_html/
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
+          **/.DS_Store
+          **/Thumbs.db
+        dry-run: false
+        log-level: verbose
+        
+    - name: Verify deployment
+      run: |
+        echo "✅ Frontend deployed to https://huukbarber.ruzentra.com"
+        echo "🔗 Backend API: https://huuk-system-production.up.railway.app"
+        echo "📝 Please test the deployment manually"

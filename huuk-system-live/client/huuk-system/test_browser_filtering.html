@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Timezone Filtering Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Browser Timezone Filtering Test</h1>
+    <p>This test verifies the timezone handling and filtering logic in the browser environment.</p>
+    
+    <div class="test-section">
+        <h2>Test Setup</h2>
+        <div id="timezone-info" class="info"></div>
+        <button onclick="runTests()">Run Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        // Copy the extractDateOnly function from StaffAppointments.js
+        const extractDateOnly = (dateValue) => {
+            if (!dateValue) return null;
+            
+            try {
+                // Handle different date formats
+                if (typeof dateValue === 'string') {
+                    // If it's already a simple date string (YYYY-MM-DD), return as is
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                        return dateValue;
+                    }
+                    
+                    // If it contains 'T' (ISO timestamp), extract date part
+                    if (dateValue.includes('T')) {
+                        return dateValue.split('T')[0];
+                    }
+                    
+                    // Handle other date string formats
+                    const parsedDate = new Date(dateValue);
+                    if (!isNaN(parsedDate.getTime())) {
+                        return parsedDate.toISOString().split('T')[0];
+                    }
+                }
+                
+                // Handle Date objects
+                if (dateValue instanceof Date) {
+                    return dateValue.toISOString().split('T')[0];
+                }
+                
+                // Handle timestamp numbers
+                if (typeof dateValue === 'number') {
+                    const date = new Date(dateValue);
+                    if (!isNaN(date.getTime())) {
+                        return date.toISOString().split('T')[0];
+                    }
+                }
+            } catch (error) {
+                console.warn('Date extraction failed for:', dateValue, error);
+            }
+            
+            return null;
+        };
+
+        // Test the filtering logic
+        const getFilteredAppointments = (appointments, selectedDate) => {
+            if (!appointments || appointments.length === 0) {
+                return [];
+            }
+
+            // Determine target date
+            const targetDate = selectedDate || moment().format('YYYY-MM-DD');
+            
+            // Filter appointments for the target date
+            const filtered = appointments.filter(appointment => {
+                if (!appointment || !appointment.booking_date) {
+                    return false;
+                }
+                
+                const appointmentDate = extractDateOnly(appointment.booking_date);
+                return appointmentDate === targetDate;
+            });
+            
+            return filtered;
+        };
+
+        // Test data
+        const testAppointments = [
+            {
+                id: 1,
+                booking_date: '2025-07-14T16:00:00.000Z',
+                customer_name: 'John Doe',
+                start_time: '10:00'
+            },
+            {
+                id: 2,
+                booking_date: '2025-07-16T08:00:00.000Z',
+                customer_name: 'Jane Smith',
+                start_time: '14:30'
+            },
+            {
+                id: 3,
+                booking_date: '2025-07-17T12:00:00.000Z',
+                customer_name: 'Bob Johnson',
+                start_time: '16:00'
+            },
+            {
+                id: 4,
+                booking_date: '2025-07-16',
+                customer_name: 'Alice Brown',
+                start_time: '11:00'
+            },
+            {
+                id: 5,
+                booking_date: new Date('2025-07-17'),
+                customer_name: 'Charlie Wilson',
+                start_time: '15:30'
+            }
+        ];
+
+        function displayTimezoneInfo() {
+            const now = new Date();
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const offset = now.getTimezoneOffset();
+            const offsetHours = Math.abs(offset) / 60;
+            const offsetSign = offset <= 0 ? '+' : '-';
+            
+            document.getElementById('timezone-info').innerHTML = `
+                <strong>Browser Timezone Info:</strong><br>
+                Timezone: ${timezone}<br>
+                UTC Offset: ${offsetSign}${offsetHours} hours<br>
+                Current Time: ${now.toLocaleString()}<br>
+                Current Date (moment): ${moment().format('YYYY-MM-DD')}
+            `;
+        }
+
+        function addResult(title, content, type = 'result') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `<strong>${title}</strong><br>${content}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function runTests() {
+            clearResults();
+            
+            // Test 1: Date extraction
+            addResult('Test 1: Date Extraction', 'Testing date extraction from various formats...', 'info');
+            
+            testAppointments.forEach(apt => {
+                const extractedDate = extractDateOnly(apt.booking_date);
+                const originalType = typeof apt.booking_date;
+                const originalValue = apt.booking_date instanceof Date ? apt.booking_date.toString() : apt.booking_date;
+                
+                addResult(
+                    `ID ${apt.id} - ${apt.customer_name}`,
+                    `Original: ${originalValue} (${originalType})<br>Extracted: ${extractedDate}`,
+                    extractedDate ? 'pass' : 'fail'
+                );
+            });
+
+            // Test 2: Filtering for specific dates
+            addResult('Test 2: Date Filtering', 'Testing filtering for specific dates...', 'info');
+            
+            const testDates = ['2025-07-14', '2025-07-16', '2025-07-17'];
+            testDates.forEach(date => {
+                const filtered = getFilteredAppointments(testAppointments, date);
+                const names = filtered.map(apt => `${apt.customer_name} (${apt.start_time})`).join(', ');
+                
+                addResult(
+                    `Filter for ${date}`,
+                    `Found ${filtered.length} appointments: ${names || 'None'}`,
+                    filtered.length > 0 ? 'pass' : 'info'
+                );
+            });
+
+            // Test 3: Today filtering
+            const today = moment().format('YYYY-MM-DD');
+            const todayFiltered = getFilteredAppointments(testAppointments, null);
+            const todayNames = todayFiltered.map(apt => `${apt.customer_name} (${apt.start_time})`).join(', ');
+            
+            addResult(
+                `Filter for Today (${today})`,
+                `Found ${todayFiltered.length} appointments: ${todayNames || 'None'}`,
+                'info'
+            );
+
+            // Test 4: Edge cases
+            addResult('Test 3: Edge Cases', 'Testing edge cases...', 'info');
+            
+            // Empty array
+            const emptyResult = getFilteredAppointments([], '2025-07-16');
+            addResult('Empty Appointments Array', `Result: ${emptyResult.length} appointments`, 'pass');
+            
+            // Invalid dates
+            const invalidAppointments = [
+                { id: 1, booking_date: null, customer_name: 'Test 1' },
+                { id: 2, booking_date: '', customer_name: 'Test 2' },
+                { id: 3, booking_date: 'invalid-date', customer_name: 'Test 3' },
+                { id: 4, booking_date: '2025-07-16T10:00:00.000Z', customer_name: 'Valid Test' }
+            ];
+            
+            const invalidResult = getFilteredAppointments(invalidAppointments, '2025-07-16');
+            const invalidNames = invalidResult.map(apt => apt.customer_name).join(', ');
+            
+            addResult(
+                'Invalid Date Handling',
+                `From 4 appointments (3 invalid, 1 valid), filtered ${invalidResult.length}: ${invalidNames}`,
+                invalidResult.length === 1 ? 'pass' : 'fail'
+            );
+
+            // Test 5: Timezone consistency
+            addResult('Test 4: Timezone Consistency', 'Testing timezone consistency...', 'info');
+            
+            const utcDate = '2025-07-16T20:00:00.000Z'; // 8 PM UTC
+            const localDate = new Date(utcDate);
+            const extractedUTC = extractDateOnly(utcDate);
+            const extractedLocal = extractDateOnly(localDate);
+            
+            addResult(
+                'UTC vs Local Date Object',
+                `UTC string "${utcDate}" → ${extractedUTC}<br>Local Date object "${localDate}" → ${extractedLocal}<br>Match: ${extractedUTC === extractedLocal}`,
+                extractedUTC === extractedLocal ? 'pass' : 'fail'
+            );
+
+            addResult('All Tests Complete!', 'Check the results above to verify timezone handling is working correctly.', 'pass');
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        // Initialize
+        displayTimezoneInfo();
+    </script>
+</body>
+</html>

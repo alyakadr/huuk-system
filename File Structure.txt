@@ -1,0 +1,124 @@
+huuk-system/
+├── client/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── client.js
+│   │   ├── components/
+│   │   │   ├── shared/
+│   │   │   │   ├── CustHeader.js
+│   │   │   │   ├── EditProfile.js
+│   │   │   │   ├── Header.js
+│   │   │   │   ├── Settings.js
+│   │   │   │   ├── Sidebar.js
+│   │   │   │   └── SwitchModeButton.js
+│   │   │   ├── bookings/
+│   │   │   │   ├── Booking.js
+│   │   │   │   ├── BookingDetailsModal.js
+│   │   │   │   ├── ConfirmationModal.js
+│   │   │   │   ├── PaymentForm.js
+│   │   │   │   ├── PaymentModal.js
+│   │   │   │   ├── SignInModal.js
+│   │   │   │   └── SuccessModal.js
+│   │   ├── pages/
+│   │   │   ├── staff/
+│   │   │   │   ├── CustomerManagement.js
+│   │   │   │   ├── Homepage.js
+│   │   │   │   ├── ManagerAppoinmentManagement.js
+│   │   │   │   ├── ManagerDashboard.js
+│   │   │   │   ├── ManagerLayout.js
+│   │   │   │   ├── ManagerSalesReport.js
+│   │   │   │   ├── ManageStaffAttendance.js
+│   │   │   │   ├── PaymentSummary.js
+│   │   │   │   ├── SalesReport.js
+│   │   │   │   ├── StaffAppoinments.js
+│   │   │   │   ├── StaffApproval.js
+│   │   │   │   ├── StaffAttendance.js
+│   │   │   │   ├── StaffDashboard.js
+│   │   │   │   ├── StaffLayout.js
+│   │   │   │   ├── StaffManagement.js
+│   │   │   │   ├── StaffPayments.js
+│   │   │   │   ├── StaffProfiles.js
+│   │   │   │   ├── StaffReports.js
+│   │   │   │   └── StaffSchedule.js
+│   │   │   ├── customer/
+│   │   │   │   ├── AboutUs.js
+│   │   │   │   ├── BookingHistory.js
+│   │   │   │   ├── CustomerHomepage.js
+│   │   │   │   ├── Gallery.js
+│   │   │   │   ├── Location.js
+│   │   │   │   └── Services.js
+│   │   ├── styles/
+│   │   │   ├── booking.css
+│   │   │   ├── bookingHistory.css
+│   │   │   ├── customerHomepage.css
+│   │   │   ├── customerManagement.css
+│   │   │   ├── header.css
+│   │   │   ├── homepage.module.css
+│   │   │   ├── managerDashboard.css
+│   │   │   ├── managerLayout.css
+│   │   │   ├── PendingApprovals.css
+│   │   │   ├── sidebar.css
+│   │   │   ├── staffApproval.css
+│   │   │   ├── staffAttendance.css
+│   │   │   ├── staffDashboard.css
+│   │   │   ├── staffSchedule.css
+│   │   │   ├── staffLayout.css
+│   │   │   ├── staffProfiles.css
+│   │   │   ├── successModal.css
+│   │   │   └── SwitchModeButton.css
+│   │   ├── utils/
+│   │   │   ├── api.js
+│   │   │   ├── authUtils.js
+│   │   │   ├── bookingUtils.js
+│   │   │   ├── constants.js
+│   │   │   ├── CustomerManagementUtils.js
+│   │   │   └── dashboardUtils.js
+│   │   ├── App.css
+│   │   ├── App.js
+│   │   ├── index.css
+│   │   ├── index.js
+│   │   └── ProfileContext.js
+├── server/
+│   ├── config/
+│   │   └── db.js
+│   ├── controllers/
+│   │   ├── attendanceController.js
+│   │   ├── authController.js
+│   │   ├── bookingController.js
+│   │   └── userController.js
+│   ├── middlewares/
+│   │   ├── authMiddleware.js
+│   │   └── uploadMiddleware.js
+│   ├── models/
+│   │   ├── attendance.js
+│   │   └── userModel.js
+│   ├── routes/
+│   │   ├── attendanceRoutes.js
+│   │   ├── authRoutes.js
+│   │   ├── bookingRoutes.js
+│   │   ├── customerRoutes.js
+│   │   ├── paymentRoutes.js
+│   │   ├── userRoutes.js
+│   │   └── webhook.js
+│   ├── utils/
+│   │   ├── cron.js
+│   │   ├── email.js
+│   │   └── payment.js
+│   ├── app.js
+│   └── server.js
+├── dashboard.css
+├── dashboard.js
+├── client_debug.js
+├── debug_slots.js
+├── debug-booking.js
+├── debug-token.js
+├── debug-tokens.js
+├── debug-user.js
+├── fix-auth.js
+├── fix-logout.js
+├── test_api.js
+├── test_backend.js
+├── test_blocking_issues.js
+├── test_frontend_auth.js
+├── test_user_flow.js
+└── test-auth.js

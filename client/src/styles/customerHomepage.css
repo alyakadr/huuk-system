@@ -1,0 +1,675 @@
+.cust-homepage {
+  font-family: "Glacial Indifference", sans-serif;
+  color: #fff;
+  overflow: auto;
+  width: 100vw;
+  height: 100vh;
+  /* Hide scrollbars but keep scrolling */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.cust-homepage::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.cust-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 20px;
+  background-color: #1a1a1a;
+  height: 80px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+.cust-logo {
+  height: 130px;
+  padding-left: -10px;
+}
+
+.cust-hero-logo {
+  height: 150px;
+  margin-bottom: -10px;
+}
+
+.cust-nav {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  gap: 20px;
+  padding: 0;
+  position: relative;
+  top: 20px;
+}
+
+.cust-nav button {
+  padding: 12px 24px; /* Increased padding */
+  font-size: 16px;
+  line-height: 1.5; /* Better vertical alignment */
+  min-height: 40px; /* Ensure sufficient height */
+  display: inline-flex; /* Better hit area */
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #baa173;
+  text-transform: uppercase;
+  transition: all 0.3s;
+  font-family: "Glacial Indifference", sans-serif;
+}
+
+.cust-nav button:hover {
+  border-bottom: 1px solid #baa173;
+}
+
+.cust-nav button:active,
+.cust-nav button.active {
+  border-bottom: 1px solid #baa173;
+}
+
+.cust-auth {
+  display: flex;
+  align-items: center;
+}
+
+.cust-auth-logged-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+  top: 5px;
+  left: -50px;
+}
+
+.cust-welcome-text {
+  color: #baa173;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.cust-logout-btn {
+  background: none;
+  border: none;
+  color: #baa173;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-transform: uppercase;
+  padding: 5px;
+}
+
+.cust-logout-btn:hover {
+  color: #ff0000;
+  text-decoration: underline;
+}
+
+.cust-login-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  top: 20px;
+  left: -50px;
+}
+
+.cust-login-btn {
+  color: #baa173;
+  text-decoration: none;
+  margin-right: 10px;
+  position: relative;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.cust-login-btn:hover {
+  border-bottom: 1px solid #baa173;
+  text-decoration: none;
+}
+
+.cust-login-btn:active {
+  text-decoration: underline;
+  color: #baa173;
+}
+
+.cust-profile-icon {
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.cust-profile-pic,
+.cust-default-profile-pic {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  margin-left: 0px;
+  margin-right: 7px;
+}
+
+.cust-img {
+  width: 100%;
+  height: 100vh;
+  object-fit: cover;
+  opacity: 0.8;
+}
+
+.cust-hero {
+  position: relative;
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: start;
+}
+
+.cust-hero-content {
+  position: absolute;
+  top: 53%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+}
+
+.cust-hero-content h1 {
+  font-size: 2.5rem;
+  padding-bottom: 12px;
+  font-family: "Special Gothic Expanded One", sans-serif;
+}
+
+.cust-hero-content p {
+  font-size: 0.8em;
+  margin-bottom: 20px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: 20px;
+  color: white;
+  font-family: "Quicksand", sans-serif;
+}
+
+.cust-hero-buttons .cust-btn {
+  padding: 13px 25px;
+  margin: 0 10px;
+  text-decoration: none;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.cust-hero-buttons .cust-book-now {
+  background-color: #baa173;
+  font-size: 16px;
+  padding: 13px 45px !important;
+}
+
+.cust-book-now {
+  background-color: #baa173;
+  font-size: 16px;
+  padding: 13px 40px;
+  font-family: "Special Gothic Expanded One", sans-serif;
+}
+
+.cust-view-services {
+  background-color: #1a1a1a;
+  font-size: 16px;
+  font-family: "Special Gothic Expanded One", sans-serif;
+}
+
+.cust-cta-section {
+  background-color: #baa173;
+  text-align: center;
+  padding: 35px 25px;
+  color: #1a1a1a;
+  min-height: 50px;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: start;
+  position: relative;
+  top: 57px;
+}
+
+.cust-discover {
+  background-color: #1a1a1a;
+  color: #fff;
+  padding: 13px 20px;
+  text-decoration: none;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  margin-top: 40px;
+  font-size: 13px;
+  font-family: "Glacial Indifference", sans-serif;
+  border: none;
+  border-radius: 0;
+}
+
+.cust-cta-section p {
+  font-size: 0.9rem;
+  color: #1a1a1a;
+  font-family: "Quicksand", sans-serif;
+  margin-top: 20px;
+  display: block;
+}
+
+.cust-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: start;
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+.cust-about-us,
+.cust-gallery,
+.cust-services,
+.cust-location,
+.cust-booking {
+  text-align: center;
+  padding: 2rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.cust-about-us h2,
+.cust-gallery h2,
+.cust-services h2,
+.cust-location h2,
+.cust-booking h2 {
+  font-family: "Special Gothic Expanded One", sans-serif;
+  font-size: 2.5rem;
+  color: #4d4536;
+  margin-bottom: 20px;
+}
+
+.cust-about-us p,
+.cust-gallery p,
+.cust-services p,
+.cust-location p,
+.cust-booking p {
+  font-family: "Quicksand", sans-serif;
+  font-size: 1rem;
+  color: #fff;
+}
+
+/* Modal Styling */
+.cust-modal {
+  width: 95%;
+  height: 85%;
+  background-color: white;
+  border-radius: 1px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1050;
+  display: flex;
+  flex-direction: row;
+}
+
+.cust-modal-container {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+}
+
+.cust-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1040;
+}
+
+/* Left Section of the Modal */
+.cust-left-section {
+  width: 50%;
+  height: 100%;
+  padding: 60px;
+  color: #fff;
+  background-color: #1a1a1a;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.cust-h2he {
+  text-shadow: 4px 3px 0px rgba(0, 0, 0, 0.3);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 5.5rem;
+  font-weight: lighter;
+}
+
+.cust-h2he2 {
+  text-shadow: 4px 3px 0px rgba(0, 0, 0, 0.3);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 5.5rem;
+  font-weight: lighter;
+  margin-top: -10px;
+}
+
+.cust-create-account-heading {
+  font-family: "Quicksand", sans-serif;
+  font-size: 1.2rem;
+  color: #ffffff;
+  margin-bottom: 50px;
+  margin-top: -8px;
+  font-weight: bold;
+}
+
+.cust-no-account {
+  font-family: "Quicksand", sans-serif;
+  font-size: 0.9rem;
+  color: #ffffff;
+  position: absolute;
+  bottom: 50px;
+  left: 60px;
+}
+
+.cust-sign-up-text {
+  color: #ffffff;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.9rem;
+  position: absolute;
+  bottom: 50px;
+  left: 220px;
+  font-weight: bold;
+}
+
+.cust-sign-up-text:hover {
+  color: #baa173;
+}
+
+.cust-have-account {
+  font-family: "Quicksand", sans-serif;
+  font-size: 0.9rem;
+  color: #ffffff;
+  position: absolute;
+  bottom: 50px;
+  left: 60px;
+}
+
+.cust-sign-in-text {
+  color: #ffffff;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.9rem;
+  position: absolute;
+  bottom: 50px;
+  left: 190px;
+  font-weight: bold;
+}
+
+.cust-sign-in-text:hover {
+  color: #baa173;
+}
+
+/* Right Section for Form */
+.cust-right-section {
+  width: 50%;
+  height: 100%;
+  font-family: "Quicksand", sans-serif;
+  background-color: #baa173;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cust-sign-up-heading {
+  font-family: "Special Gothic Expanded One", sans-serif;
+  font-size: 2.5rem;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+}
+
+.cust-sign-up-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+  margin: 0;
+}
+
+.cust-sign-up-form input {
+  font-family: "Quicksand", sans-serif;
+  color: #1a1a1a;
+  padding: 12px;
+  margin: 12px 0;
+  width: 100%;
+  height: 40px;
+  border: 2px solid #1a1a1a;
+  border-radius: 1px;
+  font-size: 0.9rem;
+  box-shadow: 0px 7px 8px rgba(0, 0, 0, 0.4);
+}
+
+.cust-sign-up-form label {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+.cust-sign-up-btn {
+  font-family: "Quicksand", sans-serif;
+  padding: 8px;
+  background-color: #1a1a1a;
+  color: #baa173;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 50%;
+  height: 35px;
+  margin-top: 20px;
+}
+
+.cust-sign-up-btn:hover {
+  background-color: #333;
+}
+
+.cust-close-btn {
+  background-color: transparent;
+  font-family: "Glacial Indifference", sans-serif;
+  font-weight: 500;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 2rem;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  margin-right: 15px;
+}
+
+.cust-forgot-password {
+  font-size: 0.9rem;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+/* New improved form styles */
+.form-group {
+  margin-bottom: 0.8rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  font-family: "Quicksand", sans-serif;
+}
+
+.input-container {
+  position: relative;
+  width: 100%;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-size: 1.1rem;
+  z-index: 1;
+}
+
+.input-container input {
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  border: 2px solid #1a1a1a;
+  border-radius: 1px;
+  font-size: 0.95rem;
+  font-family: "Quicksand", sans-serif;
+  background-color: #fff;
+  color: #333;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-container input:focus {
+  outline: none;
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
+}
+
+.input-container input::placeholder {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.form-options {
+  margin: 1rem 0;
+  width: 100%;
+  max-width: 400px;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #1a1a1a;
+  cursor: pointer;
+  font-family: "Quicksand", sans-serif;
+  margin-top: 0.3rem;
+}
+
+.checkbox-container input[type="checkbox"] {
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+}
+
+.cust-sign-in-btn-new {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px;
+  background-color: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: "Quicksand", sans-serif;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin: 1rem 0;
+}
+
+.cust-sign-in-btn-new:hover {
+  background-color: #333;
+}
+
+.cust-sign-in-btn-new:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.forgot-password {
+  text-align: center;
+  margin: 1rem 0;
+  width: 100%;
+  max-width: 400px;
+}
+
+.forgot-link {
+  color: #1a1a1a;
+  text-decoration: underline;
+  font-size: 0.9rem;
+  font-family: "Quicksand", sans-serif;
+  cursor: pointer;
+}
+
+.forgot-link:hover {
+  color: #333;
+}
+
+.sign-up-link {
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: #1a1a1a;
+  font-family: "Quicksand", sans-serif;
+  width: 100%;
+  max-width: 400px;
+}
+
+.sign-up-text-link {
+  color: #1a1a1a;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.sign-up-text-link:hover {
+  color: #333;
+}
+
+/* Adjust right section to center form better */
+.cust-right-section {
+  width: 50%;
+  height: 100%;
+  font-family: "Quicksand", sans-serif;
+  background-color: #baa173;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  gap: 0;
+}
+
+.cust-sign-up-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+  margin: 0;
+}

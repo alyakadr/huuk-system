@@ -1,0 +1,33 @@
+.manager-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  box-sizing: border-box;
+  background-color: transparent; /* Prevent background overlap */
+}
+
+.manager-content {
+  flex-grow: 1;
+  overflow: auto; /* Allow scrolling if content overflows */
+  background-color: #0e0d0f; /* Match StaffLayout background */
+  padding-top: 170px; /* Offset for header, matching StaffLayout */
+  margin-left: 270px; /* Reduced from 280px to close gap */
+  width: calc(100% - 270px); /* Adjusted width to match margin */
+  box-sizing: border-box;
+  transition: margin-left 0.3s ease, width 0.3s ease; /* Smooth transition */
+  z-index: 1000; /* Below sidebar (z-index: 1200) */
+}
+
+/* Adjust when sidebar is minimized */
+.sidebar.minimized ~ .manager-content {
+  margin-left: 72px; /* Match minimized sidebar width */
+  width: calc(100% - 72px); /* Adjust width */
+}
+
+/* Ensure staff attendance container matches transaction container width */
+.manager-content .manager-staff-management-container {
+  width: 384px;
+  min-width: 384px;
+  flex: 0 0 384px;
+  box-sizing: border-box;
+}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage</title>
+</head>
+<body>
+    <h1>Clear Authentication Storage</h1>
+    <button id="clearBtn">Clear Storage</button>
+    <button id="testBtn">Test Redirect</button>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            // Clear localStorage
+            localStorage.removeItem('staff_loggedInUser');
+            localStorage.removeItem('staff_token');
+            localStorage.removeItem('staff_userId');
+            
+            // Clear cookies
+            document.cookie = 'email=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            
+            document.getElementById('result').innerHTML = '<p style="color: green;">Storage cleared successfully!</p>';
+        });
+
+        document.getElementById('testBtn').addEventListener('click', function() {
+            window.location.href = 'http://localhost:3000/staff-login';
+        });
+    </script>
+</body>
+</html>

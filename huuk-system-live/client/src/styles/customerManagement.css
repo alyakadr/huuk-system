@@ -1,0 +1,33 @@
+.customer-management-container {
+  padding: 20px;
+  background-color: #1a1a1a;
+  color: #fff;
+  font-family: "Quicksand", sans-serif;
+  min-height: 100vh;
+}
+
+.customer-management-container h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.customer-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.customer-table th,
+.customer-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #333;
+}
+
+.customer-table th {
+  background-color: #2a2a2a;
+  font-weight: bold;
+}
+
+.customer-table tbody tr:hover {
+  background-color: #3a3a3a;
+}
