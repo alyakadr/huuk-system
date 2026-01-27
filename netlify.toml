@@ -1,0 +1,15 @@
+[build]
+  base = "client"
+  command = "npm run build"
+  publish = "client/build"
+
+[build.environment]
+  CI = "false"
+  GENERATE_SOURCEMAP = "false"
+  ESLINT_NO_DEV_ERRORS = "true"
+  TSC_COMPILE_ON_ERROR = "true"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
