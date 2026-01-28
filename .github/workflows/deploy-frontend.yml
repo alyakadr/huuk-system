@@ -22,12 +22,12 @@ jobs:
     - name: Install dependencies
       run: |
         cd client
-        npm ci --only=production
+        npm ci
         
     - name: Build React app
       run: |
         cd client
-        npm run build
+        npm run build-simple
       env:
         REACT_APP_API_URL: https://huuk-system-production.up.railway.app
         CI: false
