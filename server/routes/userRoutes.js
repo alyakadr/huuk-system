@@ -2,11 +2,12 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const pool = require("../config/db");
-const { createUser, checkUsernameExists } = require("../models/userModel");
+const User = require("../models/User");
+const Service = require("../models/Service");
+const Booking = require("../models/Booking");
+const Outlet = require("../models/Outlet");
 const { profilePictureUpload } = require("../middlewares/uploadMiddleware");
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -38,53 +39,20 @@ router.post("/auth/signup", async (req, res) => {
   if (!email || !password || !userType || !fullname || !username) {
     return res.status(400).json({ message: "All fields are required" });
   }
-  let connection;
   try {
-    connection = await pool.getConnection();
-    const [results] = await connection.query(
-      "SELECT COUNT(*) AS count FROM users WHERE email = ?",
-      [email]
-    );
-    if (results[0].count > 0) {
-      return res.status(400).json({ message: "Email already registered" });
+    const emailExists = await User.countDocuments({ email: email.toLowerCase() });
+    if (emailExists > 0) return res.status(400).json({ message: "Email already registered" });
+
+    const usernameExists = await User.countDocuments({ username, role: { $in: ["staff", "manager"] } });
+    if (usernameExists > 0 && (userType === "staff" || userType === "manager")) {
+      return res.status(400).json({ message: "Username already taken by staff or manager" });
     }
-
-    checkUsernameExists(username, (err, exists) => {
-      if (err) {
-        console.error("Error checking username:", err.message);
-        return res
-          .status(500)
-          .json({ message: "Server error", detail: err.message });
-      }
-      if (exists && (userType === "staff" || userType === "manager")) {
-        return res
-          .status(400)
-          .json({ message: "Username already taken by staff or manager" });
-      }
-
-      createUser(
-        email,
-        password,
-        userType,
-        fullname,
-        outlet,
-        username,
-        (err, result) => {
-          if (err) {
-            console.error("Error creating user:", err.message);
-            return res
-              .status(500)
-              .json({ message: "Server error", detail: err.message });
-          }
-          res.json({ message: "User registered successfully" });
-        }
-      );
-    });
+    const hashed = await bcrypt.hash(password, 10);
+    await User.create({ email: email.toLowerCase(), password: hashed, role: userType, fullname, outlet, username, isApproved: 0 });
+    res.json({ message: "User registered successfully" });
   } catch (error) {
     console.error("Sign-up error:", error.message);
     res.status(500).json({ message: "Server error", detail: error.message });
-  } finally {
-    if (connection) connection.release();
   }
 });
 
@@ -93,32 +61,21 @@ router.post("/auth/signin", async (req, res) => {
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password required" });
   }
-  let connection;
   try {
-    connection = await pool.getConnection();
-    const [results] = await connection.query(
-      "SELECT * FROM users WHERE email = ?",
-      [email]
-    );
-    if (results.length === 0) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-    const user = results[0];
+    const user = await User.findOne({ email: email.toLowerCase() }).lean();
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
     const token = jwt.sign(
-      { userId: String(user.id), role: user.role, fullname: user.fullname },
+      { userId: user._id.toString(), role: user.role, fullname: user.fullname },
       JWT_SECRET,
       { expiresIn: "1h" }
     );
-    console.log("Generated token with userId:", user.id);
     res.json({
       success: true,
       token,
       user: {
-        id: String(user.id),
+        id: user._id.toString(),
         email: user.email,
         role: user.role,
         outlet: user.outlet,
@@ -129,8 +86,6 @@ router.post("/auth/signin", async (req, res) => {
   } catch (error) {
     console.error("Signin error:", error.message);
     res.status(500).json({ message: "Server error", detail: error.message });
-  } finally {
-    if (connection) connection.release();
   }
 });
 
@@ -138,24 +93,23 @@ router.get("/all-approvals", verifyToken, async (req, res) => {
   if (req.role !== "manager") {
     return res.status(403).json({ message: "Manager role required" });
   }
-  let connection;
   try {
-    connection = await pool.getConnection();
-    const [results] = await connection.query(`
-      SELECT id, fullname, username, email, outlet, created_at AS createdAt, 
-        CASE WHEN isApproved = 1 THEN 'approved' WHEN isApproved = 0 THEN 'pending' ELSE 'rejected' END AS status
-      FROM users
-      WHERE role IN ('staff', 'manager')
-      ORDER BY isApproved, created_at DESC
-    `);
-    res.json(results);
+    const users = await User.find({ role: { $in: ["staff", "manager"] } })
+      .select("_id fullname username email outlet createdAt isApproved")
+      .sort({ isApproved: 1, createdAt: -1 })
+      .lean();
+    res.json(users.map((u) => ({
+      id: u._id.toString(),
+      fullname: u.fullname,
+      username: u.username,
+      email: u.email,
+      outlet: u.outlet,
+      createdAt: u.createdAt,
+      status: u.isApproved === 1 ? "approved" : u.isApproved === 0 ? "pending" : "rejected",
+    })));
   } catch (err) {
     console.error("Error fetching approvals:", err.message);
-    return res
-      .status(500)
-      .json({ message: "Server error", detail: err.message });
-  } finally {
-    if (connection) connection.release();
+    res.status(500).json({ message: "Server error", detail: err.message });
   }
 });
 
@@ -168,39 +122,22 @@ router.post("/update-status/:id", verifyToken, async (req, res) => {
   if (!["approved", "rejected"].includes(status)) {
     return res.status(400).json({ message: "Invalid status" });
   }
-  let connection;
   try {
-    connection = await pool.getConnection();
     const isApproved = status === "approved" ? 1 : 0;
-    const [result] = await connection.query(
-      "UPDATE users SET status = ?, isApproved = ? WHERE id = ?",
-      [status, isApproved, userId]
-    );
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    // Emit WebSocket event with timing log
+    const result = await User.findByIdAndUpdate(userId, { status, isApproved });
+    if (!result) return res.status(404).json({ message: "User not found" });
     const io = req.app.get("socketio");
     if (io) {
-      console.log("Emitting pendingStaffUpdate at:", new Date().toISOString(), {
-        action: status === "approved" ? "remove" : "update",
-        userId: Number(userId),
-        status,
-      });
       io.emit("pendingStaffUpdate", {
         action: status === "approved" ? "remove" : "update",
-        userId: Number(userId),
+        userId,
         status,
       });
     }
     res.json({ message: `User ${status} successfully` });
   } catch (err) {
     console.error("Error updating status:", err.message);
-    return res
-      .status(500)
-      .json({ message: "Server error", detail: err.message });
-  } finally {
-    if (connection) connection.release();
+    res.status(500).json({ message: "Server error", detail: err.message });
   }
 });
 
@@ -208,22 +145,14 @@ router.get("/pending-approval", verifyToken, async (req, res) => {
   if (req.role !== "manager") {
     return res.status(403).json({ message: "Manager role required" });
   }
-  let connection;
   try {
-    connection = await pool.getConnection();
-    const [results] = await connection.query(`
-      SELECT id, fullname, username, email, outlet, created_at AS createdAt, 'pending' AS status
-      FROM users
-      WHERE isApproved = 0 AND role IN ('staff', 'manager')
-    `);
-    res.json(results);
+    const users = await User.find({ isApproved: 0, role: { $in: ["staff", "manager"] } })
+      .select("_id fullname username email outlet createdAt")
+      .lean();
+    res.json(users.map((u) => ({ id: u._id.toString(), fullname: u.fullname, username: u.username, email: u.email, outlet: u.outlet, createdAt: u.createdAt, status: "pending" })));
   } catch (err) {
     console.error("Error fetching pending approvals:", err.message);
-    return res
-      .status(500)
-      .json({ message: "Server error", detail: err.message });
-  } finally {
-    if (connection) connection.release();
+    res.status(500).json({ message: "Server error", detail: err.message });
   }
 });
 
@@ -232,47 +161,17 @@ router.post("/approve/:id", verifyToken, async (req, res) => {
     return res.status(403).json({ message: "Manager role required" });
   }
   const userId = req.params.id;
-  let connection;
   try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-    const [result] = await connection.query(
-      "UPDATE users SET isApproved = 1 WHERE id = ?",
-      [userId]
-    );
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const [updatedUser] = await connection.query(
-      "SELECT id, fullname, username, email, outlet, created_at AS createdAt, 'approved' AS status FROM users WHERE id = ?",
-      [userId]
-    );
-
-    await connection.commit();
-
-    // Emit WebSocket event with timing log
+    const result = await User.findByIdAndUpdate(userId, { isApproved: 1, status: "approved" });
+    if (!result) return res.status(404).json({ message: "User not found" });
     const io = req.app.get("socketio");
     if (io) {
-      console.log("Emitting pendingStaffUpdate at:", new Date().toISOString(), {
-        action: "remove",
-        userId: Number(userId),
-      });
-      io.emit("pendingStaffUpdate", {
-        action: "remove",
-        userId: Number(userId),
-      });
+      io.emit("pendingStaffUpdate", { action: "remove", userId });
     }
-
     res.json({ message: "User approved" });
   } catch (err) {
-    if (connection) await connection.rollback();
     console.error("Error approving user:", err.message);
-    return res
-      .status(500)
-      .json({ message: "Server error", detail: err.message });
-  } finally {
-    if (connection) connection.release();
+    res.status(500).json({ message: "Server error", detail: err.message });
   }
 });
 
