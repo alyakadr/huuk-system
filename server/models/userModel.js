@@ -1,161 +1,147 @@
-const mysql = require("mysql2");
 const bcrypt = require("bcryptjs");
+const User = require("./User");
+const PhoneOTP = require("./PhoneOTP");
 
-const db = mysql.createConnection({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "huuk",
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error("Error connecting to the database:", err);
-  } else {
-    console.log("Successfully connected to MySQL");
+const createUser = async (email, password, userType, fullname, outlet, username, callback) => {
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      email: email ? email.toLowerCase() : undefined,
+      password: hashedPassword,
+      role: userType,
+      fullname,
+      outlet,
+      username,
+      isApproved: 0,
+    });
+    const result = await user.save();
+    callback(null, result);
+  } catch (err) {
+    callback(err);
   }
-});
+};
 
-const createUser = (
-  email,
-  password,
-  userType,
-  fullname,
-  outlet,
-  username,
-  callback
-) => {
-  bcrypt.hash(password, 10, (err, hashedPassword) => {
-    if (err) return callback(err);
-    db.query(
-      "INSERT INTO users (email, password, role, fullname, outlet, username, isApproved) VALUES (?, ?, ?, ?, ?, ?, 0)",
-      [email, hashedPassword, userType, fullname, outlet, username],
-      callback
+const createCustomerWithPhone = async (phoneNumber, fullname, callback) => {
+  try {
+    const user = new User({ phone_number: phoneNumber, role: "customer", fullname, isApproved: 1 });
+    const result = await user.save();
+    callback(null, { insertId: result._id });
+  } catch (err) {
+    callback(err);
+  }
+};
+
+const findUserByPhone = async (phoneNumber, callback) => {
+  try {
+    const user = await User.findOne({ phone_number: phoneNumber }).lean();
+    if (user) user.id = user._id.toString();
+    callback(null, user || null);
+  } catch (err) {
+    callback(err);
+  }
+};
+
+const storeOTP = async (phoneNumber, otp, callback) => {
+  try {
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await PhoneOTP.findOneAndUpdate(
+      { phone_number: phoneNumber },
+      { phone_number: phoneNumber, otp_code: otp, expires_at: expiresAt },
+      { upsert: true, new: true }
     );
-  });
-};
-
-// Create customer with phone number (no password required)
-const createCustomerWithPhone = (
-  phoneNumber,
-  fullname,
-  callback
-) => {
-  db.query(
-    "INSERT INTO users (phone_number, role, fullname, isApproved) VALUES (?, 'customer', ?, 1)",
-    [phoneNumber, fullname],
-    callback
-  );
-};
-
-// Find user by phone number
-const findUserByPhone = (phoneNumber, callback) => {
-  db.query("SELECT * FROM users WHERE phone_number = ?", [phoneNumber], (err, results) => {
-    if (err) return callback(err);
-    if (results.length > 0) return callback(null, results[0]);
-    return callback(null, null);
-  });
-};
-
-// Store OTP for phone verification
-const storeOTP = (phoneNumber, otp, callback) => {
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
-  db.query(
-    "INSERT INTO phone_otps (phone_number, otp_code, expires_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE otp_code = ?, expires_at = ?",
-    [phoneNumber, otp, expiresAt, otp, expiresAt],
-    callback
-  );
-};
-
-// Verify OTP
-const verifyOTP = (phoneNumber, otp, callback) => {
-  db.query(
-    "SELECT * FROM phone_otps WHERE phone_number = ? AND otp_code = ? AND expires_at > NOW()",
-    [phoneNumber, otp],
-    (err, results) => {
-      if (err) return callback(err);
-      if (results.length > 0) {
-        // Delete the used OTP
-        db.query(
-          "DELETE FROM phone_otps WHERE phone_number = ?",
-          [phoneNumber],
-          (deleteErr) => {
-            if (deleteErr) console.error('Error deleting OTP:', deleteErr);
-            callback(null, true);
-          }
-        );
-      } else {
-        callback(null, false);
-      }
-    }
-  );
-};
-
-// Clean expired OTPs
-const cleanExpiredOTPs = () => {
-  db.query("DELETE FROM phone_otps WHERE expires_at <= NOW()", (err) => {
-    if (err) console.error('Error cleaning expired OTPs:', err);
-  });
-};
-
-// Update user profile (add email later)
-const updateUserProfile = (userId, updates, callback) => {
-  const allowedFields = ['email', 'fullname'];
-  const fields = [];
-  const values = [];
-  
-  Object.keys(updates).forEach(key => {
-    if (allowedFields.includes(key) && updates[key] !== undefined) {
-      fields.push(`${key} = ?`);
-      values.push(updates[key]);
-    }
-  });
-  
-  if (fields.length === 0) {
-    return callback(new Error('No valid fields to update'));
+    callback(null);
+  } catch (err) {
+    callback(err);
   }
-  
-  values.push(userId);
-  const query = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
-  
-  db.query(query, values, callback);
 };
 
-const checkUsernameExists = (username, callback) => {
-  const query =
-    "SELECT COUNT(*) AS count FROM users WHERE username = ? AND role IN ('staff', 'manager')";
-  db.query(query, [username], (err, results) => {
-    if (err) {
-      console.error("Error checking username:", err);
-      return callback(err);
+const verifyOTP = async (phoneNumber, otp, callback) => {
+  try {
+    const record = await PhoneOTP.findOne({
+      phone_number: phoneNumber,
+      otp_code: otp,
+      expires_at: { $gt: new Date() },
+    });
+    if (record) {
+      await PhoneOTP.deleteOne({ phone_number: phoneNumber });
+      callback(null, true);
+    } else {
+      callback(null, false);
     }
-    callback(null, results[0].count > 0);
-  });
+  } catch (err) {
+    callback(err);
+  }
 };
 
-const findUserByEmail = (email, callback) => {
-  db.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
-    if (err) return callback(err);
-    if (results.length > 0) return callback(null, results[0]);
-    return callback(null, null);
-  });
+const cleanExpiredOTPs = async () => {
+  try {
+    await PhoneOTP.deleteMany({ expires_at: { $lte: new Date() } });
+  } catch (err) {
+    console.error("Error cleaning expired OTPs:", err);
+  }
 };
 
-const findUserByEmailAndPassword = (email, password, callback) => {
-  db.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
-    if (err) return callback(err);
-    if (results.length === 0) {
-      return callback(null, null);
-    }
-    bcrypt.compare(password, results[0].password, (err, isMatch) => {
-      if (err) return callback(err);
-      if (isMatch) {
-        callback(null, results[0]);
-      } else {
-        callback(null, null);
+const updateUserProfile = async (userId, updates, callback) => {
+  try {
+    const allowedFields = ["email", "fullname"];
+    const filteredUpdates = {};
+    Object.keys(updates).forEach((key) => {
+      if (allowedFields.includes(key) && updates[key] !== undefined) {
+        filteredUpdates[key] = updates[key];
       }
     });
-  });
+    if (Object.keys(filteredUpdates).length === 0) {
+      return callback(new Error("No valid fields to update"));
+    }
+    const result = await User.findByIdAndUpdate(userId, filteredUpdates, { new: true });
+    if (!result) return callback(null, { affectedRows: 0 });
+    callback(null, { affectedRows: 1 });
+  } catch (err) {
+    callback(err);
+  }
+};
+
+const checkUsernameExists = async (username, callback) => {
+  try {
+    const count = await User.countDocuments({ username, role: { $in: ["staff", "manager"] } });
+    callback(null, count > 0);
+  } catch (err) {
+    callback(err);
+  }
+};
+
+const findUserByEmail = async (email, callback) => {
+  try {
+    const user = await User.findOne({ email: email.toLowerCase() }).lean();
+    if (user) user.id = user._id.toString();
+    callback(null, user || null);
+  } catch (err) {
+    callback(err);
+  }
+};
+
+const findUserByEmailAndPassword = async (email, password, callback) => {
+  try {
+    const user = await User.findOne({ email: email.toLowerCase() }).lean();
+    if (!user) return callback(null, null);
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (isMatch) {
+      user.id = user._id.toString();
+      callback(null, user);
+    } else {
+      callback(null, null);
+    }
+  } catch (err) {
+    callback(err);
+  }
+};
+
+// Compatibility shim: expose a db-like object for legacy code that uses db.query
+const db = {
+  query: async (sql, params, callback) => {
+    console.warn("Legacy db.query() called. Migrate this to Mongoose directly.");
+    if (typeof callback === "function") callback(new Error("db.query not supported in MongoDB mode"), null);
+  },
 };
 
 module.exports = {
