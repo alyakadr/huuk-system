@@ -23,6 +23,7 @@
     "chartjs-plugin-datalabels": "^2.2.0",
     "date-fns": "^2.30.0",
     "framer-motion": "^12.8.0",
+    "huuk-system": "file:..",
     "js-cookie": "^3.0.5",
     "jspdf": "^3.0.1",
     "jwt-decode": "^4.0.0",
