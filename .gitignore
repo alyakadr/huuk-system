@@ -65,3 +65,10 @@ temp/
 
 # Production environment files (keep template)
 production-env-template.txt
+
+# Windows artifacts
+desktop.ini
+*.bat
+
+# Backup / live copies
+huuk-system-live/
