@@ -29,7 +29,34 @@ A full-stack appointment and staff management system for barber shops, built wit
 - Node.js 18+
 - MySQL 8.0+
 
-### Installation
+### Quick Start (run both servers with one command)
+
+```bash
+# 1. Clone & enter the repo
+git clone https://github.com/alyakadr/huuk-system.git
+cd huuk-system
+
+# 2. Install all dependencies (root, server, client)
+npm run install:all
+
+# 3. Configure the backend environment
+cp env.example server/.env
+#    Edit server/.env with your DB credentials and JWT_SECRET
+
+# 4. Set up the MySQL database
+mysql -u root -p -e "CREATE DATABASE huuk;"
+mysql -u root -p huuk < server/migrations/create_slot_reservations.sql
+
+# 5. Start both servers (backend :5000 + frontend :3000)
+npm start
+```
+
+The React app opens at **http://localhost:3000** and talks to the API at **http://localhost:5000**.
+
+> **Tip – live-reload backend:** replace `npm start` in step 5 with `npm run dev`  
+> (uses `nodemon` for automatic server restarts on file changes).
+
+### Manual Installation
 
 1. **Clone the repository**
 
@@ -41,6 +68,9 @@ A full-stack appointment and staff management system for barber shops, built wit
 2. **Install dependencies**
 
    ```bash
+   # Root (installs concurrently)
+   npm install
+
    # Backend
    cd server && npm install
 

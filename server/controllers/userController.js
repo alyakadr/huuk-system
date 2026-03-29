@@ -1,122 +1,76 @@
-const { db } = require("../models/userModel");
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 const moment = require("moment");
-const pool = require("../config/db");
 
 // Check if the username exists
-exports.checkUsernameExists = (req, res) => {
+exports.checkUsernameExists = async (req, res) => {
   const { username } = req.params;
-
-  const query = "SELECT * FROM users WHERE username = ?";
-  db.query(query, [username], (err, results) => {
-    if (err) {
-      console.error("Error checking username:", err);
-      return res
-        .status(500)
-        .json({ message: "Server error during username check." });
-    }
-
-    if (results.length > 0) {
-      return res.json({ exists: true });
-    }
-    return res.json({ exists: false });
-  });
+  try {
+    const user = await User.findOne({ username }).lean();
+    res.json({ exists: !!user });
+  } catch (err) {
+    console.error("Error checking username:", err);
+    res.status(500).json({ message: "Server error during username check." });
+  }
 };
 
 // Check if the email exists
-exports.checkEmailExists = (req, res) => {
+exports.checkEmailExists = async (req, res) => {
   const { email } = req.body;
-
-  const query = "SELECT * FROM users WHERE email = ?";
-  db.query(query, [email], (err, results) => {
-    if (err) {
-      console.error("Error checking email:", err);
-      return res
-        .status(500)
-        .json({ message: "Server error during email check." });
-    }
-
-    if (results.length > 0) {
-      return res.json({ exists: true });
-    }
-    return res.json({ exists: false });
-  });
+  try {
+    const user = await User.findOne({ email: email?.toLowerCase() }).lean();
+    res.json({ exists: !!user });
+  } catch (err) {
+    console.error("Error checking email:", err);
+    res.status(500).json({ message: "Server error during email check." });
+  }
 };
 
-// Create new user (this logic might be in authController.js, but can be moved to userController.js)
-exports.createUser = (req, res) => {
+// Create new user
+exports.createUser = async (req, res) => {
   const { email, password, fullname, username, userType, outlet } = req.body;
-
-  const query =
-    "INSERT INTO users (email, password, fullname, username, role, outlet) VALUES (?, ?, ?, ?, ?, ?)";
-
-  db.query(
-    query,
-    [email, password, fullname, username, userType, outlet],
-    (err, result) => {
-      if (err) {
-        console.error("Error creating user:", err);
-        return res.status(500).json({ message: "Error creating user." });
-      }
-
-      res.status(201).json({
-        message: "User created successfully.",
-      });
-    }
-  );
+  try {
+    const hashed = await bcrypt.hash(password, 10);
+    await User.create({ email: email?.toLowerCase(), password: hashed, fullname, username, role: userType, outlet });
+    res.status(201).json({ message: "User created successfully." });
+  } catch (err) {
+    console.error("Error creating user:", err);
+    res.status(500).json({ message: "Error creating user." });
+  }
 };
 
 // Get total number of customers
 exports.getTotalCustomersAll = async (req, res) => {
-  let connection;
   try {
-    connection = await pool.getConnection();
-    const [results] = await connection.query(
-      "SELECT COUNT(*) AS count FROM users WHERE role = 'customer'"
-    );
-    console.log("Fetched total customers:", results[0].count);
-    res.json({ count: results[0].count });
+    const count = await User.countDocuments({ role: "customer" });
+    res.json({ count });
   } catch (err) {
     console.error("Error fetching total customers:", err.message);
     res.status(500).json({ message: "Server error", detail: err.message });
-  } finally {
-    if (connection) connection.release();
   }
 };
 
 // Get total number of customers up to yesterday
 exports.getTotalCustomersUpToYesterday = async (req, res) => {
-  let connection;
   try {
-    connection = await pool.getConnection();
-    const yesterday = moment().subtract(1, "days").format("YYYY-MM-DD");
-    const [results] = await connection.query(
-      "SELECT COUNT(*) AS count FROM users WHERE role = 'customer' AND created_at < ?",
-      [yesterday]
-    );
-    console.log("Fetched customers up to yesterday:", results[0].count);
-    res.json({ count: results[0].count });
+    const yesterday = moment().subtract(1, "days").endOf("day").toDate();
+    const count = await User.countDocuments({ role: "customer", createdAt: { $lt: yesterday } });
+    res.json({ count });
   } catch (err) {
     console.error("Error fetching customers up to yesterday:", err.message);
     res.status(500).json({ message: "Server error", detail: err.message });
-  } finally {
-    if (connection) connection.release();
   }
 };
 
 // Get list of all customers
 exports.getCustomerList = async (req, res) => {
-  let connection;
   try {
-    connection = await pool.getConnection();
-    const [results] = await connection.query(
-      "SELECT id, fullname, username, email, created_at FROM users WHERE role = 'customer'"
-    );
-    console.log("Fetched customer list:", results.length);
-    res.json(results);
+    const customers = await User.find({ role: "customer" })
+      .select("_id fullname username email createdAt")
+      .lean();
+    res.json(customers.map((c) => ({ ...c, id: c._id.toString() })));
   } catch (err) {
     console.error("Error fetching customer list:", err.message);
     res.status(500).json({ message: "Server error", detail: err.message });
-  } finally {
-    if (connection) connection.release();
   }
 };
