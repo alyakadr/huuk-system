@@ -72,3 +72,20 @@ desktop.ini
 
 # Backup / live copies
 huuk-system-live/
+
+# Nested repo copies
+client/huuk-system/
+
+# Production env files
+client/env.production
+*.ps1
+
+# Debug/temp scripts and docs
+client/test_*.js
+client/BOOKING_FIXES_SUMMARY.md
+client/FIXES_APPLIED.md
+client/TimeSlotTestingInstructions.md
+client/main.js
+client/styles/
+server/scripts/
+server/test_scripts/
