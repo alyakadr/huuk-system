@@ -1,176 +1,73 @@
-const {
-  db,
-  findUserByEmailAndPassword,
-  findUserByEmail,
-  createUser,
-  updateUserApproval,
-  checkUsernameExists,
-} = require("../models/userModel");
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 
 // Sign-Up Controller
-exports.signUp = (req, res) => {
+exports.signUp = async (req, res) => {
   const { email, password, userType, fullname, outlet, username } = req.body;
 
-  // If the user is a staff member or manager, outlet should be required
   if (userType === "staff" || userType === "manager") {
-    if (!outlet) {
-      return res.status(400).json({ message: "Outlet is required for staff." });
+    if (!outlet) return res.status(400).json({ message: "Outlet is required for staff." });
+
+    try {
+      const exists = await User.countDocuments({ username, role: { $in: ["staff", "manager"] } });
+      if (exists) return res.status(400).json({ message: "Username is already taken for staff." });
+
+      const hashed = await bcrypt.hash(password, 10);
+      await User.create({ email: email?.toLowerCase(), password: hashed, role: userType, fullname, outlet, username, isApproved: 0 });
+      return res.status(200).json({ message: `Sign-up successful for ${userType}!` });
+    } catch (err) {
+      console.error("Error during user creation:", err);
+      return res.status(500).json({ message: "Error during sign-up." });
     }
-  }
-
-  // Check if userType is 'staff' or 'manager' and enforce uniqueness for staff
-  if (userType === "staff" || userType === "manager") {
-    checkUsernameExists(username, (err, exists) => {
-      if (err) {
-        return res
-          .status(500)
-          .json({ message: "Server error during username check." });
-      }
-
-      if (exists) {
-        return res
-          .status(400)
-          .json({ message: "Username is already taken for staff." });
-      }
-
-      // Proceed with creating the staff account (manager or normal staff)
-      createUser(
-        email,
-        password,
-        userType,
-        fullname,
-        outlet,
-        username,
-        (err) => {
-          if (err) {
-            console.error("Error during user creation:", err);
-            return res.status(500).json({ message: "Error during sign-up." });
-          }
-          res
-            .status(200)
-            .json({ message: `Sign-up successful for ${userType}!` });
-        }
-      );
-    });
   } else if (userType === "customer") {
-    // For customers, skip the username uniqueness check
-    // Outlet is not required for customers
-    createUser(email, password, "customer", fullname, null, username, (err) => {
-      if (err) {
-        console.error("Error during user creation:", err);
-        return res.status(500).json({ message: "Error during sign-up." });
-      }
-      res.status(200).json({ message: "Sign-up successful for customer!" });
-    });
+    try {
+      const hashed = await bcrypt.hash(password, 10);
+      await User.create({ email: email?.toLowerCase(), password: hashed, role: "customer", fullname, username, isApproved: 0 });
+      return res.status(200).json({ message: "Sign-up successful for customer!" });
+    } catch (err) {
+      console.error("Error during user creation:", err);
+      return res.status(500).json({ message: "Error during sign-up." });
+    }
   } else {
-    return res
-      .status(400)
-      .json({
-        message:
-          "Invalid user type. Must be 'staff', 'manager', or 'customer'.",
-      });
+    return res.status(400).json({ message: "Invalid user type. Must be 'staff', 'manager', or 'customer'." });
   }
 };
 
 // Sign-In Controller
-exports.signIn = (req, res) => {
+exports.signIn = async (req, res) => {
   const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email: email?.toLowerCase() }).lean();
+    if (!user) return res.status(400).json({ message: "Invalid credentials." });
 
-  findUserByEmailAndPassword(email, password, (err, user) => {
-    if (err) {
-      console.error("Login error:", err);
-      return res.status(500).json({ message: "Login failed." });
-    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: "Invalid credentials." });
 
-    if (!user) {
-      return res.status(400).json({ message: "Invalid credentials." });
-    }
-
-    if (!user.isApproved) {
-      return res
-        .status(400)
-        .json({ message: "Please wait for manager approval." });
-    }
+    if (!user.isApproved) return res.status(400).json({ message: "Please wait for manager approval." });
 
     const responseUser = {
-      id: user.id,
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
       fullname: user.fullname,
-      token: user.token || "", // Add real token generation if needed
+      token: user.token || "",
     };
-
     res.status(200).json({ success: true, user: responseUser });
-  });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Login failed." });
+  }
 };
 
 // Check if username exists
-exports.checkUsernameExists = (req, res) => {
+exports.checkUsernameExists = async (req, res) => {
   const { username } = req.params;
-
-  const query = "SELECT * FROM users WHERE username = ?";
-  db.query(query, [username], (err, results) => {
-    if (err) {
-      console.error("Error checking username:", err);
-      return res.status(500).json({ message: "Error checking username." });
-    }
-
-    if (results.length > 0) {
-      return res.json({ exists: true });
-    }
-    return res.json({ exists: false });
-  });
+  try {
+    const user = await User.findOne({ username }).lean();
+    res.json({ exists: !!user });
+  } catch (err) {
+    console.error("Error checking username:", err);
+    res.status(500).json({ message: "Error checking username." });
+  }
 };
-
-// Helper function to send approval email to manager
-function sendApprovalEmail(email, userType) {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS,
-    },
-  });
-
-  const mailOptions = {
-    from: "2022611454@student.uitm.edu.my",
-    to: "staff-email@example.com",
-    subject: `New ${userType} Sign Up Pending Approval`,
-    text: `A new ${userType} has signed up: ${email}. Please approve or reject the account.`,
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.log("Error sending approval email:", error);
-    } else {
-      console.log("Approval email sent:", info.response);
-    }
-  });
-}
-
-// Helper function to send registration success email to user
-function sendRegistrationSuccessEmail(userEmail) {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_USER, // Set in environment variables for security
-      pass: process.env.GMAIL_PASS,
-    },
-  });
-
-  const mailOptions = {
-    from: process.env.GMAIL_USER,
-    to: userEmail,
-    subject: "Your Registration is Successful",
-    text: "Congratulations! Your account has been successfully registered and is now active.",
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.log("Error sending registration email:", error);
-    } else {
-      console.log("Registration email sent:", info.response);
-    }
-  });
-}
