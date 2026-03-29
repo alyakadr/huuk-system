@@ -1,1 +1,0 @@
-﻿console.log('Current localStorage keys:'); console.log(Object.keys(localStorage)); console.log('staff_loggedInUser:', localStorage.getItem('staff_loggedInUser')); console.log('token:', localStorage.getItem('token')); console.log('loggedInUser:', localStorage.getItem('loggedInUser'));
