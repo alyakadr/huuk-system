@@ -32,11 +32,13 @@ const {
 const {
   resolveOrCreateCustomerUser,
 } = require("../services/customerAccountService");
-
-const formatDateForDb = (date) => {
-  const d = new Date(date);
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-};
+const {
+  formatDateForDb,
+  isOutsideOperatingHours,
+  OUTSIDE_OPERATING_HOURS_MESSAGE,
+  toPaymentMethodLabel,
+  buildBookingPaymentDetails,
+} = require("../utils/booking/bookingPresentation");
 
 const retryOperation = async (operation, retries = 3, delayBase = 1000) => {
   for (let i = 0; i < retries; i++) {
@@ -580,8 +582,7 @@ exports.getUserBookings = async (req, res) => {
         price: b.service_id ? b.service_id.price : 0,
         service_duration: b.service_id ? b.service_id.duration : 30,
         staff_name: b.staff_id ? b.staff_id.username : "",
-        payment_method:
-          b.payment_method === "Stripe" ? "Online Payment" : b.payment_method,
+        payment_method: toPaymentMethodLabel(b.payment_method),
         review: rev
           ? {
               rating: rev.rating,
@@ -633,14 +634,8 @@ exports.createBooking = async (req, res) => {
     }
 
     const slotStart = new Date(`${date}T${time}Z`);
-    const operatingStart = new Date(`${date}T10:00:00Z`);
-    const operatingEnd = new Date(`${date}T21:00:00Z`);
-    if (slotStart < operatingStart || slotStart > operatingEnd) {
-      return res
-        .status(400)
-        .json({
-          message: "Slot outside operating hours (10:00 AM - 9:00 PM UTC)",
-        });
+    if (isOutsideOperatingHours(date, slotStart)) {
+      return res.status(400).json({ message: OUTSIDE_OPERATING_HOURS_MESSAGE });
     }
 
     const svc = await Service.findById(service_id).lean();
@@ -661,17 +656,13 @@ exports.createBooking = async (req, res) => {
     });
 
     if (availability.isBlockedByTime)
-      return res
-        .status(400)
-        .json({
-          message: "Staff or manager not available due to blocked time",
-        });
+      return res.status(400).json({
+        message: "Staff or manager not available due to blocked time",
+      });
     if (availability.isBlockedBySlot)
-      return res
-        .status(400)
-        .json({
-          message: "Staff or manager not available due to blocked slot",
-        });
+      return res.status(400).json({
+        message: "Staff or manager not available due to blocked slot",
+      });
     if (availability.hasConflict)
       return res.status(400).json({ message: "Slot already booked" });
     if (availability.nextEvent && availability.nextEvent.start < slotEnd) {
@@ -864,14 +855,8 @@ exports.createStaffAppointment = async (req, res) => {
     const staffOutletId = staffDoc.outlet_id;
 
     const slotStart = new Date(`${date}T${time}Z`);
-    const operatingStart = new Date(`${date}T10:00:00Z`);
-    const operatingEnd = new Date(`${date}T21:00:00Z`);
-    if (slotStart < operatingStart || slotStart > operatingEnd) {
-      return res
-        .status(400)
-        .json({
-          message: "Slot outside operating hours (10:00 AM - 9:00 PM UTC)",
-        });
+    if (isOutsideOperatingHours(date, slotStart)) {
+      return res.status(400).json({ message: OUTSIDE_OPERATING_HOURS_MESSAGE });
     }
 
     const svc = await Service.findById(
@@ -889,11 +874,9 @@ exports.createStaffAppointment = async (req, res) => {
       slotEnd,
     });
     if (availability.isBlockedByTime)
-      return res
-        .status(400)
-        .json({
-          message: "Staff or manager not available due to blocked time",
-        });
+      return res.status(400).json({
+        message: "Staff or manager not available due to blocked time",
+      });
     if (availability.hasConflict)
       return res.status(400).json({ message: "Slot already booked" });
 
@@ -958,11 +941,9 @@ exports.rescheduleStaffAppointment = async (req, res) => {
       slotStart < new Date(`${date}T10:00:00Z`) ||
       slotStart > new Date(`${date}T21:00:00Z`)
     ) {
-      return res
-        .status(400)
-        .json({
-          message: "Slot outside operating hours (10:00 AM - 9:00 PM UTC)",
-        });
+      return res.status(400).json({
+        message: "Slot outside operating hours (10:00 AM - 9:00 PM UTC)",
+      });
     }
 
     const svc = await Service.findById(
@@ -1092,21 +1073,18 @@ exports.cancelBooking = async (req, res) => {
       $set: { status: "Cancelled", payment_status: refundStatus },
     });
 
-    const bookingDetails = {
+    const bookingDetails = buildBookingPaymentDetails({
       id: booking_id,
-      outlet: booking.outlet_id?.shortform || "",
-      service: booking.service_id?.name || "",
-      date: formatDateForDb(booking.date),
+      outlet: booking.outlet_id?.shortform,
+      service: booking.service_id?.name,
+      date: booking.date,
       time: booking.time,
       customer_name: booking.customer_name,
-      staff_name: booking.staff_id?.username || "",
+      staff_name: booking.staff_id?.username,
       price: parseFloat(booking.service_id?.price) || 0,
-      payment_method:
-        booking.payment_method === "Stripe"
-          ? "Online Payment"
-          : booking.payment_method,
+      payment_method: booking.payment_method,
       payment_status: refundStatus,
-    };
+    });
 
     if (booking.user_id?.email) {
       await retryOperation(() =>
@@ -1182,21 +1160,18 @@ exports.sendBookingReceipt = async (req, res) => {
         .status(400)
         .json({ message: "Booking not paid or not set to pay at outlet" });
     }
-    const details = {
+    const details = buildBookingPaymentDetails({
       id: booking_id,
-      outlet: booking.outlet_id?.shortform || "",
-      service: booking.service_id?.name || "",
-      date: formatDateForDb(booking.date),
+      outlet: booking.outlet_id?.shortform,
+      service: booking.service_id?.name,
+      date: booking.date,
       time: booking.time,
       customer_name: booking.customer_name,
-      staff_name: booking.staff_id?.username || "",
+      staff_name: booking.staff_id?.username,
       price: parseFloat(booking.service_id?.price) || 0,
-      payment_method:
-        booking.payment_method === "Stripe"
-          ? "Online Payment"
-          : booking.payment_method,
+      payment_method: booking.payment_method,
       payment_status: booking.payment_status,
-    };
+    });
     await retryOperation(() => sendReceiptEmail(details, email));
     res.json({ message: "Receipt sent successfully" });
   } catch (err) {
@@ -1236,11 +1211,9 @@ exports.setPayAtOutlet = async (req, res) => {
       : null;
     if (actualUserId && actualUserId !== String(userId) && !debug) {
       if (!["staff", "manager", "admin"].includes(req.role)) {
-        return res
-          .status(403)
-          .json({
-            message: "You don't have permission to modify this booking",
-          });
+        return res.status(403).json({
+          message: "You don't have permission to modify this booking",
+        });
       }
     }
 
@@ -1248,18 +1221,18 @@ exports.setPayAtOutlet = async (req, res) => {
       $set: { payment_method: "Pay at Outlet", payment_status: "Pending" },
     });
 
-    const bookingDetails = {
+    const bookingDetails = buildBookingPaymentDetails({
       id: booking_id,
-      outlet: booking.outlet_id?.shortform || "",
-      service: booking.service_id?.name || "",
-      date: formatDateForDb(booking.date),
+      outlet: booking.outlet_id?.shortform,
+      service: booking.service_id?.name,
+      date: booking.date,
       time: booking.time,
       customer_name: booking.customer_name,
-      staff_name: booking.staff_id?.username || "",
+      staff_name: booking.staff_id?.username,
       price: booking.service_id?.price || 0,
       payment_method: "Pay at Outlet",
       payment_status: "Pending",
-    };
+    });
 
     const userEmail = booking.user_id?.email;
     if (userEmail && !isPlaceholderEmail) {
@@ -1347,16 +1320,18 @@ exports.setMultiplePayAtOutlet = async (req, res) => {
         });
 
         results.push({
-          id: bookingId,
-          outlet: booking.outlet_id?.shortform || "",
-          service: booking.service_id?.name || "",
-          date: formatDateForDb(booking.date),
-          time: booking.time,
-          customer_name: booking.customer_name,
-          staff_name: booking.staff_id?.username || "",
-          price: booking.service_id?.price || 0,
-          payment_method: "Pay at Outlet",
-          payment_status: "Pending",
+          ...buildBookingPaymentDetails({
+            id: bookingId,
+            outlet: booking.outlet_id?.shortform,
+            service: booking.service_id?.name,
+            date: booking.date,
+            time: booking.time,
+            customer_name: booking.customer_name,
+            staff_name: booking.staff_id?.username,
+            price: booking.service_id?.price || 0,
+            payment_method: "Pay at Outlet",
+            payment_status: "Pending",
+          }),
         });
       } catch (bookingError) {
         console.error(`Error processing booking ${bookingId}:`, bookingError);
@@ -1404,11 +1379,9 @@ exports.confirmPayAtOutlet = async (req, res) => {
       .populate("staff_id", "username")
       .lean();
     if (!booking)
-      return res
-        .status(404)
-        .json({
-          message: "Booking not found or not eligible for confirmation",
-        });
+      return res.status(404).json({
+        message: "Booking not found or not eligible for confirmation",
+      });
 
     const { user_id, date, customer_name } = booking;
 
@@ -1430,18 +1403,18 @@ exports.confirmPayAtOutlet = async (req, res) => {
       );
     }
 
-    const bookingDetails = {
+    const bookingDetails = buildBookingPaymentDetails({
       id: booking_id,
-      outlet: booking.outlet_id?.shortform || "",
-      service: booking.service_id?.name || "",
-      date: formatDateForDb(booking.date),
+      outlet: booking.outlet_id?.shortform,
+      service: booking.service_id?.name,
+      date: booking.date,
       time: booking.time,
       customer_name: booking.customer_name,
-      staff_name: booking.staff_id?.username || "",
+      staff_name: booking.staff_id?.username,
       price: parseFloat(booking.service_id?.price) || 0,
       payment_method: "Pay at Outlet",
       payment_status: "Paid",
-    };
+    });
 
     const userDoc = await User.findById(booking.user_id, "email").lean();
     if (userDoc && userDoc.email) {
@@ -1926,11 +1899,9 @@ exports.updateAppointmentStatus = async (req, res) => {
     "Absent",
   ];
   if (!validStatuses.includes(status)) {
-    return res
-      .status(400)
-      .json({
-        message: `Invalid status: ${status}. Valid statuses are: ${validStatuses.join(", ")}`,
-      });
+    return res.status(400).json({
+      message: `Invalid status: ${status}. Valid statuses are: ${validStatuses.join(", ")}`,
+    });
   }
 
   let normalizedStatus =
@@ -2194,14 +2165,8 @@ exports.updateBooking = async (req, res) => {
         .json({ message: "Staff or manager not available or not approved" });
 
     const slotStart = new Date(`${date}T${time}Z`);
-    const operatingStart = new Date(`${date}T10:00:00Z`);
-    const operatingEnd = new Date(`${date}T21:00:00Z`);
-    if (slotStart < operatingStart || slotStart > operatingEnd) {
-      return res
-        .status(400)
-        .json({
-          message: "Slot outside operating hours (10:00 AM - 9:00 PM UTC)",
-        });
+    if (isOutsideOperatingHours(date, slotStart)) {
+      return res.status(400).json({ message: OUTSIDE_OPERATING_HOURS_MESSAGE });
     }
 
     const svc = await Service.findById(
@@ -2220,11 +2185,9 @@ exports.updateBooking = async (req, res) => {
       excludeBookingId: bookingId,
     });
     if (availability.isBlockedByTime)
-      return res
-        .status(400)
-        .json({
-          message: "Staff or manager not available due to blocked time",
-        });
+      return res.status(400).json({
+        message: "Staff or manager not available due to blocked time",
+      });
     if (availability.hasConflict)
       return res.status(400).json({ message: "Slot already booked" });
 
@@ -2314,14 +2277,8 @@ exports.rescheduleBooking = async (req, res) => {
         .json({ message: "Staff not available or not approved" });
 
     const slotStart = new Date(`${date}T${time}Z`);
-    const operatingStart = new Date(`${date}T10:00:00Z`);
-    const operatingEnd = new Date(`${date}T21:00:00Z`);
-    if (slotStart < operatingStart || slotStart > operatingEnd) {
-      return res
-        .status(400)
-        .json({
-          message: "Slot outside operating hours (10:00 AM - 9:00 PM UTC)",
-        });
+    if (isOutsideOperatingHours(date, slotStart)) {
+      return res.status(400).json({ message: OUTSIDE_OPERATING_HOURS_MESSAGE });
     }
 
     const duration = booking.service_id?.duration || 30;
@@ -2350,21 +2307,18 @@ exports.rescheduleBooking = async (req, res) => {
       $set: { date, time, staff_id },
     });
 
-    const bookingDetails = {
+    const bookingDetails = buildBookingPaymentDetails({
       id: booking_id,
-      outlet: booking.outlet_id?.shortform || "",
-      service: booking.service_id?.name || "",
-      date: formatDateForDb(date),
+      outlet: booking.outlet_id?.shortform,
+      service: booking.service_id?.name,
+      date,
       time,
       customer_name: booking.customer_name,
-      staff_name: booking.staff_id?.username || "",
+      staff_name: booking.staff_id?.username,
       price: parseFloat(booking.service_id?.price) || 0,
-      payment_method:
-        booking.payment_method === "Stripe"
-          ? "Online Payment"
-          : booking.payment_method,
+      payment_method: booking.payment_method,
       payment_status: booking.payment_status,
-    };
+    });
 
     if (booking.user_id?.email) {
       await retryOperation(() =>
@@ -2799,8 +2753,7 @@ exports.getBookingsByPhone = async (req, res) => {
       customer_name: b.customer_name,
       status: b.status,
       payment_status: b.payment_status,
-      payment_method:
-        b.payment_method === "Stripe" ? "Online Payment" : b.payment_method,
+      payment_method: toPaymentMethodLabel(b.payment_method),
       createdAt: b.createdAt,
       outlet_shortform: b.outlet_id?.shortform || "",
       service_name: b.service_id?.name || "",
@@ -2842,8 +2795,7 @@ exports.getAppointmentsByUserId = async (req, res) => {
       customer_name: b.customer_name,
       status: b.status,
       payment_status: b.payment_status,
-      payment_method:
-        b.payment_method === "Stripe" ? "Online Payment" : b.payment_method,
+      payment_method: toPaymentMethodLabel(b.payment_method),
       createdAt: b.createdAt,
       outlet_shortform: b.outlet_id?.shortform || "",
       service_name: b.service_id?.name || "",
@@ -2938,14 +2890,8 @@ exports.managerRescheduleAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
 
     const slotStart = new Date(`${date}T${time}Z`);
-    const operatingStart = new Date(`${date}T10:00:00Z`);
-    const operatingEnd = new Date(`${date}T21:00:00Z`);
-    if (slotStart < operatingStart || slotStart > operatingEnd) {
-      return res
-        .status(400)
-        .json({
-          message: "Slot outside operating hours (10:00 AM - 9:00 PM UTC)",
-        });
+    if (isOutsideOperatingHours(date, slotStart)) {
+      return res.status(400).json({ message: OUTSIDE_OPERATING_HOURS_MESSAGE });
     }
 
     const duration = appointment.service_id?.duration || 30;
@@ -3026,21 +2972,18 @@ exports.managerCancelAppointment = async (req, res) => {
 
     setImmediate(async () => {
       try {
-        const cancelDetails = {
+        const cancelDetails = buildBookingPaymentDetails({
           id: appointment._id.toString(),
-          outlet: appointment.outlet_id?.shortform || "",
-          service: appointment.service_id?.name || "",
-          date: formatDateForDb(appointment.date),
+          outlet: appointment.outlet_id?.shortform,
+          service: appointment.service_id?.name,
+          date: appointment.date,
           time: appointment.time,
           customer_name: appointment.customer_name,
-          staff_name: appointment.staff_id?.username || "",
+          staff_name: appointment.staff_id?.username,
           price: parseFloat(appointment.service_id?.price) || 0,
-          payment_method:
-            appointment.payment_method === "Stripe"
-              ? "Online Payment"
-              : appointment.payment_method,
+          payment_method: appointment.payment_method,
           payment_status: appointment.payment_status,
-        };
+        });
         const email = appointment.user_id?.email;
         const phone = appointment.user_id?.phone_number;
         if (email && email !== "customer@huuksystem.com") {
