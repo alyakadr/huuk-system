@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -31,7 +31,7 @@ import api from "./utils/api"; // Updated import
 import Booking from "./components/bookings/Booking";
 import TimeSlotDebugger from "./debug/TimeSlotDebugger";
 import SimpleClickTest from "./debug/SimpleClickTest";
-import { migrateTokens, getUserData, getAuthToken } from "./utils/tokenUtils";
+import { useAuthSession, INTERFACE_ROLE } from "./hooks/useAuthSession";
 
 // Error Boundary to catch invalid component errors
 class ErrorBoundary extends React.Component {
@@ -54,37 +54,21 @@ class ErrorBoundary extends React.Component {
 }
 
 const ProtectedRoute = ({ children }) => {
-  // Check for both new and legacy token keys to handle migration
-  const staffToken = localStorage.getItem("staff_token");
-  const legacyToken = localStorage.getItem("token");
-  const staffUser = localStorage.getItem("staff_loggedInUser");
-  const legacyUser = localStorage.getItem("loggedInUser");
-  
-  const token = staffToken || legacyToken;
-  const user = staffUser || legacyUser;
-  
-  if (!token || !user) {
+  const { isAuthenticated, user } = useAuthSession(INTERFACE_ROLE.STAFF);
+
+  if (!isAuthenticated || !user) {
     return <Navigate to="/staff-login" replace />;
   }
-  
-  // Validate user data
-  try {
-    const userData = JSON.parse(user);
-    if (!userData.id || !userData.role) {
-      return <Navigate to="/staff-login" replace />;
-    }
-    
-    // Only allow staff and manager roles for protected routes
-    if (userData.role !== 'staff' && userData.role !== 'manager') {
-      console.warn('Non-staff user attempting to access protected route:', userData.role);
-      return <Navigate to="/staff-login" replace />;
-    }
-    
-  } catch (error) {
-    console.error('Invalid user data in localStorage:', error);
+
+  const isStaffOrManager = user.role === "staff" || user.role === "manager";
+  if (!isStaffOrManager) {
+    console.warn(
+      "Non-staff user attempting to access protected route:",
+      user.role,
+    );
     return <Navigate to="/staff-login" replace />;
   }
-  
+
   return children;
 };
 
@@ -114,7 +98,7 @@ const App = () => {
         <Router
           future={{
             v7_startTransition: true,
-            v7_relativeSplatPath: true
+            v7_relativeSplatPath: true,
           }}
         >
           <Routes>

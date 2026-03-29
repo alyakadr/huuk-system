@@ -1,69 +1,92 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { useProfile } from "../../ProfileContext";
 import { useNavigate } from "react-router-dom";
 import defaultProfile from "../../assets/default-picture.jpg";
 import ChangePasswordModal from "./ChangePasswordModal";
+import { useAuthSession } from "../../hooks/useAuthSession";
+import { useForm } from "../../hooks/useForm";
+import { useFetch } from "../../hooks/useFetch";
 import "../../styles/editProfile.css";
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const PROFILE_IMAGE_CANVAS_SIZE = 130;
+const IMAGE_SCALE_STEP = 0.1;
+const IMAGE_SCALE_MIN = 0.5;
+const IMAGE_SCALE_MAX = 3;
 
 const EditProfile = () => {
   const { profile: globalProfile, updateProfile } = useProfile();
-  const [profile, setProfile] = useState(globalProfile || {});
+  const {
+    values: profile,
+    setValues: setProfile,
+    handleInputChange,
+  } = useForm(globalProfile || {});
+  const { token: authToken, clearSession } = useAuthSession();
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const [imageScale, setImageScale] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const navigate = useNavigate();
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
-  
-  // Get the appropriate token based on current interface
-  const getToken = () => {
-    const currentPath = window.location.pathname;
-    const isStaffInterface = currentPath.includes('/staff') || currentPath.includes('/manager');
-    
-    if (isStaffInterface) {
-      return localStorage.getItem("staff_token") || localStorage.getItem("token");
-    } else {
-      return localStorage.getItem("customer_token") || localStorage.getItem("token");
-    }
-  };
+  const profileUserId = profile.id || globalProfile.id;
+
+  const fetchProfileRequest = useCallback(async () => {
+    const response = await axios.get(`${API_BASE_URL}/api/users/profile`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+
+    return response.data;
+  }, [authToken]);
+
+  const handleFetchProfileSuccess = useCallback(
+    (data) => {
+      updateProfile(data);
+      setProfile(data);
+    },
+    [updateProfile, setProfile],
+  );
+
+  const handleFetchProfileError = useCallback((error) => {
+    console.error("Error fetching profile:", error);
+    alert(
+      "Failed to load profile: " +
+        (error.response?.data?.message || error.message),
+    );
+  }, []);
+
+  const { loading, execute: fetchProfile } = useFetch({
+    request: fetchProfileRequest,
+    onSuccess: handleFetchProfileSuccess,
+    onError: handleFetchProfileError,
+  });
+
+  const getDashboardPath = useCallback(() => {
+    const userRole = profile.role || globalProfile.role;
+    if (userRole === "manager") return "/manager";
+    if (userRole === "staff") return "/staff";
+    return "/";
+  }, [profile.role, globalProfile.role]);
 
   useEffect(() => {
-    if (!profile.id) {
-      const fetchProfile = async () => {
-        try {
-          setLoading(true);
-          const response = await axios.get(
-            "http://localhost:5000/api/users/profile",
-            {
-              headers: { Authorization: `Bearer ${getToken()}` },
-            }
-          );
-          const data = response.data;
-          updateProfile(data);
-          setProfile(data);
-          setLoading(false);
-        } catch (error) {
-          console.error("Error fetching profile:", error);
-          alert(
-            "Failed to load profile: " +
-              (error.response?.data?.message || error.message)
-          );
-          setLoading(false);
-        }
-      };
+    if (!profile.id && authToken) {
       fetchProfile();
-    } else {
-      setLoading(false);
     }
-  }, [profile.id, updateProfile]);
+  }, [profile.id, authToken, fetchProfile]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setProfile((prev) => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    if (globalProfile?.id) {
+      setProfile(globalProfile);
+    }
+  }, [globalProfile, setProfile]);
+
+  const handleChange = useCallback(
+    (event) => {
+      handleInputChange(event);
+    },
+    [handleInputChange],
+  );
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -104,11 +127,11 @@ const EditProfile = () => {
 
   const handleWheel = (e) => {
     e.preventDefault();
-    const scaleStep = 0.1;
-    const minScale = 0.5;
-    const maxScale = 3;
-    const delta = e.deltaY < 0 ? scaleStep : -scaleStep;
-    const newScale = Math.min(Math.max(imageScale + delta, minScale), maxScale);
+    const delta = e.deltaY < 0 ? IMAGE_SCALE_STEP : -IMAGE_SCALE_STEP;
+    const newScale = Math.min(
+      Math.max(imageScale + delta, IMAGE_SCALE_MIN),
+      IMAGE_SCALE_MAX,
+    );
     setImageScale(newScale);
   };
 
@@ -119,7 +142,7 @@ const EditProfile = () => {
     const img = imgRef.current;
     if (!ctx || !img || !img.complete) return;
 
-    const size = 130;
+    const size = PROFILE_IMAGE_CANVAS_SIZE;
     canvas.width = size;
     canvas.height = size;
 
@@ -137,20 +160,18 @@ const EditProfile = () => {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    
-    // Get fresh token
-    const currentToken = getToken();
-    if (!currentToken) {
+
+    if (!authToken) {
       alert("Session expired. Please log in again.");
       navigate("/staff-login");
       return;
     }
-    
+
     const formData = new FormData();
     formData.append("address", profile.address || globalProfile.address || "");
     formData.append(
       "phone_number",
-      profile.phone_number || globalProfile.phone_number || ""
+      profile.phone_number || globalProfile.phone_number || "",
     );
 
     if (selectedImage) {
@@ -164,97 +185,81 @@ const EditProfile = () => {
     }
 
     try {
-      const profileId = profile.id || globalProfile.id;
-      console.log('Updating profile for ID:', profileId);
-      
+      console.log("Updating profile for ID:", profileUserId);
+
       const response = await axios.patch(
-        `http://localhost:5000/api/users/update-profile/${profileId}`,
+        `${API_BASE_URL}/api/users/update-profile/${profileUserId}`,
         formData,
         {
           headers: {
-            Authorization: `Bearer ${currentToken}`,
+            Authorization: `Bearer ${authToken}`,
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
       // Update the global profile context immediately with token
       const updatedProfile = {
         ...globalProfile,
         ...response.data,
-        token: currentToken // Preserve the token
+        token: authToken,
       };
-      console.log('Updating profile context with:', updatedProfile);
+      console.log("Updating profile context with:", updatedProfile);
       updateProfile(updatedProfile);
-      
+
       // Force a small delay to ensure context updates
       setTimeout(() => {
         alert("Profile updated successfully");
       }, 100);
-      
-      const userRole = profile.role || globalProfile.role;
-      if (userRole === "manager") {
-        navigate("/manager");
-      } else if (userRole === "staff") {
-        navigate("/staff");
-      } else {
-        navigate("/");
-      }
+
+      navigate(getDashboardPath());
     } catch (err) {
       console.error("Error updating profile:", err);
       console.error("Error details:", {
         status: err.response?.status,
         data: err.response?.data,
-        message: err.message
+        message: err.message,
       });
-      
+
       if (err.response?.status === 401) {
         alert("Your session has expired. Please log in again.");
-        // Clear all possible tokens
-        localStorage.removeItem("token");
-        localStorage.removeItem("staff_token");
-        localStorage.removeItem("customer_token");
-        localStorage.removeItem("loggedInUser");
-        localStorage.removeItem("staff_loggedInUser");
-        localStorage.removeItem("customer_loggedInUser");
+        clearSession();
         navigate("/staff-login");
         return;
       }
-      
+
       if (err.response?.status === 500) {
-        alert("Server error occurred. Please try again later or contact support.");
+        alert(
+          "Server error occurred. Please try again later or contact support.",
+        );
         return;
       }
-      
+
       alert(
         "Failed to update profile: " +
-          (err.response?.data?.message || err.message)
+          (err.response?.data?.message || err.message),
       );
     }
   };
 
   const handleCancel = () => {
-    const userRole = profile.role || globalProfile.role;
-    if (userRole === "manager") {
-      navigate("/manager");
-    } else if (userRole === "staff") {
-      navigate("/staff");
-    } else {
-      navigate("/");
-    }
+    navigate(getDashboardPath());
   };
 
   if (loading) {
     return (
-      <div className="staff-edit-profile-loading" style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 9999,
-        margin: 0,
-        padding: 0
-      }}>
+      <div
+        className="staff-edit-profile-loading"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999,
+          margin: 0,
+          padding: 0,
+        }}
+      >
         <div className="staff-loading-spinner"></div>
         <p>Loading...</p>
       </div>
@@ -270,7 +275,9 @@ const EditProfile = () => {
           </button>
           <div className="staff-header-title">
             <h1>Profile Settings</h1>
-            <span className="staff-header-subtitle">Manage your account information</span>
+            <span className="staff-header-subtitle">
+              Manage your account information
+            </span>
           </div>
         </div>
         <div className="staff-brand-logo">
@@ -302,15 +309,22 @@ const EditProfile = () => {
                   className="staff-file-input"
                   id="staff-profile-picture-input"
                 />
-                <label htmlFor="staff-profile-picture-input" className="staff-change-picture-btn">
+                <label
+                  htmlFor="staff-profile-picture-input"
+                  className="staff-change-picture-btn"
+                >
                   <span className="material-icons">photo_camera</span>
                 </label>
               </div>
             </div>
             <div className="staff-profile-info">
-              <h2 className="staff-profile-name">{profile.fullname || 'Staff Member'}</h2>
-              <span className="staff-profile-role">{(profile.role || 'Staff').toUpperCase()}</span>
-              <button 
+              <h2 className="staff-profile-name">
+                {profile.fullname || "Staff Member"}
+              </h2>
+              <span className="staff-profile-role">
+                {(profile.role || "Staff").toUpperCase()}
+              </span>
+              <button
                 className="staff-change-password-btn"
                 onClick={() => setIsPasswordModalOpen(true)}
               >
@@ -325,9 +339,11 @@ const EditProfile = () => {
         <div className="staff-form-card">
           <div className="staff-card-header">
             <h3>Account Details</h3>
-            <span className="staff-card-subtitle">Update your personal information</span>
+            <span className="staff-card-subtitle">
+              Update your personal information
+            </span>
           </div>
-          
+
           <form onSubmit={handleProfileSubmit} className="staff-profile-form">
             <div className="staff-form-group">
               <label>Full Name</label>
@@ -341,13 +357,17 @@ const EditProfile = () => {
                   placeholder="Full name"
                 />
               </div>
-              <small className="staff-input-note">This field cannot be modified</small>
+              <small className="staff-input-note">
+                This field cannot be modified
+              </small>
             </div>
 
             <div className="staff-form-group">
               <label>Username</label>
               <div className="staff-input-wrapper">
-                <span className="staff-input-icon material-icons">alternate_email</span>
+                <span className="staff-input-icon material-icons">
+                  alternate_email
+                </span>
                 <input
                   type="text"
                   value={profile.username || ""}
@@ -356,7 +376,9 @@ const EditProfile = () => {
                   placeholder="Username"
                 />
               </div>
-              <small className="staff-input-note">This field cannot be modified</small>
+              <small className="staff-input-note">
+                This field cannot be modified
+              </small>
             </div>
 
             <div className="staff-form-group">
@@ -371,13 +393,17 @@ const EditProfile = () => {
                   placeholder="Email address"
                 />
               </div>
-              <small className="staff-input-note">This field cannot be modified</small>
+              <small className="staff-input-note">
+                This field cannot be modified
+              </small>
             </div>
 
             <div className="staff-form-group">
               <label>Address</label>
               <div className="staff-input-wrapper">
-                <span className="staff-input-icon material-icons">location_on</span>
+                <span className="staff-input-icon material-icons">
+                  location_on
+                </span>
                 <input
                   type="text"
                   name="address"
@@ -408,7 +434,11 @@ const EditProfile = () => {
             </div>
 
             <div className="staff-form-actions">
-              <button type="button" onClick={handleCancel} className="staff-cancel-btn">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="staff-cancel-btn"
+              >
                 <span className="material-icons">close</span>
                 Cancel
               </button>

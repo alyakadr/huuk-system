@@ -10,38 +10,37 @@ import "../../styles/staffSchedule.css";
 import { io } from "socket.io-client";
 import { API_BASE_URL } from "../../utils/constants";
 import AddBookingModal from "../../components/AddBookingModal";
-import { TIME_SLOTS, getAvailableServicesForSlot } from "../../utils/timeSlotUtils";
-import {
-  formatDateForAPI,
-  normalizeTime,
-  parseBookingDateLocal,
-  getCurrentWeekDates as getWeekDates,
-  isSameDay,
-  getToday,
-} from "../../utils/dateUtils";
-import moment from 'moment-timezone';
+import { TIME_SLOTS } from "../../utils/timeSlotUtils";
+import { getCurrentWeekDates as getWeekDates } from "../../utils/dateUtils";
+import { useAuthSession, INTERFACE_ROLE } from "../../hooks/useAuthSession";
+import moment from "moment-timezone";
 
 // Helper to get current date in Malaysia timezone
-const getMalaysiaToday = () => moment.tz('Asia/Kuala_Lumpur').toDate();
+const getMalaysiaToday = () => moment.tz("Asia/Kuala_Lumpur").toDate();
+const CACHE_DURATION_MS = 60000;
+const DEFAULT_DATE_RANGE = "29/6/2025 - 5/7/2025";
 
 const StaffSchedule = () => {
   // Helper function to format date consistently (avoiding timezone issues)
   const formatDateForAPI = (date) => {
-    return moment.tz(date, 'Asia/Kuala_Lumpur').format('YYYY-MM-DD');
+    return moment.tz(date, "Asia/Kuala_Lumpur").format("YYYY-MM-DD");
   };
 
   // State variables
   const [view, setView] = useState("Weekly"); // 'Daily' or 'Weekly' view
   const [detailsBooking, setDetailsBooking] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [dateRange, setDateRange] = useState("29/6/2025 - 5/7/2025");
+  const [dateRange, setDateRange] = useState(DEFAULT_DATE_RANGE);
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastFetchTimestamp, setLastFetchTimestamp] = useState(0);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = getMalaysiaToday();
-    const startOfWeek = moment.tz(today, 'Asia/Kuala_Lumpur').startOf('week').toDate();
+    const startOfWeek = moment
+      .tz(today, "Asia/Kuala_Lumpur")
+      .startOf("week")
+      .toDate();
     return startOfWeek;
   });
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -69,16 +68,56 @@ const StaffSchedule = () => {
   const [selectedBookedSlot, setSelectedBookedSlot] = useState(null);
   // Services are now handled by AddBookingModal - no need for local state
   const [currentUser, setCurrentUser] = useState(null);
+  const { token: authToken, user: authUser } = useAuthSession(
+    INTERFACE_ROLE.STAFF,
+  );
 
   // Cache for API responses
   const [bookingsCache, setBookingsCache] = useState(new Map());
   const [blockedSlotsCache, setBlockedSlotsCache] = useState(new Map());
   const [lastFetchTime, setLastFetchTime] = useState(0);
-  const CACHE_DURATION = 60000; // 60 seconds cache
+  const [requestError, setRequestError] = useState(null);
 
   // WebSocket connection
   const socketRef = useRef();
   const fetchTimeoutRef = useRef(null);
+
+  const sessionToken = useMemo(() => {
+    if (authToken) {
+      return authToken;
+    }
+
+    const staffUser = JSON.parse(
+      localStorage.getItem("staff_loggedInUser") || "{}",
+    );
+    return staffUser.token || localStorage.getItem("token");
+  }, [authToken]);
+
+  const sessionStaffId = useMemo(() => {
+    if (authUser?.id) {
+      return authUser.id;
+    }
+
+    const loggedInUser = JSON.parse(
+      localStorage.getItem("loggedInUser") || "{}",
+    );
+    return loggedInUser?.id || null;
+  }, [authUser]);
+
+  const getRequestHeaders = useCallback(
+    (includeContentType = true) => {
+      const headers = {};
+      if (includeContentType) {
+        headers["Content-Type"] = "application/json";
+      }
+      if (sessionToken) {
+        headers.Authorization = `Bearer ${sessionToken}`;
+      }
+
+      return headers;
+    },
+    [sessionToken],
+  );
 
   useEffect(() => {
     socketRef.current = io(API_BASE_URL);
@@ -109,34 +148,36 @@ const StaffSchedule = () => {
 
   // Helper function to check if two dates are the same day (local time)
   const isSameDay = (date1, date2) => {
-    return date1.getFullYear() === date2.getFullYear() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getDate() === date2.getDate();
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
   };
 
   // Helper function to parse booking date as local date (properly handling timezone)
   const parseBookingDateLocal = (dateString) => {
     // For UTC timestamps from backend, extract the date part directly to avoid timezone issues
-    if (dateString.includes('T')) {
+    if (dateString.includes("T")) {
       // Split the UTC timestamp and use only the date part (YYYY-MM-DD)
       // This avoids timezone conversion issues that can cause date to shift
-      const datePart = dateString.split('T')[0];
-      const [year, month, day] = datePart.split('-').map(Number);
-      
+      const datePart = dateString.split("T")[0];
+      const [year, month, day] = datePart.split("-").map(Number);
+
       // Create date with local timezone handling
       const date = new Date(year, month - 1, day);
-      
+
       // No timezone adjustment needed when parsing from YYYY-MM-DD format
       // as we're explicitly setting year, month, day in the constructor
       return date;
     }
-    
+
     // If it's already in YYYY-MM-DD format, parse it directly
-    const [year, month, day] = dateString.split('-').map(Number);
-    
+    const [year, month, day] = dateString.split("-").map(Number);
+
     // Create date with local timezone handling
     const date = new Date(year, month - 1, day);
-    
+
     return date;
   };
 
@@ -144,14 +185,8 @@ const StaffSchedule = () => {
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Get current user and token
-      const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser") || "{}");
-      const staffUser = JSON.parse(localStorage.getItem("staff_loggedInUser") || "{}");
-      const token = staffUser.token || localStorage.getItem("token");
-      const staffId = loggedInUser?.id;
 
-      if (!staffId) {
+      if (!sessionStaffId) {
         console.error("Staff ID not found");
         setBookings([]);
         return;
@@ -163,8 +198,8 @@ const StaffSchedule = () => {
       const cacheKey = `${view}-${currentDateKey}-${weekStartKey}`;
       const now = Date.now();
       const cachedData = bookingsCache.get(cacheKey);
-      
-      if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+
+      if (cachedData && now - cachedData.timestamp < CACHE_DURATION_MS) {
         setBookings(cachedData.data);
         setLastFetchTimestamp(now); // Update timestamp even when using cached data
         setLoading(false);
@@ -182,7 +217,7 @@ const StaffSchedule = () => {
         const expandedEnd = new Date(currentDate);
         expandedEnd.setHours(23, 59, 59, 999);
         expandedEnd.setDate(expandedEnd.getDate() + 1);
-        
+
         startDate = formatDateForAPI(expandedStart);
         endDate = formatDateForAPI(expandedEnd);
       } else {
@@ -190,66 +225,65 @@ const StaffSchedule = () => {
         const weekDates = getCurrentWeekDates();
         startDate = weekDates[0].date;
         endDate = weekDates[6].date;
-        
+
         // Create date range for the week in local timezone
-        const expandedStart = new Date(startDate + 'T00:00:00');
+        const expandedStart = new Date(startDate + "T00:00:00");
         expandedStart.setDate(expandedStart.getDate() - 1);
-        const expandedEnd = new Date(endDate + 'T23:59:59');
+        const expandedEnd = new Date(endDate + "T23:59:59");
         expandedEnd.setDate(expandedEnd.getDate() + 1);
-        
+
         startDate = formatDateForAPI(expandedStart);
         endDate = formatDateForAPI(expandedEnd);
       }
-      
+
       const response = await fetch(
         `${API_BASE_URL}/bookings/staff/bookings?startDate=${startDate}&endDate=${endDate}`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+          headers: getRequestHeaders(),
+        },
       );
 
       if (response.ok) {
         const data = await response.json();
         // Check if data is directly an array or wrapped in a bookings property
-        const bookingsArray = Array.isArray(data) ? data : (data.bookings || []);
+        const bookingsArray = Array.isArray(data) ? data : data.bookings || [];
         setBookings(bookingsArray);
-        
+
         // Cache the result and update timestamp
-        setBookingsCache(prev => {
+        setBookingsCache((prev) => {
           const newCache = new Map(prev);
           newCache.set(cacheKey, { data: bookingsArray, timestamp: now });
           return newCache;
         });
-        
+
         // Update last fetch timestamp to trigger UI refresh
         setLastFetchTimestamp(now);
-        
       } else {
         console.error("Failed to fetch bookings:", response.statusText);
+        setRequestError("Failed to fetch bookings");
         setBookings([]);
       }
     } catch (error) {
       console.error("Error fetching bookings:", error);
+      setRequestError("Failed to fetch bookings");
       setBookings([]);
     } finally {
       setLoading(false);
     }
-  }, [view, currentDate, currentWeekStart]);
+  }, [
+    view,
+    currentDate,
+    currentWeekStart,
+    sessionStaffId,
+    getRequestHeaders,
+    bookingsCache,
+  ]);
 
   // Fetch blocked slots from API
   const fetchBlockedSlots = useCallback(async () => {
     try {
-      // Get current user and token
-      const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser") || "{}");
-      const staffUser = JSON.parse(localStorage.getItem("staff_loggedInUser") || "{}");
-      const token = staffUser.token || localStorage.getItem("token");
-      const staffId = loggedInUser?.id;
-
-      if (!staffId) {
+      if (!sessionStaffId) {
         console.error("Staff ID not found");
         setBlockedSlots([]);
         return;
@@ -259,55 +293,51 @@ const StaffSchedule = () => {
       let apiUrl;
       if (view === "Daily") {
         const dateString = formatDateForAPI(currentDate);
-        apiUrl = `${API_BASE_URL}/staff/blocked-slots?staff_id=${staffId}&date=${dateString}`;
+        apiUrl = `${API_BASE_URL}/staff/blocked-slots?staff_id=${sessionStaffId}&date=${dateString}`;
       } else {
         // Weekly view - get start and end of current week
         const weekDates = getCurrentWeekDates();
         const startDate = weekDates[0].date;
         const endDate = weekDates[6].date;
-        apiUrl = `${API_BASE_URL}/staff/blocked-slots?staff_id=${staffId}&startDate=${startDate}&endDate=${endDate}`;
+        apiUrl = `${API_BASE_URL}/staff/blocked-slots?staff_id=${sessionStaffId}&startDate=${startDate}&endDate=${endDate}`;
       }
-      
-      const response = await fetch(
-        apiUrl,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: getRequestHeaders(),
+      });
 
       if (response.ok) {
         const data = await response.json();
-        
+
         let transformedSlots;
         if (view === "Daily") {
           // For daily view, use blocked_slots array
-          transformedSlots = (data.blocked_slots || []).map(slot => {
+          transformedSlots = (data.blocked_slots || []).map((slot) => {
             // Use the current selected date instead of creating a new Date()
             const slotDate = new Date(currentDate);
             const dayIndex = slotDate.getDay();
             const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
             const dayDisplay = `${dayNames[dayIndex]} ${slotDate.getDate()}`;
-            
+
             return {
               day: dayDisplay,
               time: normalizeTime(slot.time),
-              date: formatDateForAPI(slotDate)
+              date: formatDateForAPI(slotDate),
             };
           });
         } else {
           // For weekly view, data is already in the right format from backend
-          transformedSlots = Array.isArray(data) ? data : (data.blocked_slots || []);
+          transformedSlots = Array.isArray(data)
+            ? data
+            : data.blocked_slots || [];
           // Ensure time normalization
-          transformedSlots = transformedSlots.map(slot => ({
+          transformedSlots = transformedSlots.map((slot) => ({
             ...slot,
-            time: normalizeTime(slot.time)
+            time: normalizeTime(slot.time),
           }));
         }
-        
+
         setBlockedSlots(transformedSlots);
       } else {
         console.error("Failed to fetch blocked slots:", response.statusText);
@@ -317,7 +347,7 @@ const StaffSchedule = () => {
       console.error("Error fetching blocked slots:", error);
       setBlockedSlots([]);
     }
-  }, [view, currentDate, currentWeekStart]);
+  }, [view, currentDate, currentWeekStart, sessionStaffId, getRequestHeaders]);
 
   useEffect(() => {
     // Only fetch when currentWeekStart changes for Weekly view
@@ -358,30 +388,29 @@ const StaffSchedule = () => {
 
   // Initialize currentUser from localStorage
   useEffect(() => {
-    const loggedInUser = localStorage.getItem("loggedInUser");
-    if (loggedInUser) {
-      try {
-        const userData = JSON.parse(loggedInUser);
-        setCurrentUser(userData);
-      } catch (error) {
-        console.error("Error parsing user data from localStorage:", error);
-      }
+    if (authUser) {
+      setCurrentUser(authUser);
+      return;
     }
-  }, []);
+
+    const loggedInUser = localStorage.getItem("loggedInUser");
+    if (!loggedInUser) {
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(loggedInUser);
+      setCurrentUser(userData);
+    } catch (error) {
+      console.error("Error parsing user data from localStorage:", error);
+    }
+  }, [authUser]);
 
   // Fetch recent customers for autocomplete
   const fetchRecentCustomers = async () => {
     try {
-      // Get token from staff_loggedInUser object
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}"
-      );
-      const token = staffUser.token || localStorage.getItem("token");
-
       const response = await fetch(`${API_BASE_URL}/customers/recent`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getRequestHeaders(false),
       });
 
       if (response.ok) {
@@ -398,19 +427,12 @@ const StaffSchedule = () => {
     try {
       // Use local date instead of UTC
       const today = formatDateForAPI(new Date());
-      // Get token from staff_loggedInUser object
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}"
-      );
-      const token = staffUser.token || localStorage.getItem("token");
 
       const response = await fetch(
         `${API_BASE_URL}/customers/today?date=${today}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+          headers: getRequestHeaders(false),
+        },
       );
 
       if (response.ok) {
@@ -425,16 +447,8 @@ const StaffSchedule = () => {
   // Fetch frequent customers
   const fetchFrequentCustomers = async () => {
     try {
-      // Get token from staff_loggedInUser object
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}"
-      );
-      const token = staffUser.token || localStorage.getItem("token");
-
       const response = await fetch(`${API_BASE_URL}/customers/frequent`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getRequestHeaders(false),
       });
 
       if (response.ok) {
@@ -455,19 +469,11 @@ const StaffSchedule = () => {
     }
 
     try {
-      // Get token from staff_loggedInUser object
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}"
-      );
-      const token = staffUser.token || localStorage.getItem("token");
-
       const response = await fetch(
         `${API_BASE_URL}/customers/search?q=${encodeURIComponent(query)}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+          headers: getRequestHeaders(false),
+        },
       );
 
       if (response.ok) {
@@ -522,34 +528,8 @@ const StaffSchedule = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Time slots configuration (10:00 AM to 10:00 PM, 30-minute intervals)
-  const timeSlots = [
-    "10:00",
-    "10:30",
-    "11:00",
-    "11:30",
-    "12:00",
-    "12:30",
-    "13:00",
-    "13:30",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-    "17:00",
-    "17:30",
-    "18:00",
-    "18:30",
-    "19:00",
-    "19:30",
-    "20:00",
-    "20:30",
-    "21:00",
-    "21:30",
-    "22:00",
-  ];
+  // Time slots configuration is shared across booking features.
+  const timeSlots = TIME_SLOTS;
 
   // Weekly view time slots (same as daily now)
   const weeklyTimeSlots = timeSlots; // Use all time slots for weekly view
@@ -582,33 +562,45 @@ const StaffSchedule = () => {
     let bookingDateMalaysia;
     let bookingDateFormatted;
     if (booking.date) {
-      if (typeof booking.date === 'string' && booking.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        bookingDateMalaysia = moment.tz(booking.date, 'YYYY-MM-DD', 'Asia/Kuala_Lumpur');
-        bookingDateFormatted = bookingDateMalaysia.format('YYYY-MM-DD');
-      } else if (typeof booking.date === 'string' && booking.date.includes('T')) {
-        bookingDateMalaysia = moment.tz(booking.date, 'Asia/Kuala_Lumpur');
-        bookingDateFormatted = bookingDateMalaysia.format('YYYY-MM-DD');
+      if (
+        typeof booking.date === "string" &&
+        booking.date.match(/^\d{4}-\d{2}-\d{2}$/)
+      ) {
+        bookingDateMalaysia = moment.tz(
+          booking.date,
+          "YYYY-MM-DD",
+          "Asia/Kuala_Lumpur",
+        );
+        bookingDateFormatted = bookingDateMalaysia.format("YYYY-MM-DD");
+      } else if (
+        typeof booking.date === "string" &&
+        booking.date.includes("T")
+      ) {
+        bookingDateMalaysia = moment.tz(booking.date, "Asia/Kuala_Lumpur");
+        bookingDateFormatted = bookingDateMalaysia.format("YYYY-MM-DD");
       } else if (booking.date instanceof Date) {
-        bookingDateMalaysia = moment.tz(booking.date, 'Asia/Kuala_Lumpur');
-        bookingDateFormatted = bookingDateMalaysia.format('YYYY-MM-DD');
+        bookingDateMalaysia = moment.tz(booking.date, "Asia/Kuala_Lumpur");
+        bookingDateFormatted = bookingDateMalaysia.format("YYYY-MM-DD");
       } else {
         try {
-          bookingDateMalaysia = moment.tz(booking.date, 'Asia/Kuala_Lumpur');
-          bookingDateFormatted = bookingDateMalaysia.format('YYYY-MM-DD');
+          bookingDateMalaysia = moment.tz(booking.date, "Asia/Kuala_Lumpur");
+          bookingDateFormatted = bookingDateMalaysia.format("YYYY-MM-DD");
         } catch (e) {
-          console.error('Error parsing booking date:', e);
-          bookingDateMalaysia = moment.tz('Asia/Kuala_Lumpur');
-          bookingDateFormatted = bookingDateMalaysia.format('YYYY-MM-DD');
+          console.error("Error parsing booking date:", e);
+          bookingDateMalaysia = moment.tz("Asia/Kuala_Lumpur");
+          bookingDateFormatted = bookingDateMalaysia.format("YYYY-MM-DD");
         }
       }
     } else {
-      bookingDateMalaysia = moment.tz('Asia/Kuala_Lumpur');
-      bookingDateFormatted = bookingDateMalaysia.format('YYYY-MM-DD');
+      bookingDateMalaysia = moment.tz("Asia/Kuala_Lumpur");
+      bookingDateFormatted = bookingDateMalaysia.format("YYYY-MM-DD");
     }
 
     let dayDisplay;
     if (view === "Weekly") {
-      const matchingDay = daysOfWeek.find(d => d.date === bookingDateFormatted);
+      const matchingDay = daysOfWeek.find(
+        (d) => d.date === bookingDateFormatted,
+      );
       if (matchingDay) {
         dayDisplay = matchingDay.display;
       } else {
@@ -626,11 +618,22 @@ const StaffSchedule = () => {
     const normalizedTime = normalizeTime(timeField);
 
     // Payment method and status (try all possible fields)
-    const paymentMethod = booking.payment_method || booking.paymentMethod || booking.payment_type || booking.method || (booking.payment && booking.payment.method) || 'N/A';
-    const paymentStatus = booking.payment_status || booking.paymentStatus || booking.status_payment || (booking.payment && booking.payment.status) || 'N/A';
+    const paymentMethod =
+      booking.payment_method ||
+      booking.paymentMethod ||
+      booking.payment_type ||
+      booking.method ||
+      (booking.payment && booking.payment.method) ||
+      "N/A";
+    const paymentStatus =
+      booking.payment_status ||
+      booking.paymentStatus ||
+      booking.status_payment ||
+      (booking.payment && booking.payment.status) ||
+      "N/A";
 
     // Phone number (try all possible fields)
-    const phone = (
+    const phone =
       booking.phone_number ||
       booking.phone ||
       booking.customer_phone ||
@@ -640,13 +643,19 @@ const StaffSchedule = () => {
       booking.user?.phone_number ||
       booking.customer?.phone ||
       booking.customer?.phone_number ||
-      'N/A'
-    );
-    let formattedPhone = phone && phone !== 'N/A' ? phone.toString().replace(/\D/g, '') : 'N/A';
+      "N/A";
+    let formattedPhone =
+      phone && phone !== "N/A" ? phone.toString().replace(/\D/g, "") : "N/A";
     if (formattedPhone.length === 10) {
-      formattedPhone = formattedPhone.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1-$2-$3');
+      formattedPhone = formattedPhone.replace(
+        /^(\d{3})(\d{3})(\d{4})$/,
+        "$1-$2-$3",
+      );
     } else if (formattedPhone.length === 11) {
-      formattedPhone = formattedPhone.replace(/^(\d{3})(\d{4})(\d{4})$/, '$1-$2-$3');
+      formattedPhone = formattedPhone.replace(
+        /^(\d{3})(\d{4})(\d{4})$/,
+        "$1-$2-$3",
+      );
     } else if (formattedPhone.length < 10) {
       formattedPhone = phone;
     }
@@ -658,9 +667,9 @@ const StaffSchedule = () => {
       time: normalizedTime,
       duration: duration,
       status: status,
-      customer: booking.customer_name || booking.customerName || 'Unknown',
-      phone: formattedPhone || 'N/A',
-      service: booking.service_name || booking.service || 'Unknown Service',
+      customer: booking.customer_name || booking.customerName || "Unknown",
+      phone: formattedPhone || "N/A",
+      service: booking.service_name || booking.service || "Unknown Service",
       payment_method: paymentMethod,
       payment_status: paymentStatus,
     };
@@ -671,13 +680,23 @@ const StaffSchedule = () => {
     // Remove payment method filter since bookings from staff schedule don't need payment method validation
     // Only filter out cancelled bookings
     const filteredByPayment = bookings.filter(
-      (booking) => booking.status !== 'Cancelled'
+      (booking) => booking.status !== "Cancelled",
     );
 
-    const formatted = filteredByPayment.map(formatBookingForDisplay).filter(Boolean);
-    
+    const formatted = filteredByPayment
+      .map(formatBookingForDisplay)
+      .filter(Boolean);
+
     return formatted;
-  }, [bookings, view, currentDate, currentWeekStart, lastFetchTimestamp, blockedSlots, daysOfWeek]);
+  }, [
+    bookings,
+    view,
+    currentDate,
+    currentWeekStart,
+    lastFetchTimestamp,
+    blockedSlots,
+    daysOfWeek,
+  ]);
 
   // Legacy function for backward compatibility - now just returns memoized value
   const getFormattedBookings = () => {
@@ -718,11 +737,7 @@ const StaffSchedule = () => {
         return;
       }
 
-      // Get staff_id from localStorage
-      const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-      const staffId = loggedInUser?.id;
-
-      if (!staffId) {
+      if (!sessionStaffId) {
         console.error("Staff ID not found in localStorage");
         alert("Staff ID not found. Please login again.");
         return;
@@ -730,31 +745,20 @@ const StaffSchedule = () => {
 
       // Convert day display to date string for API call
       const dayData = daysOfWeek.find((d) => d.display === day);
-      const dateString = dayData
-        ? dayData.date
-        : formatDateForAPI(new Date());
-
-      // Get token from staff_loggedInUser object
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}"
-      );
-      const token = staffUser.token || localStorage.getItem("token");
+      const dateString = dayData ? dayData.date : formatDateForAPI(new Date());
 
       const response = await fetch(
         `${API_BASE_URL}/staff/toggle-slot-blocking`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: getRequestHeaders(),
           body: JSON.stringify({
-            staff_id: staffId,
+            staff_id: sessionStaffId,
             date: dateString,
             time: time,
             action: "block",
           }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -788,11 +792,7 @@ const StaffSchedule = () => {
   // Unblock a slot
   const unblockSlot = async (day, time) => {
     try {
-      // Get staff_id from localStorage
-      const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-      const staffId = loggedInUser?.id;
-
-      if (!staffId) {
+      if (!sessionStaffId) {
         console.error("Staff ID not found in localStorage");
         alert("Staff ID not found. Please login again.");
         return;
@@ -800,37 +800,26 @@ const StaffSchedule = () => {
 
       // Convert day display to date string for API call
       const dayData = daysOfWeek.find((d) => d.display === day);
-      const dateString = dayData
-        ? dayData.date
-        : formatDateForAPI(new Date());
-
-      // Get token from staff_loggedInUser object
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}"
-      );
-      const token = staffUser.token || localStorage.getItem("token");
+      const dateString = dayData ? dayData.date : formatDateForAPI(new Date());
 
       const response = await fetch(
         `${API_BASE_URL}/staff/toggle-slot-blocking`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: getRequestHeaders(),
           body: JSON.stringify({
-            staff_id: staffId,
+            staff_id: sessionStaffId,
             date: dateString,
             time: time,
             action: "unblock",
           }),
-        }
+        },
       );
 
       if (response.ok) {
         // Update local state only if API call succeeds
         setBlockedSlots((prev) =>
-          prev.filter((slot) => !(slot.day === day && slot.time === time))
+          prev.filter((slot) => !(slot.day === day && slot.time === time)),
         );
         console.log(`Slot ${time} on ${day} unblocked successfully`);
       } else {
@@ -866,76 +855,80 @@ const StaffSchedule = () => {
     try {
       // Use the service ID directly from the form (it's already the correct API service ID)
       const serviceId = parseInt(formData.service_id || formData.service);
-      
+
       // Validate serviceId
       if (!serviceId || isNaN(serviceId)) {
         alert("Please select a valid service.");
         return;
       }
-      
+
       // Validate customer name
       const customerName = formData.customer_name || formData.customerName;
       if (!customerName || customerName.trim() === "") {
         alert("Customer name is required.");
         return;
       }
-      
+
       // Validate time
-      const bookingTime = formData.selectedTime || formData.time || selectedSlot.time;
+      const bookingTime =
+        formData.selectedTime || formData.time || selectedSlot.time;
       if (!bookingTime || bookingTime.trim() === "") {
         alert("Booking time is required.");
         return;
       }
-      
+
       // Validate and process date
-      let bookingDate = formData.date || formData.bookingDate || selectedSlot.day?.date || selectedSlot.date;
+      let bookingDate =
+        formData.date ||
+        formData.bookingDate ||
+        selectedSlot.day?.date ||
+        selectedSlot.date;
       if (!bookingDate || bookingDate.trim() === "") {
         alert("Booking date is required.");
         return;
       }
-      
+
       // For weekly view, ensure we're using the exact date from daysOfWeek
       if (view === "Weekly" && selectedSlot.day?.display) {
         const dayDisplay = selectedSlot.day.display;
-        
+
         // Find the matching day in daysOfWeek
-        const matchingDay = daysOfWeek.find(d => d.display === dayDisplay);
+        const matchingDay = daysOfWeek.find((d) => d.display === dayDisplay);
         if (matchingDay) {
           // Use the exact date from daysOfWeek
           bookingDate = matchingDay.date;
         }
       }
-      
+
       // Ensure date is in YYYY-MM-DD format without any timezone adjustments
-      if (bookingDate && typeof bookingDate === 'string' && bookingDate.includes('T')) {
+      if (
+        bookingDate &&
+        typeof bookingDate === "string" &&
+        bookingDate.includes("T")
+      ) {
         // If date has timezone info, strip it out
-        bookingDate = bookingDate.split('T')[0];
+        bookingDate = bookingDate.split("T")[0];
       }
-      
+
       // Validate staff_id
       const staffId = formData.staff_id || currentUser?.id;
       if (!staffId) {
         alert("Staff ID is missing. Please re-login.");
         return;
       }
-      
+
       // Validate outlet_id
       const outletId = formData.outlet_id || currentUser?.outlet_id || 1;
       if (!outletId) {
         alert("Outlet ID is missing. Please re-login.");
         return;
       }
-      
-      // Get authentication token
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}"
-      );
-      const token = staffUser.token || localStorage.getItem("token");
-      if (!token) {
+
+      if (!sessionToken) {
         alert("Authentication required. Please log in again.");
         return;
       }
-      
+
       // Prepare the request payload
       const requestPayload = {
         service_id: serviceId,
@@ -943,21 +936,18 @@ const StaffSchedule = () => {
         date: bookingDate,
         time: bookingTime,
         customer_name: customerName,
-        phone_number: formData.phone_number || formData.phoneNumber || '',
-        outlet_id: outletId
+        phone_number: formData.phone_number || formData.phoneNumber || "",
+        outlet_id: outletId,
       };
-      
+
       // Make API request
       const apiUrl = `${API_BASE_URL}/bookings/staff/appointment`;
       const response = await fetch(apiUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getRequestHeaders(),
         body: JSON.stringify(requestPayload),
       });
-      
+
       let responseData;
       try {
         responseData = await response.json();
@@ -966,7 +956,7 @@ const StaffSchedule = () => {
         alert("Server returned invalid response format");
         return;
       }
-      
+
       if (response.ok) {
         alert("Booking submitted successfully!");
         // Completely clear all caches to force fresh data
@@ -974,25 +964,22 @@ const StaffSchedule = () => {
         setBlockedSlotsCache(new Map());
         // Force a re-render by updating the timestamp
         setLastFetchTimestamp(Date.now());
-        
+
         try {
           // Force a complete refresh of the data
-          await Promise.all([
-            fetchBookings(),
-            fetchBlockedSlots()
-          ]);
+          await Promise.all([fetchBookings(), fetchBlockedSlots()]);
           // Force another re-render after fetch
-          setLastFetchTimestamp(Date.now() + 1); 
+          setLastFetchTimestamp(Date.now() + 1);
           setIsAddModalOpen(false); // Only close modal after data is refreshed
           setSelectedSlot(null);
         } catch (refreshError) {
-          console.error('Error refreshing data:', refreshError);
+          console.error("Error refreshing data:", refreshError);
           setIsAddModalOpen(false); // Still close modal on error
           setSelectedSlot(null);
         }
       } else {
         // Enhanced error handling
-        let errorMessage = 'Unknown error';
+        let errorMessage = "Unknown error";
         if (responseData?.message) {
           errorMessage = responseData.message;
         } else if (responseData?.error) {
@@ -1004,9 +991,11 @@ const StaffSchedule = () => {
       }
     } catch (error) {
       console.error("Booking submission error:", error);
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        alert("Network error: Unable to connect to server. Please check your connection.");
-      } else if (error.name === 'AbortError') {
+      if (error.name === "TypeError" && error.message.includes("fetch")) {
+        alert(
+          "Network error: Unable to connect to server. Please check your connection.",
+        );
+      } else if (error.name === "AbortError") {
         alert("Request timeout. Please try again.");
       } else {
         alert(`Failed to submit booking: ${error.message}`);
@@ -1017,7 +1006,7 @@ const StaffSchedule = () => {
   // Handle available slot click (show popup with Add/Block options)
   const handleAvailableSlotClick = (day, time) => {
     // Create custom modal with proper button labels
-    const modalDiv = document.createElement('div');
+    const modalDiv = document.createElement("div");
     modalDiv.innerHTML = `
       <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
         <div style="background: white; padding: 20px; border-radius: 8px; max-width: 400px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -1030,30 +1019,30 @@ const StaffSchedule = () => {
         </div>
       </div>
     `;
-    
+
     document.body.appendChild(modalDiv);
-    
+
     // Add event listeners
-    const addBtn = modalDiv.querySelector('#addBtn');
-    const blockBtn = modalDiv.querySelector('#blockBtn');
-    const overlay = modalDiv.querySelector('div');
-    
+    const addBtn = modalDiv.querySelector("#addBtn");
+    const blockBtn = modalDiv.querySelector("#blockBtn");
+    const overlay = modalDiv.querySelector("div");
+
     const cleanup = () => {
       document.body.removeChild(modalDiv);
     };
-    
-    addBtn.addEventListener('click', () => {
+
+    addBtn.addEventListener("click", () => {
       cleanup();
       handleAddBooking(day, time);
     });
-    
-    blockBtn.addEventListener('click', () => {
+
+    blockBtn.addEventListener("click", () => {
       cleanup();
       blockSlot(day, time);
     });
-    
+
     // Close on overlay click
-    overlay.addEventListener('click', (e) => {
+    overlay.addEventListener("click", (e) => {
       if (e.target === overlay) {
         cleanup();
       }
@@ -1075,7 +1064,7 @@ const StaffSchedule = () => {
     } else {
       // For weekly view, find the day in daysOfWeek
       selectedDate = daysOfWeek.find((d) => d.display === day);
-      
+
       // If not found, try to create a fallback date using current date for daily view
       if (!selectedDate) {
         // Create fallback selectedDate using currentDate for daily view
@@ -1083,7 +1072,7 @@ const StaffSchedule = () => {
           selectedDate = {
             display: day,
             date: formatDateForAPI(currentDate),
-            fullDate: currentDate
+            fullDate: currentDate,
           };
         }
       }
@@ -1100,16 +1089,18 @@ const StaffSchedule = () => {
   const handleBookingClick = async (booking) => {
     let fullBooking = booking;
     try {
-      const token = localStorage.getItem("staff_token") || localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/bookings/booking-details/${booking.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/bookings/booking-details/${booking.id}`,
+        {
+          headers: getRequestHeaders(false),
+        },
+      );
       if (response.ok) {
         const data = await response.json();
         fullBooking = data.booking || data;
       }
     } catch (error) {
-      console.error('Failed to fetch full booking details:', error);
+      console.error("Failed to fetch full booking details:", error);
     }
     setDetailsBooking(fullBooking); // Use React state/modal for display
   };
@@ -1178,17 +1169,17 @@ const StaffSchedule = () => {
   // Close add booking modal
   const closeAddModal = () => {
     setIsAddModalOpen(false);
-    
+
     // Force refresh of bookings data after modal is closed
     // This ensures that new bookings are displayed immediately in daily view
-    
+
     // Clear cache to force fresh data
     setBookingsCache(new Map());
     setBlockedSlotsCache(new Map());
-    
+
     // Update timestamp to force re-render
     setLastFetchTimestamp(Date.now());
-    
+
     // Refresh bookings data
     fetchBookings().then(() => {
       // Force another re-render after fetch completes
@@ -1201,18 +1192,10 @@ const StaffSchedule = () => {
   const markBookingDone = async (bookingId) => {
     try {
       console.log(`Marking booking ${bookingId} as done`);
-      // Get token from staff_loggedInUser object
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}"
-      );
-      const token = staffUser.token || localStorage.getItem("token");
 
       const response = await fetch(`${API_BASE_URL}/bookings/staff/mark-done`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getRequestHeaders(),
         body: JSON.stringify({ booking_id: bookingId }),
       });
 
@@ -1235,22 +1218,13 @@ const StaffSchedule = () => {
   const markBookingAbsent = async (bookingId) => {
     try {
       console.log(`Marking booking ${bookingId} as absent`);
-      // Get token from staff_loggedInUser object
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}"
-      );
-      const token = staffUser.token || localStorage.getItem("token");
-
       const response = await fetch(
         `${API_BASE_URL}/bookings/staff/mark-absent`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: getRequestHeaders(),
           body: JSON.stringify({ booking_id: bookingId }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -1271,25 +1245,29 @@ const StaffSchedule = () => {
   // Get booking for specific day and time
   const getBookingForSlot = (day, time) => {
     const bookings = getFormattedBookings();
-    
+
     // For daily view, we need to match by date string instead of day display
     if (view === "Daily") {
       // Get the date string for the current day
       const dateString = formatDateForAPI(currentDate);
-      
+
       return bookings.find((booking) => {
         const normalizedBookingTime = normalizeTime(booking.time);
         const normalizedSearchTime = normalizeTime(time);
-        
+
         // Match by exact date string and time
-        return booking.date === dateString && normalizedBookingTime === normalizedSearchTime;
+        return (
+          booking.date === dateString &&
+          normalizedBookingTime === normalizedSearchTime
+        );
       });
     } else {
       // For weekly view, match by day display and time
       return bookings.find((booking) => {
         const normalizedBookingTime = normalizeTime(booking.time);
         const normalizedSearchTime = normalizeTime(time);
-        const matches = booking.day === day && normalizedBookingTime === normalizedSearchTime;
+        const matches =
+          booking.day === day && normalizedBookingTime === normalizedSearchTime;
         return matches;
       });
     }
@@ -1303,7 +1281,7 @@ const StaffSchedule = () => {
     for (let i = 0; i < timeIndex; i++) {
       const earlierTime = timeSlots[i];
       const earlierBooking = getBookingForSlot(day, earlierTime);
-      if (earlierBooking && earlierBooking.duration > (timeIndex - i)) {
+      if (earlierBooking && earlierBooking.duration > timeIndex - i) {
         return false;
       }
     }
@@ -1314,12 +1292,16 @@ const StaffSchedule = () => {
   const isSlotCoveredByBooking = (day, time) => {
     const timeIndex = timeSlots.indexOf(time);
     const formattedBookings = getFormattedBookings();
-    
+
     // Check all bookings to see if any multi-slot booking covers this time
     for (const booking of formattedBookings) {
       if (booking.day === day && booking.duration > 1) {
         const bookingStartIndex = timeSlots.indexOf(booking.time);
-        if (bookingStartIndex !== -1 && timeIndex > bookingStartIndex && timeIndex < bookingStartIndex + booking.duration) {
+        if (
+          bookingStartIndex !== -1 &&
+          timeIndex > bookingStartIndex &&
+          timeIndex < bookingStartIndex + booking.duration
+        ) {
           return booking; // Return the booking that covers this slot
         }
       }
@@ -1373,7 +1355,9 @@ const StaffSchedule = () => {
                   month: "numeric",
                   year: "numeric",
                 })}
-                <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>
+                <div
+                  style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}
+                >
                   API: {formatDateForAPI(currentDate)}
                 </div>
               </div>
@@ -1447,12 +1431,12 @@ const StaffSchedule = () => {
 
               // Mark booked slots from real API data and filter by the selected date
               const selectedDateString = formatDateForAPI(selectedDay); // Get current date in YYYY-MM-DD format
-              
+
               // Filter bookings for the current day only
               const dailyBookings = formattedBookings.filter((booking) => {
                 return booking.date === selectedDateString;
               });
-              
+
               // Mark booked slots and their consecutive slots for multi-slot bookings
               dailyBookings.forEach((booking) => {
                 // Mark all slots covered by this booking as booked
@@ -1471,7 +1455,7 @@ const StaffSchedule = () => {
                           duration: booking.duration,
                           id: booking.id,
                           isContinuation: i !== 0,
-                          originalBooking: booking
+                          originalBooking: booking,
                         };
                       }
                     }
@@ -1503,19 +1487,26 @@ const StaffSchedule = () => {
                       className="time-label-column"
                     >
                       {time || ""}
-                    </div>
+                    </div>,
                   );
 
                   // Booking column (wider) - directly after the time column
                   const booking = time ? bookingData[time] : null;
                   const isBlocked = isSlotBlocked(
                     selectedDayFormattedDay,
-                    time
+                    time,
                   );
-                  
+
                   // Check if this slot is covered by a multi-slot booking
-                  const coveringBooking = isSlotCoveredByBooking(selectedDayFormattedDay, time);
-                  const actualBooking = booking || (coveringBooking ? { ...coveringBooking, status: "booked" } : null);
+                  const coveringBooking = isSlotCoveredByBooking(
+                    selectedDayFormattedDay,
+                    time,
+                  );
+                  const actualBooking =
+                    booking ||
+                    (coveringBooking
+                      ? { ...coveringBooking, status: "booked" }
+                      : null);
 
                   // Don't render individual slots that are covered by multi-slot bookings
                   if (coveringBooking && !booking) {
@@ -1532,43 +1523,62 @@ const StaffSchedule = () => {
                             <div className="continuation-indicator">···</div>
                           </div>
                         </div>
-                      </div>
+                      </div>,
                     );
                   } else {
                     // Determine CSS class based on booking status
                     let slotClassName = "booking-slot-column ";
-                    
+
                     if (!actualBooking || !time) {
                       slotClassName += "empty-slot";
-                    } else if (isBlocked || actualBooking.status === "blocked") {
+                    } else if (
+                      isBlocked ||
+                      actualBooking.status === "blocked"
+                    ) {
                       slotClassName += "blocked-slot";
-                    } else if (actualBooking.status === "booked" || actualBooking.status === "booked-continuation") {
+                    } else if (
+                      actualBooking.status === "booked" ||
+                      actualBooking.status === "booked-continuation"
+                    ) {
                       slotClassName += "booked-slot";
                     } else if (actualBooking.status === "available") {
                       slotClassName += "available-slot";
                     } else {
                       slotClassName += "empty-slot"; // fallback
                     }
-                    
+
                     gridItems.push(
                       <div
                         key={`booking-${colIndex}-${rowIndex}`}
                         className={slotClassName}
                         onClick={() => {
-                          if (isBlocked || actualBooking?.status === "blocked") {
+                          if (
+                            isBlocked ||
+                            actualBooking?.status === "blocked"
+                          ) {
                             // Blocked slots have no interaction
                             return;
                           } else if (actualBooking) {
                             if (actualBooking.status === "available") {
-                              handleAvailableSlotClick(selectedDayFormattedDay, time);
-                            } else if (actualBooking.status === "booked" || actualBooking.status === "booked-continuation") {
+                              handleAvailableSlotClick(
+                                selectedDayFormattedDay,
+                                time,
+                              );
+                            } else if (
+                              actualBooking.status === "booked" ||
+                              actualBooking.status === "booked-continuation"
+                            ) {
                               // Show booking details popup - use original booking for continuations
-                              const bookingToShow = actualBooking.originalBooking || actualBooking;
+                              const bookingToShow =
+                                actualBooking.originalBooking || actualBooking;
                               handleBookingClick(bookingToShow);
                             }
                           } else {
                             // Empty slot - show available slot actions
-                            handleAvailableSlotClick(selectedDayFormattedDay, time);
+                            handleAvailableSlotClick(
+                              selectedDayFormattedDay,
+                              time,
+                            );
                           }
                         }}
                       >
@@ -1584,7 +1594,10 @@ const StaffSchedule = () => {
                                   className="add-btn"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleAddBooking(selectedDayFormattedDay, time);
+                                    handleAddBooking(
+                                      selectedDayFormattedDay,
+                                      time,
+                                    );
                                   }}
                                 >
                                   <span className="btn-icon">+</span> Add
@@ -1607,24 +1620,32 @@ const StaffSchedule = () => {
                           ) : actualBooking.status === "booked-continuation" ? (
                             <div className="booking-content booked-content">
                               <div className="booked-info continuation-info">
-                                <div className="continuation-indicator">···</div>
+                                <div className="continuation-indicator">
+                                  ···
+                                </div>
                               </div>
                             </div>
                           ) : (
                             <div className="booking-content booked-content">
                               <div className="booked-info">
-                                <div className="customer-name">{actualBooking.customer}</div>
-                                <div className="service-name">{actualBooking.service}</div>
+                                <div className="customer-name">
+                                  {actualBooking.customer}
+                                </div>
+                                <div className="service-name">
+                                  {actualBooking.service}
+                                </div>
                                 {actualBooking.duration > 1 && (
                                   <div className="duration-indicator">
-                                    {actualBooking.duration * 30 >= 60 ? `${Math.floor(actualBooking.duration * 30 / 60)}h` : `${actualBooking.duration * 30}m`}
+                                    {actualBooking.duration * 30 >= 60
+                                      ? `${Math.floor((actualBooking.duration * 30) / 60)}h`
+                                      : `${actualBooking.duration * 30}m`}
                                   </div>
                                 )}
                               </div>
                             </div>
                           )
                         ) : null}
-                      </div>
+                      </div>,
                     );
                   }
                 }
@@ -1637,85 +1658,155 @@ const StaffSchedule = () => {
         {/* Booking Details Modal */}
         {detailsBooking && (
           <>
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              background: 'rgba(0,0,0,0.4)',
-              zIndex: 1000,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }} onClick={closeDetailsModal} />
-                      <div style={{
-            position: 'fixed',
-            top: '50%', // center vertically
-            left: '50%',
-            transform: 'translate(-50%, -50%)', // center both horizontally and vertically
-            background: '#fff',
-            borderRadius: 10,
-            boxShadow: '0 4px 16px rgba(44,62,80,0.12)',
-            border: '1.5px solid #e0e0e0',
-            zIndex: 1001,
-            minWidth: 280,
-            maxWidth: 420,
-            width: '90vw',
-            maxHeight: 'calc(100vh - 24px)',
-            overflowY: 'auto',
-            padding: 22,
-            color: '#222',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }} onClick={e => e.stopPropagation()}>
-                          <h3 style={{
-              textAlign: 'center',
-              fontWeight: 700,
-              fontSize: 24,
-              color: '#222',
-              letterSpacing: '2px',
-              marginBottom: 12,
-              borderBottom: '1px solid #eee',
-              paddingBottom: 8,
-              textTransform: 'uppercase',
-              fontFamily: 'Special Gothic Expanded One, sans-serif',
-            }}>BOOKING DETAILS</h3>
-                          <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1.2fr',
-              rowGap: 7,
-              columnGap: 10,
-              fontSize: 14,
-              color: '#222',
-              marginBottom: 10,
-            }}>
+            <div
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100vw",
+                height: "100vh",
+                background: "rgba(0,0,0,0.4)",
+                zIndex: 1000,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onClick={closeDetailsModal}
+            />
+            <div
+              style={{
+                position: "fixed",
+                top: "50%", // center vertically
+                left: "50%",
+                transform: "translate(-50%, -50%)", // center both horizontally and vertically
+                background: "#fff",
+                borderRadius: 10,
+                boxShadow: "0 4px 16px rgba(44,62,80,0.12)",
+                border: "1.5px solid #e0e0e0",
+                zIndex: 1001,
+                minWidth: 280,
+                maxWidth: 420,
+                width: "90vw",
+                maxHeight: "calc(100vh - 24px)",
+                overflowY: "auto",
+                padding: 22,
+                color: "#222",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3
+                style={{
+                  textAlign: "center",
+                  fontWeight: 700,
+                  fontSize: 24,
+                  color: "#222",
+                  letterSpacing: "2px",
+                  marginBottom: 12,
+                  borderBottom: "1px solid #eee",
+                  paddingBottom: 8,
+                  textTransform: "uppercase",
+                  fontFamily: "Special Gothic Expanded One, sans-serif",
+                }}
+              >
+                BOOKING DETAILS
+              </h3>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1.2fr",
+                  rowGap: 7,
+                  columnGap: 10,
+                  fontSize: 14,
+                  color: "#222",
+                  marginBottom: 10,
+                }}
+              >
                 <span style={{ fontWeight: 600 }}>Booking ID:</span>
                 <span>{detailsBooking.bookingId || detailsBooking.id}</span>
                 <span style={{ fontWeight: 600 }}>Customer Name:</span>
-                <span>{detailsBooking.customerName || detailsBooking.customer_name || detailsBooking.customer || 'Unknown'}</span>
+                <span>
+                  {detailsBooking.customerName ||
+                    detailsBooking.customer_name ||
+                    detailsBooking.customer ||
+                    "Unknown"}
+                </span>
                 <span style={{ fontWeight: 600 }}>Phone Number:</span>
-                <span>{detailsBooking.phoneNumber || detailsBooking.phone_number || detailsBooking.phone || 'N/A'}</span>
+                <span>
+                  {detailsBooking.phoneNumber ||
+                    detailsBooking.phone_number ||
+                    detailsBooking.phone ||
+                    "N/A"}
+                </span>
                 <span style={{ fontWeight: 600 }}>Service:</span>
-                <span>{detailsBooking.serviceName || detailsBooking.service_name || detailsBooking.service || 'Unknown Service'}</span>
+                <span>
+                  {detailsBooking.serviceName ||
+                    detailsBooking.service_name ||
+                    detailsBooking.service ||
+                    "Unknown Service"}
+                </span>
                 <span style={{ fontWeight: 600 }}>Date:</span>
-                <span>{detailsBooking.bookingDate ? new Date(detailsBooking.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '-') : (detailsBooking.date || 'N/A')}</span>
+                <span>
+                  {detailsBooking.bookingDate
+                    ? new Date(detailsBooking.bookingDate)
+                        .toLocaleDateString("en-GB")
+                        .replace(/\//g, "-")
+                    : detailsBooking.date || "N/A"}
+                </span>
                 <span style={{ fontWeight: 600 }}>Time Slot:</span>
-                <span>{detailsBooking.startTime ? detailsBooking.startTime.substring(0,5) : (detailsBooking.time || 'N/A')}</span>
+                <span>
+                  {detailsBooking.startTime
+                    ? detailsBooking.startTime.substring(0, 5)
+                    : detailsBooking.time || "N/A"}
+                </span>
                 <span style={{ fontWeight: 600 }}>Staff Name:</span>
-                <span>{detailsBooking.staffName || detailsBooking.staff_name || detailsBooking.staff || 'N/A'}</span>
+                <span>
+                  {detailsBooking.staffName ||
+                    detailsBooking.staff_name ||
+                    detailsBooking.staff ||
+                    "N/A"}
+                </span>
                 <span style={{ fontWeight: 600 }}>Payment Status:</span>
-                <span style={{ 
-                  color: (detailsBooking.paymentStatus || detailsBooking.payment_status) === 'Paid' ? '#28a745' : 
-                         (detailsBooking.paymentStatus || detailsBooking.payment_status) === 'Pending' ? '#dc3545' : '#888',
-                  fontWeight: 600 
-                }}>{detailsBooking.paymentStatus || detailsBooking.payment_status || 'N/A'}</span>
+                <span
+                  style={{
+                    color:
+                      (detailsBooking.paymentStatus ||
+                        detailsBooking.payment_status) === "Paid"
+                        ? "#28a745"
+                        : (detailsBooking.paymentStatus ||
+                              detailsBooking.payment_status) === "Pending"
+                          ? "#dc3545"
+                          : "#888",
+                    fontWeight: 600,
+                  }}
+                >
+                  {detailsBooking.paymentStatus ||
+                    detailsBooking.payment_status ||
+                    "N/A"}
+                </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-                              <div style={{ width: '100%', textAlign: 'center', color: '#888', fontSize: 13, marginTop: 10, fontStyle: 'italic' }}>
-                Click anywhere to close
-              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: 8,
+                  marginTop: 4,
+                }}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    textAlign: "center",
+                    color: "#888",
+                    fontSize: 13,
+                    marginTop: 10,
+                    fontStyle: "italic",
+                  }}
+                >
+                  Click anywhere to close
+                </div>
               </div>
             </div>
           </>
@@ -1893,22 +1984,28 @@ const StaffSchedule = () => {
                 {timeSlots.map((time) => {
                   // Use real API data for weekly view
                   const formattedBookings = getFormattedBookings();
-                  
+
                   // Check if this slot has a booking from real API data
-                  const booking = formattedBookings.find(b => {
+                  const booking = formattedBookings.find((b) => {
                     const dayMatch = b.day === day.display;
-                    const timeMatch = normalizeTime(b.time) === normalizeTime(time);
+                    const timeMatch =
+                      normalizeTime(b.time) === normalizeTime(time);
                     return dayMatch && timeMatch;
                   });
-                  
+
                   // Check if this slot is covered by a multi-slot booking
-                  const coveringBooking = isSlotCoveredByBooking(day.display, time);
-                  
-                  // Check if this slot is blocked from real API data
-                  const isBlocked = blockedSlots.some(slot => 
-                    slot.day === day.display && normalizeTime(slot.time) === normalizeTime(time)
+                  const coveringBooking = isSlotCoveredByBooking(
+                    day.display,
+                    time,
                   );
-                  
+
+                  // Check if this slot is blocked from real API data
+                  const isBlocked = blockedSlots.some(
+                    (slot) =>
+                      slot.day === day.display &&
+                      normalizeTime(slot.time) === normalizeTime(time),
+                  );
+
                   const actualBooking = booking || coveringBooking;
                   const isAvailable = !actualBooking && !isBlocked;
 
@@ -1934,7 +2031,11 @@ const StaffSchedule = () => {
                     <div
                       key={`${day.display}-${time}`}
                       className={`schedule-slot ${
-                        isBlocked ? "blocked" : actualBooking ? "booked" : "available"
+                        isBlocked
+                          ? "blocked"
+                          : actualBooking
+                            ? "booked"
+                            : "available"
                       }`}
                       onClick={() => {
                         if (isBlocked) {
@@ -1959,7 +2060,9 @@ const StaffSchedule = () => {
                           {/* Booked slots show popup on click */}
                           {booking && booking.duration > 1 && (
                             <div className="duration-indicator">
-                              {booking.duration * 30 >= 60 ? `${Math.floor(booking.duration * 30 / 60)}h` : `${booking.duration * 30}m`}
+                              {booking.duration * 30 >= 60
+                                ? `${Math.floor((booking.duration * 30) / 60)}h`
+                                : `${booking.duration * 30}m`}
                             </div>
                           )}
                         </div>
@@ -1979,99 +2082,171 @@ const StaffSchedule = () => {
       {/* Booking Details Modal */}
       {detailsBooking && (
         <>
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(0,0,0,0.4)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }} onClick={closeDetailsModal} />
-          <div style={{
-            position: 'fixed',
-            top: '50%', // center vertically
-            left: '50%',
-            transform: 'translate(-50%, -50%)', // center both horizontally and vertically
-            background: '#fff',
-            borderRadius: 10,
-            boxShadow: '0 4px 16px rgba(44,62,80,0.12)',
-            border: '1.5px solid #e0e0e0',
-            zIndex: 1001,
-            minWidth: 280,
-            maxWidth: 420,
-            width: '90vw',
-            maxHeight: 'calc(100vh - 24px)',
-            overflowY: 'auto',
-            padding: 22,
-            color: '#222',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }} onClick={e => e.stopPropagation()}>
-            <h3 style={{
-              textAlign: 'center',
-              fontWeight: 700,
-              fontSize: 24,
-              color: '#222',
-              letterSpacing: '2px',
-              marginBottom: 12,
-              borderBottom: '1px solid #eee',
-              paddingBottom: 8,
-              textTransform: 'uppercase',
-              fontFamily: 'Special Gothic Expanded One, sans-serif',
-            }}>BOOKING DETAILS</h3>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1.2fr',
-              rowGap: 7,
-              columnGap: 10,
-              fontSize: 14,
-              color: '#222',
-              marginBottom: 10,
-            }}>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              background: "rgba(0,0,0,0.4)",
+              zIndex: 1000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={closeDetailsModal}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%", // center vertically
+              left: "50%",
+              transform: "translate(-50%, -50%)", // center both horizontally and vertically
+              background: "#fff",
+              borderRadius: 10,
+              boxShadow: "0 4px 16px rgba(44,62,80,0.12)",
+              border: "1.5px solid #e0e0e0",
+              zIndex: 1001,
+              minWidth: 280,
+              maxWidth: 420,
+              width: "90vw",
+              maxHeight: "calc(100vh - 24px)",
+              overflowY: "auto",
+              padding: 22,
+              color: "#222",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              style={{
+                textAlign: "center",
+                fontWeight: 700,
+                fontSize: 24,
+                color: "#222",
+                letterSpacing: "2px",
+                marginBottom: 12,
+                borderBottom: "1px solid #eee",
+                paddingBottom: 8,
+                textTransform: "uppercase",
+                fontFamily: "Special Gothic Expanded One, sans-serif",
+              }}
+            >
+              BOOKING DETAILS
+            </h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1.2fr",
+                rowGap: 7,
+                columnGap: 10,
+                fontSize: 14,
+                color: "#222",
+                marginBottom: 10,
+              }}
+            >
               <span style={{ fontWeight: 600 }}>Booking ID:</span>
               <span>{detailsBooking.bookingId || detailsBooking.id}</span>
               <span style={{ fontWeight: 600 }}>Customer Name:</span>
-              <span>{detailsBooking.customerName || detailsBooking.customer_name || detailsBooking.customer || 'Unknown'}</span>
+              <span>
+                {detailsBooking.customerName ||
+                  detailsBooking.customer_name ||
+                  detailsBooking.customer ||
+                  "Unknown"}
+              </span>
               <span style={{ fontWeight: 600 }}>Phone Number:</span>
-              <span>{detailsBooking.phoneNumber || detailsBooking.phone_number || detailsBooking.phone || 'N/A'}</span>
+              <span>
+                {detailsBooking.phoneNumber ||
+                  detailsBooking.phone_number ||
+                  detailsBooking.phone ||
+                  "N/A"}
+              </span>
               <span style={{ fontWeight: 600 }}>Service:</span>
-              <span>{detailsBooking.serviceName || detailsBooking.service_name || detailsBooking.service || 'Unknown Service'}</span>
+              <span>
+                {detailsBooking.serviceName ||
+                  detailsBooking.service_name ||
+                  detailsBooking.service ||
+                  "Unknown Service"}
+              </span>
               <span style={{ fontWeight: 600 }}>Date:</span>
-              <span>{detailsBooking.bookingDate ? new Date(detailsBooking.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '-') : (detailsBooking.date || 'N/A')}</span>
+              <span>
+                {detailsBooking.bookingDate
+                  ? new Date(detailsBooking.bookingDate)
+                      .toLocaleDateString("en-GB")
+                      .replace(/\//g, "-")
+                  : detailsBooking.date || "N/A"}
+              </span>
               <span style={{ fontWeight: 600 }}>Time Slot:</span>
-              <span>{detailsBooking.startTime ? detailsBooking.startTime.substring(0,5) : (detailsBooking.time || 'N/A')}</span>
+              <span>
+                {detailsBooking.startTime
+                  ? detailsBooking.startTime.substring(0, 5)
+                  : detailsBooking.time || "N/A"}
+              </span>
               <span style={{ fontWeight: 600 }}>Staff Name:</span>
-              <span>{detailsBooking.staffName || detailsBooking.staff_name || detailsBooking.staff || 'N/A'}</span>
+              <span>
+                {detailsBooking.staffName ||
+                  detailsBooking.staff_name ||
+                  detailsBooking.staff ||
+                  "N/A"}
+              </span>
               <span style={{ fontWeight: 600 }}>Payment Method:</span>
-              <span style={{
-                color: '#007bff',
-                fontWeight: 700,
-                fontSize: 16,
-                padding: '8px 0',
-                display: 'block',
-                minHeight: '32px',
-              }}>
+              <span
+                style={{
+                  color: "#007bff",
+                  fontWeight: 700,
+                  fontSize: 16,
+                  padding: "8px 0",
+                  display: "block",
+                  minHeight: "32px",
+                }}
+              >
                 {detailsBooking.paymentMethod ||
-                 detailsBooking.payment_method ||
-                 detailsBooking.payment_type ||
-                 detailsBooking.method ||
-                 (detailsBooking.payment && detailsBooking.payment.method) ||
-                 'N/A'}
+                  detailsBooking.payment_method ||
+                  detailsBooking.payment_type ||
+                  detailsBooking.method ||
+                  (detailsBooking.payment && detailsBooking.payment.method) ||
+                  "N/A"}
               </span>
               <span style={{ fontWeight: 600 }}>Payment Status:</span>
-              <span style={{ 
-                color: (detailsBooking.paymentStatus || detailsBooking.payment_status) === 'Paid' ? '#28a745' : 
-                       (detailsBooking.paymentStatus || detailsBooking.payment_status) === 'Pending' ? '#dc3545' : '#888',
-                fontWeight: 600 
-              }}>{detailsBooking.paymentStatus || detailsBooking.payment_status || 'N/A'}</span>
+              <span
+                style={{
+                  color:
+                    (detailsBooking.paymentStatus ||
+                      detailsBooking.payment_status) === "Paid"
+                      ? "#28a745"
+                      : (detailsBooking.paymentStatus ||
+                            detailsBooking.payment_status) === "Pending"
+                        ? "#dc3545"
+                        : "#888",
+                  fontWeight: 600,
+                }}
+              >
+                {detailsBooking.paymentStatus ||
+                  detailsBooking.payment_status ||
+                  "N/A"}
+              </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-              <div style={{ width: '100%', textAlign: 'center', color: '#888', fontSize: 13, marginTop: 10, fontStyle: 'italic' }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  textAlign: "center",
+                  color: "#888",
+                  fontSize: 13,
+                  marginTop: 10,
+                  fontStyle: "italic",
+                }}
+              >
                 Click anywhere to close
               </div>
             </div>
