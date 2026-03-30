@@ -15,7 +15,16 @@ import {
   fetchAttendanceData,
   fetchDashboardData,
 } from "../../utils/dashboardUtils";
-import { getUsersList, getTodayTransactionsByOutlet, getCustomerSatisfactionRatings, approveStaff } from "../../api/client";
+import {
+  OUTLET_NAMES_UPPER,
+  OUTLET_SHORTCUTS_UPPER,
+} from "../../constants/outlets";
+import {
+  getUsersList,
+  getTodayTransactionsByOutlet,
+  getCustomerSatisfactionRatings,
+  approveStaff,
+} from "../../api/client";
 import {
   BarChart,
   Bar,
@@ -30,43 +39,8 @@ import moment from "moment";
 import axios from "axios";
 import { ensureStaffToken } from "../../utils/tokenUtils";
 
-const outlets = [
-  "IOI CITY MALL",
-  "LOT 10 BUKIT BINTANG",
-  "MELAWATI MALL",
-  "MID VALLEY (CENTRE COURT)",
-  "MID VALLEY (NORTH COURT)",
-  "ONE UTAMA (NEW WING)",
-  "PAVILION BUKIT JALIL",
-  "PAVILION DAMANSARA HEIGHTS",
-  "PAVILION KUALA LUMPUR",
-  "PUBLIKA",
-  "SETIA CITY MALL",
-  "STARLING MALL",
-  "SUNWAY PYRAMID",
-  "THE EXCHANGE TRX",
-  "WANGSA WALK MALL",
-  "WANGSA WALK MALL 2",
-];
-
-const outletShortcuts = {
-  "IOI CITY MALL": "IOI",
-  "LOT 10 BUKIT BINTANG": "LBB",
-  "MELAWATI MALL": "MEL",
-  "MID VALLEY (CENTRE COURT)": "MVC",
-  "MID VALLEY (NORTH COURT)": "MVN",
-  "ONE UTAMA (NEW WING)": "ONU",
-  "PAVILION BUKIT JALIL": "PBJ",
-  "PAVILION DAMANSARA HEIGHTS": "PDH",
-  "PAVILION KUALA LUMPUR": "PKL",
-  PUBLIKA: "PUB",
-  "SETIA CITY MALL": "SCM",
-  "STARLING MALL": "STM",
-  "SUNWAY PYRAMID": "SWP",
-  "THE EXCHANGE TRX": "TRX",
-  "WANGSA WALK MALL": "WWM",
-  "WANGSA WALK MALL 2": "WW2",
-};
+const outlets = OUTLET_NAMES_UPPER;
+const outletShortcuts = OUTLET_SHORTCUTS_UPPER;
 
 const customColors = [
   "#30a3a2",
@@ -186,7 +160,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const ManagerDashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState({});  // Initialize as empty object instead of null
+  const [user, setUser] = useState({}); // Initialize as empty object instead of null
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalRevenueYesterday, setTotalRevenueYesterday] = useState(0);
   const [totalAppointments, setTotalAppointments] = useState(0);
@@ -194,11 +168,13 @@ const ManagerDashboard = () => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [allAppointments, setAllAppointments] = useState([]);
-  const [totalAppointmentsYesterday, setTotalAppointmentsYesterday] = useState(0);
+  const [totalAppointmentsYesterday, setTotalAppointmentsYesterday] =
+    useState(0);
   const [activeIndexTransaction, setActiveIndexTransaction] = useState(null);
   const [activeIndexSatisfaction, setActiveIndexSatisfaction] = useState(null);
   const [totalCustomers, setTotalCustomers] = useState(0);
-  const [totalCustomersUpToYesterday, setTotalCustomersUpToYesterday] = useState(0);
+  const [totalCustomersUpToYesterday, setTotalCustomersUpToYesterday] =
+    useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [staffStatus, setStaffStatus] = useState([]);
@@ -215,8 +191,10 @@ const ManagerDashboard = () => {
   // Add token validation
   const [tokenValidated, setTokenValidated] = useState(false);
 
-  const [customerSatisfactionLoading, setCustomerSatisfactionLoading] = useState(true);
-  const [customerSatisfactionError, setCustomerSatisfactionError] = useState(null);
+  const [customerSatisfactionLoading, setCustomerSatisfactionLoading] =
+    useState(true);
+  const [customerSatisfactionError, setCustomerSatisfactionError] =
+    useState(null);
 
   const outletListRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -226,7 +204,7 @@ const ManagerDashboard = () => {
     setSelectedOutlets((prev) =>
       prev.includes(outlet)
         ? prev.filter((o) => o !== outlet)
-        : [...prev, outlet]
+        : [...prev, outlet],
     );
   };
 
@@ -312,7 +290,7 @@ const ManagerDashboard = () => {
       console.log(
         "Received pending staff update at:",
         new Date().toISOString(),
-        data
+        data,
       );
       if (data.action === "add") {
         setPendingApprovals((prev) => [...prev, data.user]);
@@ -321,8 +299,8 @@ const ManagerDashboard = () => {
       } else if (data.action === "update") {
         setPendingApprovals((prev) =>
           prev.map((s) =>
-            s.id === data.userId ? { ...s, status: data.status } : s
-          )
+            s.id === data.userId ? { ...s, status: data.status } : s,
+          ),
         );
       }
     });
@@ -349,16 +327,16 @@ const ManagerDashboard = () => {
   const fetchAllData = () => {
     // Fetch customer data
     fetchCustomerData();
-    
+
     // Fetch attendance data
     fetchAttendanceData();
-    
+
     // Fetch dashboard data
     fetchDashboardData();
-    
+
     // Fetch transaction data
     fetchTransactionData();
-    
+
     // Fetch customer satisfaction data
     fetchCustomerSatisfactionData();
   };
@@ -368,18 +346,24 @@ const ManagerDashboard = () => {
     try {
       setIsLoading(true);
       setFetchError(null);
-      
+
       const staffToken = ensureStaffToken();
-      
+
       const [totalResponse, yesterdayResponse] = await Promise.all([
-        axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/customers/total-all`, {
-          headers: { Authorization: `Bearer ${staffToken}` }
-        }),
-        axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/customers/total-up-to-yesterday`, {
-          headers: { Authorization: `Bearer ${staffToken}` }
-        })
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/customers/total-all`,
+          {
+            headers: { Authorization: `Bearer ${staffToken}` },
+          },
+        ),
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/customers/total-up-to-yesterday`,
+          {
+            headers: { Authorization: `Bearer ${staffToken}` },
+          },
+        ),
       ]);
-      
+
       setTotalCustomers(totalResponse.data.count);
       setTotalCustomersUpToYesterday(yesterdayResponse.data.count);
       setIsLoading(false);
@@ -398,34 +382,42 @@ const ManagerDashboard = () => {
     try {
       setAttendanceLoading(true);
       setAttendanceError(null);
-      
+
       const staffToken = ensureStaffToken();
       const today = moment().format("YYYY-MM-DD");
-      
+
       const response = await axios.get(
         `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/attendance`,
         {
-          params: { date: today, all: 'true' },
-          headers: { Authorization: `Bearer ${staffToken}` }
-        }
+          params: { date: today, all: "true" },
+          headers: { Authorization: `Bearer ${staffToken}` },
+        },
       );
-      
+
       console.log("📊 Raw attendance response:", response.data);
       const attendanceData = response.data || [];
       console.log("📋 Processed attendance data:", attendanceData);
       console.log("📊 Total attendance records:", attendanceData.length);
-      
+
       // Process attendance data to update staff status
       console.log("🏢 Initial staff status:", staffList);
-      
+
       // Create a default staff status structure with outlet shortforms
       const defaultStaffStatus = [
-        { outlet: outletShortcuts["PAVILION KUALA LUMPUR"], onDuty: 5, offDuty: 2 },
-        { outlet: outletShortcuts["MID VALLEY (CENTRE COURT)"], onDuty: 3, offDuty: 1 },
-        { outlet: outletShortcuts["ONE UTAMA (NEW WING)"], onDuty: 4, offDuty: 3 },
+        { outlet: outletShortcuts["PAVILION KL"], onDuty: 5, offDuty: 2 },
+        {
+          outlet: outletShortcuts["MID VALLEY MEGAMALL (CENTRE COURT)"],
+          onDuty: 3,
+          offDuty: 1,
+        },
+        {
+          outlet: outletShortcuts["1 UTAMA SHOPPING CENTRE"],
+          onDuty: 4,
+          offDuty: 3,
+        },
         { outlet: outletShortcuts["SUNWAY PYRAMID"], onDuty: 6, offDuty: 0 },
       ];
-      
+
       // Use the default staff status if we can't properly process the attendance data
       setStaffStatus(defaultStaffStatus);
       setAttendanceLoading(false);
@@ -441,9 +433,9 @@ const ManagerDashboard = () => {
     try {
       setIsLoading(true);
       setFetchError(null);
-      
+
       const staffToken = ensureStaffToken();
-      
+
       // Fetch all required data in parallel
       const [
         pendingResponse,
@@ -452,53 +444,76 @@ const ManagerDashboard = () => {
         revenueTodayResponse,
         revenueYesterdayResponse,
         appointmentsTodayResponse,
-        appointmentsYesterdayResponse
+        appointmentsYesterdayResponse,
       ] = await Promise.all([
-        axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/pending-approval`, {
-          headers: { Authorization: `Bearer ${staffToken}` }
-        }),
-        axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/list`, {
-          headers: { Authorization: `Bearer ${staffToken}` }
-        }),
-        axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/appointments/all`, {
-          headers: { Authorization: `Bearer ${staffToken}` }
-        }),
-        axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/payments/total-revenue-today`, {
-          headers: { Authorization: `Bearer ${staffToken}` }
-        }),
-        axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/payments/total-revenue-yesterday`, {
-          headers: { Authorization: `Bearer ${staffToken}` }
-        }),
-        axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/appointments/total-today`, {
-          headers: { Authorization: `Bearer ${staffToken}` }
-        }),
-        axios.get(`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/appointments/total-yesterday`, {
-          headers: { Authorization: `Bearer ${staffToken}` }
-        })
-      ]).catch(error => {
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/pending-approval`,
+          {
+            headers: { Authorization: `Bearer ${staffToken}` },
+          },
+        ),
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/list`,
+          {
+            headers: { Authorization: `Bearer ${staffToken}` },
+          },
+        ),
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/appointments/all`,
+          {
+            headers: { Authorization: `Bearer ${staffToken}` },
+          },
+        ),
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/payments/total-revenue-today`,
+          {
+            headers: { Authorization: `Bearer ${staffToken}` },
+          },
+        ),
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/payments/total-revenue-yesterday`,
+          {
+            headers: { Authorization: `Bearer ${staffToken}` },
+          },
+        ),
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/appointments/total-today`,
+          {
+            headers: { Authorization: `Bearer ${staffToken}` },
+          },
+        ),
+        axios.get(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/appointments/total-yesterday`,
+          {
+            headers: { Authorization: `Bearer ${staffToken}` },
+          },
+        ),
+      ]).catch((error) => {
         console.error("Error fetching dashboard data:", error);
         throw error;
       });
-      
+
       setPendingApprovals(pendingResponse.data);
       setStaffList(staffResponse.data);
       setAllAppointments(appointmentsResponse.data);
       setTotalRevenue(revenueTodayResponse.data.total || 0);
       setTotalRevenueYesterday(revenueYesterdayResponse.data.total || 0);
       setTotalAppointments(appointmentsTodayResponse.data.count || 0);
-      setTotalAppointmentsYesterday(appointmentsYesterdayResponse.data.count || 0);
-      
+      setTotalAppointmentsYesterday(
+        appointmentsYesterdayResponse.data.count || 0,
+      );
+
       setIsLoading(false);
     } catch (error) {
       console.error("Error in fetchDashboardData:", error);
-      
+
       // Log specific errors for each endpoint
       console.log("Appointments fetch failed:", error);
       console.log("Revenue Today fetch failed:", error);
       console.log("Revenue Yesterday fetch failed:", error);
       console.log("Appointments Today fetch failed:", error);
       console.log("Appointments Yesterday fetch failed:", error);
-      
+
       setFetchError("Failed to load dashboard data");
       setIsLoading(false);
     }
@@ -509,54 +524,63 @@ const ManagerDashboard = () => {
     try {
       setTransactionLoading(true);
       setTransactionError(null);
-      
+
       // Get the staff token explicitly
-      const staffToken = localStorage.getItem("staff_token") || localStorage.getItem("token");
-      
+      const staffToken =
+        localStorage.getItem("staff_token") || localStorage.getItem("token");
+
       if (!staffToken) {
-        throw new Error("No staff token available for fetching transaction data");
+        throw new Error(
+          "No staff token available for fetching transaction data",
+        );
       }
-      
+
       const response = await axios.get(
         `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/daily-transactions`,
         {
           headers: {
-            Authorization: `Bearer ${staffToken}`
-          }
-        }
+            Authorization: `Bearer ${staffToken}`,
+          },
+        },
       );
-      
+
       const responseData = response.data;
       console.log("Transaction data response:", responseData);
-      
+
       if (responseData && responseData.outlets) {
         // Map the API response to the format expected by the chart
         const formattedData = responseData.outlets.map((outlet, index) => {
           // Convert outlet_name to full outlet name for filtering
-          const fullOutletName = Object.keys(outletShortcuts).find(
-            key => outletShortcuts[key] === outlet.outlet_name
-          ) || outlet.outlet_name;
-          
+          const fullOutletName =
+            Object.keys(outletShortcuts).find(
+              (key) => outletShortcuts[key] === outlet.outlet_name,
+            ) || outlet.outlet_name;
+
           return {
             outlet: fullOutletName,
             transactions: outlet.transaction_count,
             color: customColors[index % customColors.length],
           };
         });
-        
+
         // Add outlets with 0 transactions if they're not in the response
-        const existingOutlets = formattedData.map(item => item.outlet);
-        const missingOutlets = outlets.filter(outlet => !existingOutlets.includes(outlet));
-        
+        const existingOutlets = formattedData.map((item) => item.outlet);
+        const missingOutlets = outlets.filter(
+          (outlet) => !existingOutlets.includes(outlet),
+        );
+
         const completeData = [
           ...formattedData,
           ...missingOutlets.map((outlet, index) => ({
             outlet,
             transactions: 0,
-            color: customColors[(formattedData.length + index) % customColors.length],
-          }))
+            color:
+              customColors[
+                (formattedData.length + index) % customColors.length
+              ],
+          })),
         ];
-        
+
         setTransactionData(completeData);
       } else {
         // If no data, show all outlets with 0 transactions
@@ -567,12 +591,12 @@ const ManagerDashboard = () => {
         }));
         setTransactionData(emptyData);
       }
-      
+
       setTransactionLoading(false);
     } catch (error) {
       console.error("Error fetching transaction data:", error);
       setTransactionError("Failed to load transaction data");
-      
+
       // Fallback to show all outlets with 0 transactions
       const fallbackData = outlets.map((outlet, index) => ({
         outlet,
@@ -580,7 +604,7 @@ const ManagerDashboard = () => {
         color: customColors[index % customColors.length],
       }));
       setTransactionData(fallbackData);
-      
+
       setTransactionLoading(false);
     }
   };
@@ -590,32 +614,35 @@ const ManagerDashboard = () => {
     try {
       setCustomerSatisfactionLoading(true);
       setCustomerSatisfactionError(null);
-      
+
       // Get the staff token explicitly
-      const staffToken = localStorage.getItem("staff_token") || localStorage.getItem("token");
-      
+      const staffToken =
+        localStorage.getItem("staff_token") || localStorage.getItem("token");
+
       if (!staffToken) {
-        throw new Error("No staff token available for fetching customer satisfaction data");
+        throw new Error(
+          "No staff token available for fetching customer satisfaction data",
+        );
       }
-      
+
       const response = await axios.get(
         `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/customer-satisfaction`,
         {
           headers: {
-            Authorization: `Bearer ${staffToken}`
-          }
-        }
+            Authorization: `Bearer ${staffToken}`,
+          },
+        },
       );
-      
+
       const responseData = response.data;
       console.log("Customer satisfaction data response:", responseData);
-      
+
       if (responseData && Array.isArray(responseData)) {
         setCustomerSatisfactionData(responseData);
       } else {
         console.warn("Invalid customer satisfaction data format");
         setCustomerSatisfactionError("Invalid data format received");
-        
+
         // Keep the default empty data structure
         setCustomerSatisfactionData([
           { rating: "1 ★", count: 0 },
@@ -625,12 +652,12 @@ const ManagerDashboard = () => {
           { rating: "5 ★", count: 0 },
         ]);
       }
-      
+
       setCustomerSatisfactionLoading(false);
     } catch (error) {
       console.error("Error fetching customer satisfaction data:", error);
       setCustomerSatisfactionError("Failed to load customer satisfaction data");
-      
+
       // Keep the default empty data structure
       setCustomerSatisfactionData([
         { rating: "1 ★", count: 0 },
@@ -639,7 +666,7 @@ const ManagerDashboard = () => {
         { rating: "4 ★", count: 0 },
         { rating: "5 ★", count: 0 },
       ]);
-      
+
       setCustomerSatisfactionLoading(false);
     }
   };
@@ -648,7 +675,7 @@ const ManagerDashboard = () => {
     const initializeManager = async () => {
       try {
         console.log("🔄 Initializing manager dashboard...");
-        
+
         // Ensure staff token is available
         const staffToken = ensureStaffToken();
         if (!staffToken) {
@@ -656,18 +683,18 @@ const ManagerDashboard = () => {
           navigate("/staff-login");
           return;
         }
-        
+
         // Verify authentication
         try {
           const response = await axios.get(
             `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/profile`,
             {
               headers: {
-                Authorization: `Bearer ${staffToken}`
-              }
-            }
+                Authorization: `Bearer ${staffToken}`,
+              },
+            },
           );
-          
+
           if (response.data && response.data.role === "manager") {
             console.log("✅ Manager authentication successful");
             // Set the user state from the profile response
@@ -682,7 +709,7 @@ const ManagerDashboard = () => {
           navigate("/staff-login");
           return;
         }
-        
+
         // Now fetch the data
         fetchAllData();
         initializeSocketAndData();
@@ -701,20 +728,20 @@ const ManagerDashboard = () => {
         // Ensure staff token is available
         const staffToken = localStorage.getItem("staff_token");
         const legacyToken = localStorage.getItem("token");
-        
+
         if (!staffToken && !legacyToken) {
           console.error("No staff token available for manager dashboard");
           // Redirect to login if no token
           navigate("/staff-login");
           return;
         }
-        
+
         // Use the staff token for all manager dashboard requests
         if (legacyToken && !staffToken) {
           localStorage.setItem("staff_token", legacyToken);
           console.log("🔄 Starting token migration...");
         }
-        
+
         // Skip token validation API call since endpoint doesn't exist
         // Just check if token exists and proceed
         if (staffToken || legacyToken) {
@@ -731,7 +758,7 @@ const ManagerDashboard = () => {
         setTokenValidated(true);
       }
     };
-    
+
     validateToken();
   }, [navigate]);
 
@@ -743,19 +770,19 @@ const ManagerDashboard = () => {
   const appointmentDiff = totalAppointments - totalAppointmentsYesterday;
 
   const doneCount = allAppointments.filter(
-    (appt) => appt.status === "Completed" || appt.status === "Done"
+    (appt) => appt.status === "Completed" || appt.status === "Done",
   ).length;
   const pendingCount = allAppointments.filter(
-    (appt) => appt.status === "Pending" || appt.status === "Confirmed"
+    (appt) => appt.status === "Pending" || appt.status === "Confirmed",
   ).length;
   const cancelledCount = allAppointments.filter(
-    (appt) => appt.status === "Cancelled"
+    (appt) => appt.status === "Cancelled",
   ).length;
   const rescheduleCount = allAppointments.filter(
-    (appt) => appt.status === "Rescheduled" || appt.status === "Reschedule"
+    (appt) => appt.status === "Rescheduled" || appt.status === "Reschedule",
   ).length;
   const absentCount = allAppointments.filter(
-    (appt) => appt.status === "Absent"
+    (appt) => appt.status === "Absent",
   ).length;
 
   // Helper for maintenance View All button
@@ -763,10 +790,10 @@ const ManagerDashboard = () => {
     <button
       className="manager-view-all-button maintenance"
       style={{
-        cursor: 'pointer',
-        ...style
+        cursor: "pointer",
+        ...style,
       }}
-      onClick={() => alert('This feature is currently under maintenance.')}
+      onClick={() => alert("This feature is currently under maintenance.")}
     >
       View All
     </button>
@@ -778,7 +805,9 @@ const ManagerDashboard = () => {
       <div className="manager-main-summary-and-transactions">
         <div className="manager-left-summary-overall">
           <div className="manager-summary-header">
-            <h2 className="manager-summary-title">Overall Staffs Status Appointment</h2>
+            <h2 className="manager-summary-title">
+              Overall Staffs Status Appointment
+            </h2>
             <MaintenanceViewAllButton />
           </div>
           <div className="manager-summary-cards-container">
@@ -808,7 +837,9 @@ const ManagerDashboard = () => {
           <div className="manager-overall-performance-cards">
             <div className="manager-overall-card revenue-card">
               <div className="manager-overall-card-header">
-                <span className="manager-overall-card-title">Total Revenue</span>
+                <span className="manager-overall-card-title">
+                  Total Revenue
+                </span>
                 <MaintenanceViewAllButton />
               </div>
               <p className="manager-amount-centered">
@@ -818,8 +849,8 @@ const ManagerDashboard = () => {
                       revenueDiff > 0
                         ? "#90d14f"
                         : revenueDiff < 0
-                        ? "#ff1723"
-                        : "white",
+                          ? "#ff1723"
+                          : "white",
                   }}
                 >
                   RM{totalRevenue.toLocaleString()}
@@ -832,8 +863,8 @@ const ManagerDashboard = () => {
                         revenueDiff > 0
                           ? "#90d14f"
                           : revenueDiff < 0
-                          ? "#ff1723"
-                          : "white",
+                            ? "#ff1723"
+                            : "white",
                     }}
                   >
                     {revenueDiff > 0 ? "▲" : revenueDiff < 0 ? "▼" : ""}
@@ -851,7 +882,9 @@ const ManagerDashboard = () => {
 
             <div className="manager-overall-card appointment-card">
               <div className="manager-overall-card-header">
-                <span className="manager-overall-card-title">Total Appointment</span>
+                <span className="manager-overall-card-title">
+                  Total Appointment
+                </span>
                 <MaintenanceViewAllButton />
               </div>
               <p className="manager-amount-centered">
@@ -861,8 +894,8 @@ const ManagerDashboard = () => {
                       appointmentDiff > 0
                         ? "#90d14f"
                         : appointmentDiff < 0
-                        ? "#ff1723"
-                        : "white",
+                          ? "#ff1723"
+                          : "white",
                   }}
                 >
                   {totalAppointments}
@@ -875,8 +908,8 @@ const ManagerDashboard = () => {
                         appointmentDiff > 0
                           ? "#90d14f"
                           : appointmentDiff < 0
-                          ? "#ff1723"
-                          : "white",
+                            ? "#ff1723"
+                            : "white",
                     }}
                   >
                     {appointmentDiff > 0 ? "▲" : appointmentDiff < 0 ? "▼" : ""}
@@ -894,15 +927,17 @@ const ManagerDashboard = () => {
 
             <div className="manager-overall-card customer-card">
               <div className="manager-overall-card-header">
-                <span className="manager-overall-card-title">Total Registered Customer</span>
+                <span className="manager-overall-card-title">
+                  Total Registered Customer
+                </span>
                 <MaintenanceViewAllButton />
               </div>
               <p className="manager-amount-centered">
                 {isLoading
                   ? "Loading..."
                   : fetchError
-                  ? "N/A"
-                  : totalCustomers.toLocaleString()}
+                    ? "N/A"
+                    : totalCustomers.toLocaleString()}
               </p>
               <p className="manager-comparison-text-centered">
                 <span className="normal-text">
@@ -938,7 +973,7 @@ const ManagerDashboard = () => {
                         setTotalCustomers,
                         setTotalCustomersUpToYesterday,
                         setFetchError,
-                        setIsLoading
+                        setIsLoading,
                       )
                     }
                   >
@@ -1126,7 +1161,7 @@ const ManagerDashboard = () => {
                     setTotalAppointmentsYesterday,
                     setFetchError,
                     setIsLoading,
-                    navigate
+                    navigate,
                   )
                 }
               >
@@ -1255,74 +1290,76 @@ const ManagerDashboard = () => {
               <div className="attendance-table-cell on-duty">ON DUTY</div>
               <div className="attendance-table-cell off-duty">OFF DUTY</div>
             </div>
-            {attendanceError ? (
-              // Always show default data even if there's an error
-              [
-                { outlet: "PKL", onDuty: 5, offDuty: 2 },
-                { outlet: "MVC", onDuty: 3, offDuty: 1 },
-                { outlet: "ONU", onDuty: 4, offDuty: 3 },
-                { outlet: "SWP", onDuty: 6, offDuty: 0 },
-              ].map(({ outlet, onDuty, offDuty }) => (
-                <div key={outlet} className="attendance-table-row">
-                  <div className="attendance-table-cell outlet">{outlet}</div>
-                  <div
-                    className="attendance-table-cell on-duty"
-                    style={{ color: "#90d14f" }}
-                  >
-                    {onDuty}
+            {attendanceError
+              ? // Always show default data even if there's an error
+                [
+                  { outlet: "PKL", onDuty: 5, offDuty: 2 },
+                  { outlet: "MVC", onDuty: 3, offDuty: 1 },
+                  { outlet: "ONU", onDuty: 4, offDuty: 3 },
+                  { outlet: "SWP", onDuty: 6, offDuty: 0 },
+                ].map(({ outlet, onDuty, offDuty }) => (
+                  <div key={outlet} className="attendance-table-row">
+                    <div className="attendance-table-cell outlet">{outlet}</div>
+                    <div
+                      className="attendance-table-cell on-duty"
+                      style={{ color: "#90d14f" }}
+                    >
+                      {onDuty}
+                    </div>
+                    <div
+                      className="attendance-table-cell off-duty"
+                      style={{ color: "#ec1f23" }}
+                    >
+                      {offDuty}
+                    </div>
                   </div>
-                  <div
-                    className="attendance-table-cell off-duty"
-                    style={{ color: "#ec1f23" }}
-                  >
-                    {offDuty}
-                  </div>
-                </div>
-              ))
-            ) : staffStatus.length === 0 ? (
-              // Show default data if no attendance data available
-              [
-                { outlet: "PKL", onDuty: 5, offDuty: 2 },
-                { outlet: "MVC", onDuty: 3, offDuty: 1 },
-                { outlet: "ONU", onDuty: 4, offDuty: 3 },
-                { outlet: "SWP", onDuty: 6, offDuty: 0 },
-              ].map(({ outlet, onDuty, offDuty }) => (
-                <div key={outlet} className="attendance-table-row">
-                  <div className="attendance-table-cell outlet">{outlet}</div>
-                  <div
-                    className="attendance-table-cell on-duty"
-                    style={{ color: "#90d14f" }}
-                  >
-                    {onDuty}
-                  </div>
-                  <div
-                    className="attendance-table-cell off-duty"
-                    style={{ color: "#ec1f23" }}
-                  >
-                    {offDuty}
-                  </div>
-                </div>
-              ))
-            ) : (
-              // Show actual data if available
-              staffStatus.map(({ outlet, onDuty, offDuty }) => (
-                <div key={outlet} className="attendance-table-row">
-                  <div className="attendance-table-cell outlet">{outlet}</div>
-                  <div
-                    className="attendance-table-cell on-duty"
-                    style={{ color: "#90d14f" }}
-                  >
-                    {onDuty}
-                  </div>
-                  <div
-                    className="attendance-table-cell off-duty"
-                    style={{ color: "#ec1f23" }}
-                  >
-                    {offDuty}
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+              : staffStatus.length === 0
+                ? // Show default data if no attendance data available
+                  [
+                    { outlet: "PKL", onDuty: 5, offDuty: 2 },
+                    { outlet: "MVC", onDuty: 3, offDuty: 1 },
+                    { outlet: "ONU", onDuty: 4, offDuty: 3 },
+                    { outlet: "SWP", onDuty: 6, offDuty: 0 },
+                  ].map(({ outlet, onDuty, offDuty }) => (
+                    <div key={outlet} className="attendance-table-row">
+                      <div className="attendance-table-cell outlet">
+                        {outlet}
+                      </div>
+                      <div
+                        className="attendance-table-cell on-duty"
+                        style={{ color: "#90d14f" }}
+                      >
+                        {onDuty}
+                      </div>
+                      <div
+                        className="attendance-table-cell off-duty"
+                        style={{ color: "#ec1f23" }}
+                      >
+                        {offDuty}
+                      </div>
+                    </div>
+                  ))
+                : // Show actual data if available
+                  staffStatus.map(({ outlet, onDuty, offDuty }) => (
+                    <div key={outlet} className="attendance-table-row">
+                      <div className="attendance-table-cell outlet">
+                        {outlet}
+                      </div>
+                      <div
+                        className="attendance-table-cell on-duty"
+                        style={{ color: "#90d14f" }}
+                      >
+                        {onDuty}
+                      </div>
+                      <div
+                        className="attendance-table-cell off-duty"
+                        style={{ color: "#ec1f23" }}
+                      >
+                        {offDuty}
+                      </div>
+                    </div>
+                  ))}
           </div>
         </div>
       </div>

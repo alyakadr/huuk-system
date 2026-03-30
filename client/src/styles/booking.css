@@ -1,10 +1,15 @@
 /* Enhanced Date Picker Styles - Improved Animations */
 .MuiPickersPopper-paper {
   background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.05);
   border-radius: 12px;
   overflow: hidden;
-  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(0, 0, 0, 0.06);
   will-change: transform, opacity;
   transform-origin: top center;
@@ -18,7 +23,9 @@
 .MuiPickersPopper-paper.closing {
   opacity: 0 !important;
   transform: scale(0.95) translateY(-8px) !important;
-  transition: opacity 0.2s ease-out, transform 0.2s ease-out !important;
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.2s ease-out !important;
 }
 
 /* Fix for DatePicker popper positioning stability */
@@ -28,7 +35,9 @@
 
 /* Smooth transition for popper visibility */
 .MuiPickersPopper-root .MuiPaper-root {
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Smooth opening animation */
@@ -115,7 +124,7 @@
 }
 
 .MuiPickersCalendarHeader-label {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 600 !important;
   font-size: 1.1rem !important;
   color: #1a1a1a !important;
@@ -215,7 +224,7 @@
 /* Enhanced Calendar Days - Original Size */
 .MuiPickersDay-root {
   color: #1a1a1a !important;
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 500 !important;
   border-radius: 8px !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -270,7 +279,7 @@
 /* Enhanced Week Day Labels - Original Size */
 .MuiTypography-caption {
   color: #666 !important;
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 600 !important;
   font-size: 0.8rem !important;
   letter-spacing: 0.3px !important;
@@ -712,10 +721,12 @@
   width: 420px;
   max-height: 85vh;
   min-height: 480px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(0, 0, 0, 0.08);
   position: relative;
   border: 1px solid rgba(186, 161, 115, 0.1);
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -727,18 +738,18 @@
   align-items: center;
   padding: 12px 20px;
   border-bottom: 1px solid #eee;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   min-height: 48px;
   flex-shrink: 0;
 }
 
 .payment-modal-header .MuiTypography-h5 {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 700 !important;
 }
 
 .payment-modal-header .MuiTypography-h6 {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 700 !important;
 }
 
@@ -749,7 +760,7 @@
   margin: 0;
   color: #f5f5f5; /* Slightly lighter color for better contrast */
   border-radius: 0;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   min-height: 64px;
   flex-shrink: 0;
   display: flex;
@@ -760,32 +771,31 @@
 .payment-amount-section .MuiTypography-h4 {
   color: white !important;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 700 !important;
 }
 
 .payment-amount-section .MuiTypography-h5 {
   color: white !important;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 700 !important;
 }
 
 .payment-amount-section .MuiTypography-body2 {
   color: rgba(255, 255, 255, 0.9) !important;
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
 }
 
 .payment-options-section {
   padding: 16px 20px;
-  flex: 0 0 auto; /* Fixed size - don't grow or shrink */
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 8px; /* Reduced gap from 16px to 8px */
-  font-family: 'Quicksand', sans-serif;
+  gap: 12px;
+  font-family: "Quicksand", sans-serif;
   overflow-y: auto;
   min-height: 0;
-  max-height: 200px; /* Limit height to prevent overlap */
 }
 
 .payment-option-card {
@@ -794,47 +804,43 @@
   border-radius: 12px;
   position: relative;
   overflow: hidden;
-  font-family: 'Quicksand', sans-serif;
-  min-height: 70px; /* Reduced height */
-  max-height: 80px; /* Limit maximum height */
+  font-family: "Quicksand", sans-serif;
+  flex-shrink: 0;
 }
 
 .payment-option-card .MuiCardContent-root {
-  font-family: 'Quicksand', sans-serif !important;
-  padding: 12px 16px !important; /* Reduced padding */
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 12px !important;
-  min-height: 50px !important;
-  position: relative !important;
-  height: 100% !important;
+  font-family: "Quicksand", sans-serif !important;
+  padding: 14px 16px !important;
 }
 
 .payment-option-card .MuiTypography-h6 {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 600 !important;
   color: #1a1a1a !important;
 }
 
 .payment-option-card .MuiTypography-body2 {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   color: #333 !important;
 }
 
 .payment-option-card .MuiChip-root {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 500 !important;
 }
 
 .payment-option-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, transparent 0%, rgba(186, 161, 115, 0.02) 100%);
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(186, 161, 115, 0.02) 100%
+  );
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -851,7 +857,11 @@
 
 .payment-option-card.selected {
   border-color: #baa173;
-  background: linear-gradient(135deg, rgba(186, 161, 115, 0.05) 0%, rgba(186, 161, 115, 0.02) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(186, 161, 115, 0.05) 0%,
+    rgba(186, 161, 115, 0.02) 100%
+  );
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(186, 161, 115, 0.2);
   padding: 4px;
@@ -898,80 +908,15 @@
   color: white;
 }
 
-/* Fix the main flex container alignment */
-.payment-option-card .MuiCardContent-root .MuiBox-root.css-j0ozid {
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Fix payment option icon container alignment */
-.payment-option-card .MuiCardContent-root .payment-option-icon {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  align-self: center !important;
-}
-
-/* Fix text content container alignment */
-.payment-option-card .MuiCardContent-root .MuiBox-root.css-1rr4qq7 {
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  flex: 1 !important;
-}
-
-/* Checkmark icon positioning - using data-testid for specificity */
-.payment-option-card .MuiCardContent-root svg[data-testid="CheckCircleIcon"] {
-  position: absolute !important;
-  right: 16px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  color: #28a745 !important;
-  font-size: 24px !important;
-  z-index: 2 !important;
-}
-
-/* Alternative selector for checkmark */
-.payment-option-card.selected .MuiCardContent-root > svg {
-  position: absolute !important;
-  right: 16px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  color: #28a745 !important;
-  font-size: 24px !important;
-  z-index: 2 !important;
-}
-
-/* Ultra-specific vertical alignment fix */
-.payment-options-section .payment-option-card .MuiCardContent-root {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  height: 100% !important;
-  min-height: 50px !important;
-}
-
-/* Force vertical centering for all direct children */
-.payment-options-section .payment-option-card .MuiCardContent-root > * {
-  align-self: center !important;
-}
-
-/* Specific fix for the main content wrapper */
-.payment-options-section .payment-option-card .MuiCardContent-root > div:first-child {
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  height: 100% !important;
-  gap: 12px !important;
+/* Payment option row alignment */
+.payment-options-section .payment-option-card .MuiCardContent-root > div {
+  align-items: center;
 }
 
 .payment-details-section {
   padding: 16px 20px;
   margin-bottom: 12px;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   max-height: 120px;
   overflow-y: auto;
   background: rgba(248, 249, 250, 0.5);
@@ -981,13 +926,13 @@
 }
 
 .payment-details-section .MuiTypography-subtitle1 {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 600 !important;
   color: #1a1a1a !important;
 }
 
 .payment-details-section .MuiTypography-body2 {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   color: #333 !important;
 }
 
@@ -998,7 +943,7 @@
   background: #f8f9fa;
   border-top: 1px solid #eee;
   border-radius: 0 0 16px 16px;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   min-height: 80px;
   flex-shrink: 0;
   align-items: center;
@@ -1012,7 +957,7 @@
   font-weight: 600;
   text-transform: none;
   font-size: 14px;
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 0 16px;
   /* Ensure all text uses Quicksand font */
@@ -1033,8 +978,12 @@
 
 /* Loading Spinner Animation */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Enhanced Alert Styles */
@@ -1062,29 +1011,29 @@
     width: 95%;
     max-height: 95vh;
   }
-  
+
   .payment-modal-header {
     padding: 16px 16px 12px;
   }
-  
+
   .payment-amount-section {
     padding: 20px 16px;
   }
-  
+
   .payment-options-section {
     padding: 16px;
   }
-  
+
   .payment-actions-section {
     padding: 16px;
     flex-direction: column;
   }
-  
+
   .payment-actions-section .MuiButton-root {
     width: 100%;
     margin-bottom: 8px;
   }
-  
+
   .payment-actions-section .MuiButton-root:last-child {
     margin-bottom: 0;
   }
@@ -1235,10 +1184,12 @@
   width: 420px;
   min-height: 420px;
   max-height: 85vh;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(0, 0, 0, 0.08);
   position: relative;
   border: 1px solid rgba(186, 161, 115, 0.1);
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1265,13 +1216,17 @@
   margin-bottom: 16px;
   flex-shrink: 0;
   position: relative;
-  background: linear-gradient(135deg, rgba(186, 161, 115, 0.05) 0%, rgba(186, 161, 115, 0.02) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(186, 161, 115, 0.05) 0%,
+    rgba(186, 161, 115, 0.02) 100%
+  );
   margin: 0 -24px 16px -24px;
   padding: 16px 24px 12px;
 }
 
 .fpx-header h2 {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   font-weight: 700 !important;
   color: #1a1a1a;
   margin: 0;
@@ -1282,7 +1237,7 @@
 }
 
 .fpx-header h2::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -8px;
   left: 50%;
@@ -1321,7 +1276,7 @@
 }
 
 .fpx-info::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -1344,7 +1299,7 @@
 }
 
 .loading-section::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 50%;
@@ -1357,12 +1312,19 @@
 }
 
 @keyframes loadingPulse {
-  0%, 100% { opacity: 0.5; width: 60px; }
-  50% { opacity: 1; width: 120px; }
+  0%,
+  100% {
+    opacity: 0.5;
+    width: 60px;
+  }
+  50% {
+    opacity: 1;
+    width: 120px;
+  }
 }
 
 .loading-section .MuiTypography-root {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
   color: #666;
   margin-bottom: 16px;
 }
@@ -1422,7 +1384,7 @@
   border-radius: 12px;
   padding: 16px;
   background: #fff;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 48px;
   display: flex;
@@ -1432,13 +1394,18 @@
 }
 
 .fpx-modal-container .StripeElement::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent 0%, #baa173 50%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #baa173 50%,
+    transparent 100%
+  );
   transform: scaleX(0);
   transition: transform 0.3s ease;
 }
@@ -1464,20 +1431,37 @@
 }
 
 .fpx-modal-container .StripeElement--invalid::before {
-  background: linear-gradient(90deg, transparent 0%, #dc3545 50%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #dc3545 50%,
+    transparent 100%
+  );
   transform: scaleX(1);
   animation: errorPulse 1s ease-in-out infinite;
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
 }
 
 @keyframes errorPulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes modalSlideIn {
@@ -1503,7 +1487,7 @@
   font-weight: 600;
   color: #1a1a1a;
   font-size: 0.9rem;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   letter-spacing: 0.02em;
 }
 
@@ -1534,7 +1518,7 @@
   border: none;
   border-radius: 12px;
   color: white !important;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   font-weight: 600;
   font-size: 16px;
   cursor: pointer;
@@ -1546,13 +1530,18 @@
 }
 
 .fpx-submit-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
   transition: left 0.6s ease;
 }
 
@@ -1588,7 +1577,7 @@
 }
 
 .fpx-submit-btn.loading::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -1606,7 +1595,7 @@
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 16px;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   font-size: 14px;
   line-height: 1.4;
   display: flex;
@@ -1646,11 +1635,11 @@
 
 /* Payment Form Typography */
 .fpx-modal-container .MuiTypography-root {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
 }
 
 .fpx-modal-container .MuiButton-root {
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: "Quicksand", sans-serif !important;
 }
 
 /* Responsive Design for FPX Modal */
@@ -1662,20 +1651,20 @@
     max-height: 85vh;
     margin: 20px;
   }
-  
+
   .fpx-modal-content {
     padding: 20px;
   }
-  
+
   .fpx-header {
     margin-bottom: 20px;
     padding-bottom: 16px;
   }
-  
+
   .fpx-header h2 {
     font-size: 1.3rem;
   }
-  
+
   .fpx-close-btn {
     width: 34px;
     height: 34px;
@@ -1683,7 +1672,7 @@
     top: 16px;
     right: 16px;
   }
-  
+
   .fpx-modal-container .StripeElement {
     padding: 14px;
     min-height: 44px;
@@ -1698,11 +1687,11 @@
     border-radius: 0;
     margin: 0;
   }
-  
+
   .fpx-modal-content {
     padding: 16px;
   }
-  
+
   .fpx-header h2 {
     font-size: 1.2rem;
   }
@@ -1818,7 +1807,6 @@
   color: #1a1a1a;
 }
 
-
 .cust-overlay {
   position: fixed;
   top: 0;
@@ -1835,7 +1823,6 @@
   font-family: "Quicksand", sans-serif !important;
   font-weight: 500;
 }
-
 
 /* Responsive Design */
 @media (max-width: 600px) {
@@ -1882,5 +1869,4 @@
   .confirmation-left-section {
     border-radius: 15px 15px 0 0;
   }
-
 }

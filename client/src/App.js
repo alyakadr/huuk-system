@@ -29,8 +29,6 @@ import ManageStaffAttendance from "./pages/staff/ManageStaffAttendance";
 import StaffLayout from "./pages/staff/StaffLayout";
 import api from "./utils/api"; // Updated import
 import Booking from "./components/bookings/Booking";
-import TimeSlotDebugger from "./debug/TimeSlotDebugger";
-import SimpleClickTest from "./debug/SimpleClickTest";
 import { useAuthSession, INTERFACE_ROLE } from "./hooks/useAuthSession";
 
 // Error Boundary to catch invalid component errors
@@ -107,8 +105,6 @@ const App = () => {
             <Route path="/staff-login" element={<Homepage />} />
             <Route path="/" element={<CustomerHomepage />} />
             <Route path="/booking" element={<Booking />} />
-            <Route path="/debug/timeslot" element={<TimeSlotDebugger />} />
-            <Route path="/debug/click" element={<SimpleClickTest />} />
             {/* Staff routes */}
             <Route
               path="/staff"

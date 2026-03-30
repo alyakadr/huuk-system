@@ -17,7 +17,7 @@ A full-stack appointment and staff management system for barber shops, built wit
 | Layer | Technologies |
 |-------|-------------|
 | Frontend | React 18, Material-UI 5, FullCalendar 6, Recharts, Socket.IO |
-| Backend | Node.js, Express 5, MySQL 8, JWT, Socket.IO |
+| Backend | Node.js, Express 5, MongoDB (Mongoose), JWT, Socket.IO |
 | Payments | Stripe, FPX |
 | Notifications | Twilio (SMS), Nodemailer (Email) |
 | Deployment | Docker, Nginx |
@@ -41,11 +41,9 @@ npm run install:all
 
 # 3. Configure the backend environment
 cp env.example server/.env
-#    Edit server/.env with your DB credentials and JWT_SECRET
+#    Edit server/.env: set MONGODB_URI (e.g. mongodb://127.0.0.1:27017/huuk) and JWT_SECRET
 
-# 4. Set up the MySQL database
-mysql -u root -p -e "CREATE DATABASE huuk;"
-mysql -u root -p huuk < server/migrations/create_slot_reservations.sql
+# 4. Start MongoDB locally (or use Atlas) so MONGODB_URI is reachable
 
 # 5. Start both servers (backend :5000 + frontend :3000)
 npm start
@@ -85,15 +83,9 @@ The React app opens at **http://localhost:3000** and talks to the API at **http:
    # Edit server/.env with your database and service credentials
    ```
 
-4. **Set up the database**
+4. **Database**
 
-   ```bash
-   # Create the database
-   mysql -u root -p -e "CREATE DATABASE huuk;"
-
-   # Run migrations
-   mysql -u root -p huuk < server/migrations/create_slot_reservations.sql
-   ```
+   Ensure MongoDB is running and `MONGODB_URI` in `server/.env` points at your database (default: `mongodb://127.0.0.1:27017/huuk`). Mongoose creates collections as the app runs.
 
 5. **Start the development servers**
 
@@ -120,7 +112,7 @@ huuk-system/
 ├── server/                 # Express backend
 │   ├── config/             # App configuration
 │   ├── controllers/        # Route handlers
-│   ├── database/           # DB connection pool
+│   ├── database/           # Legacy SQL snippets (optional)
 │   ├── middlewares/        # Auth and upload middleware
 │   ├── migrations/         # SQL schema files
 │   ├── models/             # Data models
@@ -143,10 +135,7 @@ Copy `env.example` to `server/.env` and fill in the required values:
 
 | Variable | Description |
 |----------|-------------|
-| `DB_HOST` | MySQL host |
-| `DB_USER` | MySQL username |
-| `DB_PASSWORD` | MySQL password |
-| `DB_NAME` | Database name |
+| `MONGODB_URI` | MongoDB connection string |
 | `JWT_SECRET` | Secret key for JWT tokens |
 | `STRIPE_SECRET_KEY` | Stripe API secret key |
 | `TWILIO_ACCOUNT_SID` | Twilio account SID |

@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     fullname: { type: String, trim: true },
     username: { type: String, trim: true },
     outlet: { type: String },
+    address: { type: String },
     outlet_id: { type: mongoose.Schema.Types.ObjectId, ref: "Outlet" },
     profile_picture: { type: String, default: "/Uploads/profile_pictures/default.jpg" },
     isApproved: { type: Number, default: 0 },

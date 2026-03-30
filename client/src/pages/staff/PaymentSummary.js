@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../utils/api';
+import React, { useState, useEffect } from "react";
+import api from "../../utils/api";
 
 const PaymentSummary = () => {
   // Show alert when component is accessed
@@ -11,9 +11,9 @@ const PaymentSummary = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
-    paymentMethod: 'all',
-    paymentStatus: 'all',
-    dateRange: '7days'
+    paymentMethod: "all",
+    paymentStatus: "all",
+    dateRange: "7days",
   });
 
   useEffect(() => {
@@ -23,17 +23,17 @@ const PaymentSummary = () => {
   const fetchPayments = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await api.get('/bookings/manager/payments', {
+      const response = await api.get("/bookings/manager/payments", {
         params: filters,
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      
+
       setPayments(response.data.payments || []);
     } catch (err) {
-      console.error('Error fetching payments:', err);
-      setError('Failed to fetch payments. Please try again.');
+      console.error("Error fetching payments:", err);
+      setError("Failed to fetch payments. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -41,10 +41,10 @@ const PaymentSummary = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   };
 
@@ -54,46 +54,56 @@ const PaymentSummary = () => {
 
   const getPaymentStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'paid': return '#10b981';
-      case 'pending': return '#f59e0b';
-      case 'failed': return '#ef4444';
-      case 'refunded': return '#6b7280';
-      default: return '#6b7280';
+      case "paid":
+        return "#10b981";
+      case "pending":
+        return "#f59e0b";
+      case "failed":
+        return "#ef4444";
+      case "refunded":
+        return "#6b7280";
+      default:
+        return "#6b7280";
     }
   };
 
   const getPaymentMethodIcon = (method) => {
     switch (method?.toLowerCase()) {
-      case 'stripe':
-      case 'online payment':
-        return 'bi-credit-card';
-      case 'pay at outlet':
-        return 'bi-cash';
-      case 'fpx':
-        return 'bi-bank';
+      case "stripe":
+      case "online payment":
+        return "bi-credit-card";
+      case "pay at outlet":
+        return "bi-cash";
+      case "fpx":
+        return "bi-bank";
       default:
-        return 'bi-question-circle';
+        return "bi-question-circle";
     }
   };
 
   const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [filterType]: value
+      [filterType]: value,
     }));
   };
 
   const totalAmount = payments.reduce((sum, payment) => {
-    return sum + (payment.payment_status === 'Paid' ? parseFloat(payment.amount) : 0);
+    return (
+      sum + (payment.payment_status === "Paid" ? parseFloat(payment.amount) : 0)
+    );
   }, 0);
 
-  const onlinePayments = payments.filter(p => 
-    p.payment_method === 'Stripe' || 
-    p.payment_method === 'Online Payment' ||
-    p.payment_method === 'FPX'
+  const onlinePayments = payments.filter(
+    (p) =>
+      p.payment_method === "Stripe" ||
+      p.payment_method === "Online Payment" ||
+      p.payment_method === "FPX",
   );
 
-  const outletPayments = payments.filter(p => p.payment_method === 'Pay at Outlet');
+  const outletPayments = payments.filter(
+    (p) => p.payment_method === "Pay at Outlet",
+  );
 
   if (loading) {
     return (
@@ -156,21 +166,25 @@ const PaymentSummary = () => {
       <div className="payment-filters">
         <div className="filter-group">
           <label>Payment Method:</label>
-          <select 
-            value={filters.paymentMethod} 
-            onChange={(e) => handleFilterChange('paymentMethod', e.target.value)}
+          <select
+            value={filters.paymentMethod}
+            onChange={(e) =>
+              handleFilterChange("paymentMethod", e.target.value)
+            }
           >
             <option value="all">All Methods</option>
             <option value="Stripe">Online Payment</option>
-            <option value="FPX">FPX</option>
+            <option value="FPX">Online Payment</option>
             <option value="Pay at Outlet">Pay at Outlet</option>
           </select>
         </div>
         <div className="filter-group">
           <label>Payment Status:</label>
-          <select 
-            value={filters.paymentStatus} 
-            onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
+          <select
+            value={filters.paymentStatus}
+            onChange={(e) =>
+              handleFilterChange("paymentStatus", e.target.value)
+            }
           >
             <option value="all">All Status</option>
             <option value="Paid">Paid</option>
@@ -180,9 +194,9 @@ const PaymentSummary = () => {
         </div>
         <div className="filter-group">
           <label>Date Range:</label>
-          <select 
-            value={filters.dateRange} 
-            onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+          <select
+            value={filters.dateRange}
+            onChange={(e) => handleFilterChange("dateRange", e.target.value)}
           >
             <option value="7days">Last 7 Days</option>
             <option value="30days">Last 30 Days</option>
@@ -219,33 +233,47 @@ const PaymentSummary = () => {
               payments.map((payment) => (
                 <tr key={payment.booking_id} className="payment-row">
                   <td className="booking-id-cell">
-                    #{String(payment.booking_id).padStart(7, '0')}
+                    #{String(payment.booking_id).padStart(7, "0")}
                   </td>
                   <td className="customer-cell">
                     <div className="customer-info">
-                      <span className="customer-name">{payment.customer_name}</span>
-                      <span className="customer-phone">{payment.phone_number}</span>
+                      <span className="customer-name">
+                        {payment.customer_name}
+                      </span>
+                      <span className="customer-phone">
+                        {payment.phone_number}
+                      </span>
                     </div>
                   </td>
                   <td className="service-cell">{payment.service_name}</td>
                   <td className="amount-cell">
-                    <span className="amount">{formatCurrency(payment.amount)}</span>
+                    <span className="amount">
+                      {formatCurrency(payment.amount)}
+                    </span>
                   </td>
                   <td className="payment-method-cell">
                     <div className="payment-method">
-                      <i className={`bi ${getPaymentMethodIcon(payment.payment_method)}`}></i>
+                      <i
+                        className={`bi ${getPaymentMethodIcon(payment.payment_method)}`}
+                      ></i>
                       <span>{payment.payment_method}</span>
                     </div>
                   </td>
                   <td className="status-cell">
-                    <span 
+                    <span
                       className="status-badge"
-                      style={{ backgroundColor: getPaymentStatusColor(payment.payment_status) }}
+                      style={{
+                        backgroundColor: getPaymentStatusColor(
+                          payment.payment_status,
+                        ),
+                      }}
                     >
                       {payment.payment_status}
                     </span>
                   </td>
-                  <td className="date-cell">{formatDate(payment.booking_date)}</td>
+                  <td className="date-cell">
+                    {formatDate(payment.booking_date)}
+                  </td>
                   <td className="staff-cell">{payment.staff_name}</td>
                 </tr>
               ))

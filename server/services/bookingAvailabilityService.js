@@ -4,6 +4,8 @@ const Booking = require("../models/Booking");
 const Service = require("../models/Service");
 const BlockedTime = require("../models/BlockedTime");
 const BlockedSlot = require("../models/BlockedSlot");
+const SlotReservation = require("../models/SlotReservation");
+const { buildScheduleBlockingBookingMatch } = require("../utils/bookingQuery");
 
 const toUtcDateTime = (date, time) => new Date(`${date}T${time}Z`);
 
@@ -108,13 +110,25 @@ const validateStaffAvailability = async ({
   slotEnd,
   includeBlockedSlots = false,
   excludeBookingId,
-  conflictMatch = { status: { $ne: "Cancelled" } },
+  conflictMatch = buildScheduleBlockingBookingMatch(),
 }) => {
-  const [blockedTimes, blockedSlots] = await Promise.all([
+  const now = new Date();
+
+  const [blockedTimes, blockedSlots, reservations] = await Promise.all([
     BlockedTime.find({ staff_id: staffId, date }).lean(),
     includeBlockedSlots
       ? BlockedSlot.find({ staff_id: staffId, date, is_active: true }).lean()
       : Promise.resolve([]),
+    SlotReservation.find(
+      {
+        staff_id: staffId,
+        date,
+        status: "reserved",
+        expires_at: { $gt: now },
+        ...(excludeBookingId ? { booking_id: { $ne: excludeBookingId } } : {}),
+      },
+      "time service_id",
+    ).lean(),
   ]);
 
   const conflictQuery = {
@@ -128,7 +142,8 @@ const validateStaffAvailability = async ({
   }
 
   const conflicts = await Booking.find(conflictQuery, "time service_id").lean();
-  const durationByServiceId = await buildServiceDurationMap(conflicts);
+  const occupiedSlots = [...conflicts, ...reservations];
+  const durationByServiceId = await buildServiceDurationMap(occupiedSlots);
 
   const isBlockedByTime = hasBlockedTimeConflict(
     blockedTimes,
@@ -140,7 +155,7 @@ const validateStaffAvailability = async ({
     ? hasBlockedSlotConflict(blockedSlots, date, slotStart, slotEnd)
     : false;
   const hasConflict = hasBookingConflict(
-    conflicts,
+    occupiedSlots,
     date,
     slotStart,
     slotEnd,
@@ -154,7 +169,7 @@ const validateStaffAvailability = async ({
     nextEvent: getNextEvent({
       blockedTimes,
       blockedSlots,
-      bookings: conflicts,
+      bookings: occupiedSlots,
       date,
       durationByServiceId,
       slotStart,

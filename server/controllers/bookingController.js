@@ -7,6 +7,7 @@ const Service = require("../models/Service");
 const Review = require("../models/Review");
 const BlockedSlot = require("../models/BlockedSlot");
 const BlockedTime = require("../models/BlockedTime");
+const SlotReservation = require("../models/SlotReservation");
 const Notification = require("../models/Notification");
 const jwt = require("jsonwebtoken");
 const moment = require("moment-timezone");
@@ -39,6 +40,13 @@ const {
   toPaymentMethodLabel,
   buildBookingPaymentDetails,
 } = require("../utils/booking/bookingPresentation");
+const { ensureStaticOutlets } = require("../utils/outlets");
+const { ensureDefaultServices } = require("../utils/services");
+const {
+  buildScheduleBlockingBookingMatch,
+  buildVisibleBookingMatch,
+} = require("../utils/bookingQuery");
+const { getStripeClient } = require("../utils/stripeClient");
 
 const retryOperation = async (operation, retries = 3, delayBase = 1000) => {
   for (let i = 0; i < retries; i++) {
@@ -69,12 +77,112 @@ function getTodayString() {
   );
 }
 
+const SLOT_RESERVATION_MINUTES = 5;
+
+const buildReservationExpiry = () =>
+  new Date(Date.now() + SLOT_RESERVATION_MINUTES * 60 * 1000);
+
+const reserveDraftBookingSlot = async ({
+  bookingId,
+  userId,
+  outletId,
+  serviceId,
+  staffId,
+  date,
+  time,
+}) => {
+  if (
+    !bookingId ||
+    !userId ||
+    !outletId ||
+    !serviceId ||
+    !staffId ||
+    !date ||
+    !time
+  ) {
+    return;
+  }
+
+  await SlotReservation.findOneAndUpdate(
+    { booking_id: bookingId },
+    {
+      $set: {
+        booking_id: bookingId,
+        user_id: userId,
+        outlet_id: outletId,
+        service_id: serviceId,
+        staff_id: staffId,
+        date,
+        time,
+        expires_at: buildReservationExpiry(),
+        status: "reserved",
+      },
+    },
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
+    },
+  );
+};
+
+const updateReservationStatusByBookingId = async (bookingId, status) => {
+  if (!bookingId || !status) {
+    return;
+  }
+
+  await SlotReservation.updateMany(
+    { booking_id: bookingId, status: { $in: ["reserved", "confirmed"] } },
+    {
+      $set: {
+        status,
+        expires_at: new Date(),
+      },
+    },
+  );
+};
+
+async function buildOutletAwareStaffQuery(outletId) {
+  const base = { role: { $in: ["staff", "manager"] }, isApproved: 1 };
+  const filters = [];
+
+  if (mongoose.Types.ObjectId.isValid(outletId)) {
+    const objectId = new mongoose.Types.ObjectId(outletId);
+    filters.push({ outlet_id: objectId });
+
+    const outletDoc = await Outlet.findById(objectId, "name shortform").lean();
+    if (outletDoc) {
+      const outletNames = [outletDoc.name, outletDoc.shortform]
+        .filter(Boolean)
+        .map((v) => String(v).trim())
+        .filter(Boolean);
+      if (outletNames.length) {
+        filters.push({ outlet: { $in: outletNames } });
+      }
+    }
+  }
+
+  if (!filters.length) {
+    const normalized = String(outletId || "").trim();
+    if (normalized) {
+      filters.push({ outlet: normalized });
+    }
+  }
+
+  if (!filters.length) {
+    return base;
+  }
+
+  return {
+    ...base,
+    $or: filters,
+  };
+}
+
 // List all outlets
 exports.getOutlets = async (req, res) => {
   try {
-    const results = await Outlet.find({}, "name shortform")
-      .sort({ shortform: 1 })
-      .lean();
+    const results = await ensureStaticOutlets();
     res.json(results.map((o) => ({ ...o, id: o._id.toString() })));
   } catch (err) {
     console.error("Error fetching outlets:", { message: err.message });
@@ -85,9 +193,7 @@ exports.getOutlets = async (req, res) => {
 // List all services
 exports.getServices = async (req, res) => {
   try {
-    const results = await Service.find({}, "name duration price")
-      .sort({ name: 1 })
-      .lean();
+    const results = await ensureDefaultServices();
     res.json(results.map((s) => ({ ...s, id: s._id.toString() })));
   } catch (err) {
     console.error("Error fetching services:", { message: err.message });
@@ -115,27 +221,41 @@ exports.getAvailableSlots = async (req, res) => {
     if (!service) return res.status(404).json({ message: "Service not found" });
     const duration = service.duration || 30;
 
-    const staffQuery = {
-      role: { $in: ["staff", "manager"] },
-      outlet_id,
-      isApproved: 1,
-    };
+    const staffQuery = await buildOutletAwareStaffQuery(outlet_id);
     if (staff_id) staffQuery._id = staff_id;
     const staff = await User.find(staffQuery, "_id").lean();
     if (!staff.length) return res.json([]);
 
     const staffIds = staff.map((s) => s._id);
 
-    const [blockedTimes, blockedSlots] = await Promise.all([
+    const now = new Date();
+    const [blockedTimes, blockedSlots, reservations] = await Promise.all([
       BlockedTime.find({ date, staff_id: { $in: staffIds } }).lean(),
       BlockedSlot.find({
         date,
         staff_id: { $in: staffIds },
         is_active: true,
       }).lean(),
+      SlotReservation.find(
+        {
+          date,
+          outlet_id,
+          staff_id: { $in: staffIds },
+          status: "reserved",
+          expires_at: { $gt: now },
+          ...(currentBookingId
+            ? {
+                booking_id: {
+                  $ne: new mongoose.Types.ObjectId(currentBookingId),
+                },
+              }
+            : {}),
+        },
+        "staff_id time service_id",
+      ).lean(),
     ]);
 
-    const bookingQuery = { date, outlet_id, status: { $ne: "Cancelled" } };
+    const bookingQuery = buildScheduleBlockingBookingMatch({ date, outlet_id });
     if (currentBookingId) bookingQuery._id = { $ne: currentBookingId };
     else if (currentBookingTime)
       bookingQuery.time = { $ne: currentBookingTime };
@@ -144,8 +264,14 @@ exports.getAvailableSlots = async (req, res) => {
       "staff_id time service_id",
     ).lean();
 
+    const occupiedSlots = [...bookings, ...reservations];
+
     const bookingServiceIds = [
-      ...new Set(bookings.map((b) => b.service_id.toString())),
+      ...new Set(
+        occupiedSlots
+          .filter((b) => b.service_id)
+          .map((b) => b.service_id.toString()),
+      ),
     ];
     const bookingServices = bookingServiceIds.length
       ? await Service.find(
@@ -232,7 +358,7 @@ exports.getAvailableSlots = async (req, res) => {
             staffOk = false;
             break;
           }
-          const hasConflict = bookings
+          const hasConflict = occupiedSlots
             .filter((b) => b.staff_id.toString() === s._id.toString())
             .some((b) => {
               const bs = new Date(`${date}T${b.time}Z`);
@@ -266,7 +392,7 @@ exports.getAvailableSlots = async (req, res) => {
                   end: new Date(bss.getTime() + 30 * 60 * 1000),
                 };
               }),
-            ...bookings
+            ...occupiedSlots
               .filter((b) => b.staff_id.toString() === s._id.toString())
               .map((b) => {
                 const bs = new Date(`${date}T${b.time}Z`);
@@ -303,6 +429,149 @@ exports.getAvailableSlots = async (req, res) => {
   }
 };
 
+exports.reserveSlot = async (req, res) => {
+  const { outlet_id, service_id, staff_id, date, time } = req.body;
+
+  if (!outlet_id || !service_id || !staff_id || !date || !time) {
+    return res.status(400).json({
+      message: "outlet_id, service_id, staff_id, date, and time are required",
+    });
+  }
+
+  try {
+    const slotStart = new Date(`${date}T${time}Z`);
+    if (isOutsideOperatingHours(date, slotStart)) {
+      return res.status(400).json({ message: OUTSIDE_OPERATING_HOURS_MESSAGE });
+    }
+
+    const service = await Service.findById(service_id, "duration").lean();
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    const slotEnd = new Date(
+      slotStart.getTime() + (service.duration || 30) * 60 * 1000,
+    );
+    const availability = await validateStaffAvailability({
+      staffId: staff_id,
+      date,
+      slotStart,
+      slotEnd,
+      includeBlockedSlots: true,
+      conflictMatch: buildScheduleBlockingBookingMatch(),
+    });
+
+    if (
+      availability.isBlockedByTime ||
+      availability.isBlockedBySlot ||
+      availability.hasConflict
+    ) {
+      return res.status(409).json({ message: "Slot is no longer available" });
+    }
+
+    const reservation = await SlotReservation.create({
+      user_id: req.userObjectId,
+      outlet_id,
+      service_id,
+      staff_id,
+      date,
+      time,
+      status: "reserved",
+      expires_at: buildReservationExpiry(),
+    });
+
+    return res.json({
+      message: "Slot reserved",
+      reservationId: reservation._id,
+      expiresAt: reservation.expires_at,
+    });
+  } catch (err) {
+    console.error("Error reserving slot:", { message: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+};
+
+exports.releaseSlot = async (req, res) => {
+  const { reservation_id } = req.body;
+  if (!reservation_id) {
+    return res.status(400).json({ message: "reservation_id is required" });
+  }
+
+  try {
+    const result = await SlotReservation.findOneAndUpdate(
+      {
+        _id: reservation_id,
+        user_id: req.userObjectId,
+        status: "reserved",
+      },
+      {
+        $set: {
+          status: "cancelled",
+          expires_at: new Date(),
+        },
+      },
+      { new: true },
+    ).lean();
+
+    if (!result) {
+      return res.status(404).json({ message: "Reservation not found" });
+    }
+
+    return res.json({ message: "Slot reservation released" });
+  } catch (err) {
+    console.error("Error releasing reservation:", { message: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+};
+
+exports.checkSlotAvailability = async (req, res) => {
+  const { outlet_id, service_id, staff_id, date, time } = req.query;
+  if (!outlet_id || !service_id || !staff_id || !date || !time) {
+    return res.status(400).json({
+      message: "outlet_id, service_id, staff_id, date, and time are required",
+    });
+  }
+
+  try {
+    const service = await Service.findById(service_id, "duration").lean();
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    const slotStart = new Date(`${date}T${time}Z`);
+    const slotEnd = new Date(
+      slotStart.getTime() + (service.duration || 30) * 60 * 1000,
+    );
+    const availability = await validateStaffAvailability({
+      staffId: staff_id,
+      date,
+      slotStart,
+      slotEnd,
+      includeBlockedSlots: true,
+      conflictMatch: buildScheduleBlockingBookingMatch(),
+    });
+
+    const available =
+      !availability.isBlockedByTime &&
+      !availability.isBlockedBySlot &&
+      !availability.hasConflict &&
+      (!availability.nextEvent || availability.nextEvent.start >= slotEnd);
+
+    return res.json({ available });
+  } catch (err) {
+    console.error("Error checking slot availability:", {
+      message: err.message,
+    });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+};
+
 // Get available staff for a date/outlet
 exports.getAvailableStaff = async (req, res) => {
   const { outlet_id, date, time, service_id } = req.query;
@@ -315,17 +584,15 @@ exports.getAvailableStaff = async (req, res) => {
       if (!svc) return res.status(404).json({ message: "Service not found" });
       duration = svc.duration;
     }
-    const staff = await User.find(
-      { role: { $in: ["staff", "manager"] }, outlet_id, isApproved: 1 },
-      "_id username",
-    ).lean();
+    const staffQuery = await buildOutletAwareStaffQuery(outlet_id);
+    const staff = await User.find(staffQuery, "_id username").lean();
     if (!staff.length) return res.json([]);
     const staffIds = staff.map((s) => s._id);
 
     const [blockedTimes, bookings] = await Promise.all([
       BlockedTime.find({ date, staff_id: { $in: staffIds } }).lean(),
       Booking.find(
-        { date, outlet_id, status: { $ne: "Cancelled" } },
+        buildScheduleBlockingBookingMatch({ date, outlet_id }),
         "staff_id time service_id",
       ).lean(),
     ]);
@@ -410,17 +677,15 @@ exports.getStaffByTime = async (req, res) => {
     const svc = await Service.findById(service_id).lean();
     if (!svc) return res.status(404).json({ message: "Service not found" });
     const duration = svc.duration;
-    const staff = await User.find(
-      { role: { $in: ["staff", "manager"] }, outlet_id, isApproved: 1 },
-      "_id fullname",
-    ).lean();
+    const staffQuery = await buildOutletAwareStaffQuery(outlet_id);
+    const staff = await User.find(staffQuery, "_id fullname").lean();
     if (!staff.length) return res.json([]);
     const staffIds = staff.map((s) => s._id);
 
     const [blockedTimes, bookings] = await Promise.all([
       BlockedTime.find({ date, staff_id: { $in: staffIds } }).lean(),
       Booking.find(
-        { date, outlet_id, status: { $ne: "Cancelled" } },
+        buildScheduleBlockingBookingMatch({ date, outlet_id }),
         "staff_id time service_id",
       ).lean(),
     ]);
@@ -494,7 +759,7 @@ exports.getStaffByTime = async (req, res) => {
               (s) => new mongoose.Types.ObjectId(s._id.toString()),
             ),
           },
-          status: { $ne: "Cancelled" },
+          ...buildScheduleBlockingBookingMatch(),
         },
       },
       { $group: { _id: "$staff_id", booking_count: { $sum: 1 } } },
@@ -527,11 +792,12 @@ exports.getStaffBookings = async (req, res) => {
   if (!startDate || !endDate)
     return res.status(400).json({ message: "Start and end dates required" });
   try {
-    const bookings = await Booking.find({
-      staff_id: req.userId,
-      date: { $gte: startDate, $lte: endDate },
-      status: { $nin: ["Cancelled"] },
-    })
+    const bookings = await Booking.find(
+      buildVisibleBookingMatch({
+        staff_id: req.userObjectId,
+        date: { $gte: startDate, $lte: endDate },
+      }),
+    )
       .populate("service_id", "name duration")
       .sort({ date: 1, time: 1 })
       .lean();
@@ -556,7 +822,9 @@ exports.getStaffBookings = async (req, res) => {
 exports.getUserBookings = async (req, res) => {
   try {
     await new Promise((r) => setTimeout(r, 50));
-    const bookings = await Booking.find({ user_id: req.userId })
+    const bookings = await Booking.find(
+      buildVisibleBookingMatch({ user_id: req.userObjectId }),
+    )
       .populate("outlet_id", "shortform")
       .populate("service_id", "name price duration")
       .populate("staff_id", "username")
@@ -622,15 +890,16 @@ exports.createBooking = async (req, res) => {
       .status(400)
       .json({ message: "Client name must be 10 characters or less" });
 
-  let finalUserId = req.userId;
+  let finalUserId = req.userObjectId;
   try {
     if (!finalUserId) {
-      finalUserId = await resolveOrCreateCustomerUser({
+      const idStr = await resolveOrCreateCustomerUser({
         providedUserId: null,
         phoneNumber: req.body.phone_number || null,
         customerName: customer_name,
         isApproved: 1,
       });
+      finalUserId = new mongoose.Types.ObjectId(String(idStr));
     }
 
     const slotStart = new Date(`${date}T${time}Z`);
@@ -649,10 +918,7 @@ exports.createBooking = async (req, res) => {
       slotStart,
       slotEnd,
       includeBlockedSlots: true,
-      conflictMatch: {
-        status: { $ne: "Cancelled" },
-        $or: [{ payment_status: "Paid" }, { payment_method: "Pay at Outlet" }],
-      },
+      conflictMatch: buildScheduleBlockingBookingMatch(),
     });
 
     if (availability.isBlockedByTime)
@@ -685,7 +951,15 @@ exports.createBooking = async (req, res) => {
       payment_status: "Pending",
     });
 
-    await new Promise((r) => setTimeout(r, 100));
+    await reserveDraftBookingSlot({
+      bookingId: booking._id,
+      userId: finalUserId,
+      outletId: outlet_id,
+      serviceId: service_id,
+      staffId: staff_id,
+      date,
+      time,
+    });
 
     const [outletDoc, staffDoc] = await Promise.all([
       Outlet.findById(outlet_id, "shortform").lean(),
@@ -694,74 +968,16 @@ exports.createBooking = async (req, res) => {
 
     const bookingId = booking._id.toString();
 
-    setImmediate(async () => {
-      try {
-        await sendNotificationAfterBooking("create", {
-          id: bookingId,
-          user_id: finalUserId,
-          staff_id,
-          service_name: svc.name,
-          date,
-          customer_name,
-        });
-      } catch (e) {
-        console.error("Notification error:", e);
-      }
-    });
-
-    const user = await User.findById(finalUserId, "phone_number email").lean();
-    const userPhone = user ? user.phone_number : null;
-    const userEmail = user ? user.email : null;
-
-    if (userPhone) {
-      setImmediate(async () => {
-        try {
-          const details = {
-            id: bookingId,
-            outlet: outletDoc?.shortform || "N/A",
-            service: svc.name,
-            date: formatDateForDb(date),
-            time,
-            staff_name: staffDoc?.username || "N/A",
-            price: svc.price || 0,
-          };
-          await sendBookingConfirmation(details, userPhone);
-        } catch (e) {
-          console.error("SMS error:", e);
-        }
-      });
-    }
-
-    if (userEmail && userEmail !== "customer@huuksystem.com") {
-      setImmediate(async () => {
-        try {
-          const details = {
-            id: bookingId,
-            outlet: outletDoc?.shortform || "N/A",
-            service: svc.name,
-            date: formatDateForDb(date),
-            time,
-            customer_name,
-            staff_name: staffDoc?.username || "N/A",
-            price: svc.price || 0,
-            payment_method: "Pending",
-            payment_status: "Pending",
-          };
-          await retryOperation(() => sendReceiptEmail(details, userEmail));
-        } catch (e) {
-          console.error("Email error:", e);
-        }
-      });
-    }
-
     res.json({
-      message: "Draft booking created",
+      message: "Booking started",
       booking: {
         id: bookingId,
         customer_name,
         outlet_name: outletDoc?.shortform || "N/A",
         staff_name: staffDoc?.username || "N/A",
         service_name: svc.name,
+        service_duration: svc.duration || 30,
+        serviceDuration: svc.duration || 30,
         date,
         time,
         price: parseFloat(svc.price) || 0,
@@ -802,7 +1018,10 @@ exports.finalizeBooking = async (req, res) => {
         status: booking.status,
       });
     }
-    await Booking.findByIdAndUpdate(bookingId, { $set: { is_draft: false } });
+    await Booking.findByIdAndUpdate(bookingId, {
+      $set: { is_draft: false, status: "Confirmed" },
+    });
+    await updateReservationStatusByBookingId(bookingId, "confirmed");
     res.json({ message: "Booking finalized successfully", bookingId });
   } catch (err) {
     console.error("Error finalizing booking:", { message: err.message });
@@ -1043,7 +1262,7 @@ exports.cancelBooking = async (req, res) => {
 
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const cancelCount = await Booking.countDocuments({
-      user_id: req.userId,
+      user_id: req.userObjectId,
       status: "Cancelled",
       createdAt: { $gte: monthStart },
     });
@@ -1056,7 +1275,10 @@ exports.cancelBooking = async (req, res) => {
     if (booking.payment_status === "Paid" && booking.payment_intent_id) {
       const daysDiff = Math.ceil(hoursDiff / 24);
       if (daysDiff > 3) {
-        const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+        const { stripe, configError } = getStripeClient();
+        if (!stripe) {
+          throw new Error(configError || "Stripe is not configured");
+        }
         try {
           await stripe.refunds.create({
             payment_intent: booking.payment_intent_id,
@@ -1072,11 +1294,13 @@ exports.cancelBooking = async (req, res) => {
     await Booking.findByIdAndUpdate(booking_id, {
       $set: { status: "Cancelled", payment_status: refundStatus },
     });
+    await updateReservationStatusByBookingId(booking_id, "cancelled");
 
     const bookingDetails = buildBookingPaymentDetails({
       id: booking_id,
       outlet: booking.outlet_id?.shortform,
       service: booking.service_id?.name,
+      duration: booking.service_id?.duration || 30,
       date: booking.date,
       time: booking.time,
       customer_name: booking.customer_name,
@@ -1119,7 +1343,7 @@ exports.deleteBooking = async (req, res) => {
   try {
     const booking = await Booking.findOne({
       _id: bookingId,
-      user_id: req.userId,
+      user_id: req.userObjectId,
     }).lean();
     if (!booking)
       return res
@@ -1130,6 +1354,7 @@ exports.deleteBooking = async (req, res) => {
         .status(400)
         .json({ message: "Cannot delete completed bookings" });
     await Booking.findByIdAndDelete(bookingId);
+    await updateReservationStatusByBookingId(bookingId, "cancelled");
     res.json({ message: "Booking deleted successfully" });
   } catch (err) {
     console.error("Error deleting booking:", { message: err.message });
@@ -1145,7 +1370,7 @@ exports.sendBookingReceipt = async (req, res) => {
   try {
     const booking = await Booking.findOne({
       _id: booking_id,
-      user_id: req.userId,
+      user_id: req.userObjectId,
     })
       .populate("outlet_id", "shortform")
       .populate("service_id", "name price")
@@ -1164,6 +1389,7 @@ exports.sendBookingReceipt = async (req, res) => {
       id: booking_id,
       outlet: booking.outlet_id?.shortform,
       service: booking.service_id?.name,
+      duration: booking.service_id?.duration || 30,
       date: booking.date,
       time: booking.time,
       customer_name: booking.customer_name,
@@ -1225,6 +1451,7 @@ exports.setPayAtOutlet = async (req, res) => {
       id: booking_id,
       outlet: booking.outlet_id?.shortform,
       service: booking.service_id?.name,
+      duration: booking.service_id?.duration || 30,
       date: booking.date,
       time: booking.time,
       customer_name: booking.customer_name,
@@ -1324,6 +1551,7 @@ exports.setMultiplePayAtOutlet = async (req, res) => {
             id: bookingId,
             outlet: booking.outlet_id?.shortform,
             service: booking.service_id?.name,
+            duration: booking.service_id?.duration || 30,
             date: booking.date,
             time: booking.time,
             customer_name: booking.customer_name,
@@ -1407,6 +1635,7 @@ exports.confirmPayAtOutlet = async (req, res) => {
       id: booking_id,
       outlet: booking.outlet_id?.shortform,
       service: booking.service_id?.name,
+      duration: booking.service_id?.duration || 30,
       date: booking.date,
       time: booking.time,
       customer_name: booking.customer_name,
@@ -1470,7 +1699,12 @@ exports.getStaffSales = async (req, res) => {
       },
     ]);
     const topServicesRaw = await Booking.aggregate([
-      { $match: { outlet_id: new mongoose.Types.ObjectId(outlet_id), date } },
+      {
+        $match: buildVisibleBookingMatch({
+          outlet_id: new mongoose.Types.ObjectId(outlet_id),
+          date,
+        }),
+      },
       {
         $lookup: {
           from: "services",
@@ -1513,7 +1747,12 @@ exports.getStaffPayments = async (req, res) => {
     return res.status(400).json({ message: "Outlet ID and date required" });
   try {
     const summary = await Booking.aggregate([
-      { $match: { outlet_id: new mongoose.Types.ObjectId(outlet_id), date } },
+      {
+        $match: buildVisibleBookingMatch({
+          outlet_id: new mongoose.Types.ObjectId(outlet_id),
+          date,
+        }),
+      },
       {
         $lookup: {
           from: "services",
@@ -1573,7 +1812,7 @@ exports.getManagerSales = async (req, res) => {
       },
     ]);
     const topServicesRaw = await Booking.aggregate([
-      { $match: { date } },
+      { $match: buildVisibleBookingMatch({ date }) },
       {
         $lookup: {
           from: "services",
@@ -1615,7 +1854,7 @@ exports.getManagerPayments = async (req, res) => {
   if (!date) return res.status(400).json({ message: "Date required" });
   try {
     const summary = await Booking.aggregate([
-      { $match: { date } },
+      { $match: buildVisibleBookingMatch({ date }) },
       {
         $lookup: {
           from: "services",
@@ -1696,7 +1935,7 @@ exports.getTodayTransactionsByOutlet = async (req, res) => {
   try {
     const today = getTodayString();
     const results = await Booking.aggregate([
-      { $match: { date: today, status: { $ne: "Cancelled" } } },
+      { $match: buildVisibleBookingMatch({ date: today }) },
       {
         $lookup: {
           from: "outlets",
@@ -1738,8 +1977,17 @@ exports.getStaffAppointments = async (req, res) => {
   const offset = (parseInt(page) - 1) * parseInt(limit);
   try {
     const query = {
-      staff_id: req.userId,
-      payment_method: { $exists: true, $ne: null },
+      staff_id: req.userObjectId,
+      is_draft: { $ne: true },
+      status: { $ne: "Cancelled" },
+      $and: [
+        {
+          $or: [
+            { payment_status: "Paid" },
+            { payment_method: "Pay at Outlet" },
+          ],
+        },
+      ],
     };
     if (date) query.date = date;
     if (status && status !== "all") query.status = status;
@@ -1749,11 +1997,13 @@ exports.getStaffAppointments = async (req, res) => {
         "_id",
       ).lean();
       const serviceIds = matchingServices.map((s) => s._id);
-      query.$or = [
-        { customer_name: { $regex: search, $options: "i" } },
-        { customer_phone: { $regex: search, $options: "i" } },
-        { service_id: { $in: serviceIds } },
-      ];
+      query.$and.push({
+        $or: [
+          { customer_name: { $regex: search, $options: "i" } },
+          { customer_phone: { $regex: search, $options: "i" } },
+          { service_id: { $in: serviceIds } },
+        ],
+      });
     }
     const totalCount = await Booking.countDocuments(query);
     const totalPages = Math.ceil(totalCount / parseInt(limit));
@@ -1815,7 +2065,7 @@ exports.getBookingDetails = async (req, res) => {
         .populate("staff_id", "username fullname")
         .lean();
     } else {
-      booking = await Booking.findOne({ _id: id, user_id: req.userId })
+      booking = await Booking.findOne({ _id: id, user_id: req.userObjectId })
         .populate("service_id", "name price duration")
         .populate("outlet_id", "name shortform")
         .populate("user_id", "phone_number")
@@ -1852,6 +2102,8 @@ exports.getBookingDetails = async (req, res) => {
       paymentStatus: booking.payment_status,
       price: booking.service_id?.price || 0,
       totalAmount: booking.service_id?.price || 0,
+      service_duration: booking.service_id?.duration || 30,
+      serviceDuration: booking.service_id?.duration || 30,
       time: booking.time,
       startTime: booking.time,
       endTime,
@@ -1912,7 +2164,7 @@ exports.updateAppointmentStatus = async (req, res) => {
   try {
     const appointment = await Booking.findOne({
       _id: id,
-      staff_id: req.userId,
+      staff_id: req.userObjectId,
     }).lean();
     if (!appointment)
       return res
@@ -2147,7 +2399,7 @@ exports.updateBooking = async (req, res) => {
   try {
     const existingBooking = await Booking.findOne({
       _id: bookingId,
-      user_id: req.userId,
+      user_id: req.userObjectId,
     }).lean();
     if (!existingBooking)
       return res
@@ -2311,6 +2563,7 @@ exports.rescheduleBooking = async (req, res) => {
       id: booking_id,
       outlet: booking.outlet_id?.shortform,
       service: booking.service_id?.name,
+      duration: booking.service_id?.duration || 30,
       date,
       time,
       customer_name: booking.customer_name,
@@ -2336,7 +2589,7 @@ exports.rescheduleBooking = async (req, res) => {
 // Staff schedule (upcoming appointments today)
 exports.getStaffSchedule = async (req, res) => {
   try {
-    const staffId = req.userId;
+    const staffId = req.userObjectId;
     const today = getTodayString();
     const now = new Date();
     const currentTime =
@@ -2528,7 +2781,9 @@ exports.getTotalAppointmentsYesterday = async (req, res) => {
       String(now.getMonth() + 1).padStart(2, "0") +
       "-" +
       String(now.getDate()).padStart(2, "0");
-    const count = await Booking.countDocuments({ date: yesterday });
+    const count = await Booking.countDocuments(
+      buildVisibleBookingMatch({ date: yesterday }),
+    );
     res.json({ count });
   } catch (err) {
     console.error("Error fetching total appointments yesterday:", {
@@ -2543,7 +2798,7 @@ exports.getAllAppointments = async (req, res) => {
   if (req.role !== "manager")
     return res.status(403).json({ message: "Manager role required" });
   try {
-    const bookings = await Booking.find({})
+    const bookings = await Booking.find(buildVisibleBookingMatch())
       .populate("service_id", "name duration")
       .populate("outlet_id", "shortform")
       .populate("user_id", "phone_number")
@@ -2587,7 +2842,9 @@ exports.getTotalAppointmentsToday = async (req, res) => {
     return res.status(403).json({ message: "Manager role required" });
   try {
     const today = getTodayString();
-    const count = await Booking.countDocuments({ date: today });
+    const count = await Booking.countDocuments(
+      buildVisibleBookingMatch({ date: today }),
+    );
     res.json({ count });
   } catch (err) {
     console.error("Error fetching total appointments today:", {
@@ -2603,9 +2860,8 @@ exports.getStaffSummary = async (req, res) => {
     return res.status(403).json({ message: "Staff or manager role required" });
   try {
     const today = getTodayString();
-    let matchStage = { date: today };
-    if (req.role === "staff")
-      matchStage.staff_id = new mongoose.Types.ObjectId(req.userId);
+    let matchStage = buildVisibleBookingMatch({ date: today });
+    if (req.role === "staff") matchStage.staff_id = req.userObjectId;
 
     const results = await Booking.aggregate([
       { $match: matchStage },
@@ -2658,7 +2914,7 @@ exports.getTodaysAppointmentsByStaff = async (req, res) => {
     const today = moment().format("YYYY-MM-DD");
     let staffQuery = { role: { $in: ["staff", "manager"] }, isApproved: 1 };
     if (req.role === "staff") {
-      const user = await User.findById(req.userId, "outlet_id").lean();
+      const user = await User.findById(req.userObjectId, "outlet_id").lean();
       if (!user) return res.status(404).json({ message: "User not found" });
       staffQuery.outlet_id = user.outlet_id;
     }
@@ -2666,11 +2922,10 @@ exports.getTodaysAppointmentsByStaff = async (req, res) => {
     const staffIds = allStaff.map((s) => s._id);
 
     const bookings = await Booking.find(
-      {
+      buildVisibleBookingMatch({
         date: today,
-        status: { $nin: ["Cancelled"] },
         staff_id: { $in: staffIds },
-      },
+      }),
       "staff_id",
     ).lean();
     const countMap = {};
@@ -2736,10 +2991,9 @@ exports.getBookingsByPhone = async (req, res) => {
   try {
     const user = await User.findOne({ phone_number: phoneNumber }).lean();
     if (!user) return res.json([]);
-    const bookings = await Booking.find({
-      user_id: user._id,
-      status: { $nin: ["Cancelled"] },
-    })
+    const bookings = await Booking.find(
+      buildVisibleBookingMatch({ user_id: user._id }),
+    )
       .populate("outlet_id", "shortform")
       .populate("service_id", "name price duration")
       .populate("staff_id", "username")
@@ -2777,10 +3031,9 @@ exports.getAppointmentsByUserId = async (req, res) => {
   const { limit = 10 } = req.query;
   if (!userId) return res.status(400).json({ message: "User ID is required" });
   try {
-    const bookings = await Booking.find({
-      user_id: userId,
-      status: { $nin: ["Cancelled"] },
-    })
+    const bookings = await Booking.find(
+      buildVisibleBookingMatch({ user_id: userId }),
+    )
       .populate("outlet_id", "shortform")
       .populate("service_id", "name price duration")
       .populate("staff_id", "username")
@@ -2818,11 +3071,9 @@ exports.getBookingsForDateOutlet = async (req, res) => {
   if (!date || !outlet_id)
     return res.status(400).json({ message: "date and outlet_id are required" });
   try {
-    const bookings = await Booking.find({
-      date,
-      outlet_id,
-      status: { $ne: "Cancelled" },
-    })
+    const bookings = await Booking.find(
+      buildScheduleBlockingBookingMatch({ date, outlet_id }),
+    )
       .populate("service_id", "duration")
       .lean();
     res.json(
@@ -2847,7 +3098,7 @@ exports.getBookingsForDateOutlet = async (req, res) => {
 // Associate a user with a guest booking
 exports.claimGuestBooking = async (req, res) => {
   const { booking_id } = req.params;
-  const userId = req.userId;
+  const userId = req.userObjectId;
   if (!booking_id || !userId) {
     return res
       .status(400)
@@ -2976,6 +3227,7 @@ exports.managerCancelAppointment = async (req, res) => {
           id: appointment._id.toString(),
           outlet: appointment.outlet_id?.shortform,
           service: appointment.service_id?.name,
+          duration: appointment.service_id?.duration || 30,
           date: appointment.date,
           time: appointment.time,
           customer_name: appointment.customer_name,

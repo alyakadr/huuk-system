@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../../styles/staffApproval.css";
+import { OUTLET_SHORTCUTS_TITLE } from "../../constants/outlets";
 
 const StaffApproval = () => {
   const navigate = useNavigate();
@@ -13,24 +14,7 @@ const StaffApproval = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const itemsPerPage = 7;
 
-  const outletShortforms = {
-    "IOI City Mall": "ICM",
-    "Lot 10 Bukit Bintang": "L10",
-    "Melawati Mall": "MLM",
-    "Mid Valley (Centre Court)": "MVC",
-    "Mid Valley (North Court)": "MVN",
-    "One Utama (New Wing)": "OUN",
-    "Pavilion Bukit Jalil": "PBJ",
-    "Pavilion Damansara Heights": "PDH",
-    "Pavilion Kuala Lumpur": "PKL",
-    Publika: "PUB",
-    "Setia City Mall": "SCM",
-    "Starling Mall": "STM",
-    "Sunway Pyramid": "SPY",
-    "The Exchange TRX": "TRX",
-    "Wangsa Walk Mall": "WW1",
-    "Wangsa Walk Mall 2": "WW2",
-  };
+  const outletShortforms = OUTLET_SHORTCUTS_TITLE;
 
   // Check user role and token
   useEffect(() => {
@@ -71,7 +55,7 @@ const StaffApproval = () => {
         const status = err.response?.status;
         const message = err.response?.data?.message || err.message;
         setError(
-          `Failed to fetch data: ${message} (Status: ${status || "N/A"})`
+          `Failed to fetch data: ${message} (Status: ${status || "N/A"})`,
         );
         setIsLoading(false);
         if (status === 401) {
@@ -101,11 +85,11 @@ const StaffApproval = () => {
       .post(
         `http://localhost:5000/api/users/update-status/${staffId}`,
         { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       )
       .then(() => {
         setAllApprovals((prev) =>
-          prev.map((s) => (s.id === staffId ? { ...s, status: newStatus } : s))
+          prev.map((s) => (s.id === staffId ? { ...s, status: newStatus } : s)),
         );
         setSuccessMessage(`Staff ${newStatus} successfully!`);
         setTimeout(() => setSuccessMessage(""), 3000);
@@ -114,7 +98,7 @@ const StaffApproval = () => {
         const status = err.response?.status;
         const message = err.response?.data?.message || err.message;
         setError(
-          `Failed to update status: ${message} (Status: ${status || "N/A"})`
+          `Failed to update status: ${message} (Status: ${status || "N/A"})`,
         );
         if (status === 401) {
           navigate("/login");
@@ -133,7 +117,7 @@ const StaffApproval = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentItems = sortedApprovals.slice(
     startIndex,
-    startIndex + itemsPerPage
+    startIndex + itemsPerPage,
   );
 
   return (
@@ -182,10 +166,13 @@ const StaffApproval = () => {
                         <td className="status-cell">
                           {staff.status === "pending" ? (
                             <div className="dropdown">
-<button className="dropdown-toggle" onClick={() => toggleDropdown(staff.id)}>
+                              <button
+                                className="dropdown-toggle"
+                                onClick={() => toggleDropdown(staff.id)}
+                              >
                                 PENDING <span className="triangle">▼</span>
                               </button>
-{openDropdown === staff.id && (
+                              {openDropdown === staff.id && (
                                 <div className="dropdown-menu">
                                   <button
                                     onClick={() =>
@@ -212,15 +199,23 @@ const StaffApproval = () => {
                                   : "rejected"
                               }`}
                             >
-{staff.status === "approved" ? (
+                              {staff.status === "approved" ? (
                                 <span className="status-approved">
                                   APPROVED
-                                  <img src="/tick-transparent.png" alt="Approved icon" className="icon-right" />
+                                  <img
+                                    src="/tick-transparent.png"
+                                    alt="Approved icon"
+                                    className="icon-right"
+                                  />
                                 </span>
                               ) : (
                                 <span className="status-rejected">
                                   REJECTED
-                                  <img src="/x-transparent.png" alt="Rejected icon" className="icon-right" />
+                                  <img
+                                    src="/x-transparent.png"
+                                    alt="Rejected icon"
+                                    className="icon-right"
+                                  />
                                 </span>
                               )}
                             </span>

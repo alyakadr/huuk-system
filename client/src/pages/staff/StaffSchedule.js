@@ -81,6 +81,8 @@ const StaffSchedule = () => {
   // WebSocket connection
   const socketRef = useRef();
   const fetchTimeoutRef = useRef(null);
+  const latestFetchBookingsRef = useRef(null);
+  const latestFetchBlockedSlotsRef = useRef(null);
 
   const sessionToken = useMemo(() => {
     if (authToken) {
@@ -121,22 +123,22 @@ const StaffSchedule = () => {
 
   useEffect(() => {
     socketRef.current = io(API_BASE_URL);
-    socketRef.current.on("bookingUpdated", () => {
-      fetchBookings();
-      fetchBlockedSlots();
-    });
-    socketRef.current.on("booking_updated", () => {
-      fetchBookings();
-      fetchBlockedSlots();
-    });
-    socketRef.current.on("slotUpdate", () => {
-      fetchBookings();
-      fetchBlockedSlots();
-    });
+    const handleRealtimeUpdate = () => {
+      latestFetchBookingsRef.current?.();
+      latestFetchBlockedSlotsRef.current?.();
+    };
+
+    socketRef.current.on("bookingUpdated", handleRealtimeUpdate);
+    socketRef.current.on("booking_updated", handleRealtimeUpdate);
+    socketRef.current.on("slotUpdate", handleRealtimeUpdate);
+
     return () => {
       if (fetchTimeoutRef.current) {
         clearTimeout(fetchTimeoutRef.current);
       }
+      socketRef.current.off("bookingUpdated", handleRealtimeUpdate);
+      socketRef.current.off("booking_updated", handleRealtimeUpdate);
+      socketRef.current.off("slotUpdate", handleRealtimeUpdate);
       socketRef.current.disconnect();
     };
   }, []);
@@ -348,6 +350,14 @@ const StaffSchedule = () => {
       setBlockedSlots([]);
     }
   }, [view, currentDate, currentWeekStart, sessionStaffId, getRequestHeaders]);
+
+  useEffect(() => {
+    latestFetchBookingsRef.current = fetchBookings;
+  }, [fetchBookings]);
+
+  useEffect(() => {
+    latestFetchBlockedSlotsRef.current = fetchBlockedSlots;
+  }, [fetchBlockedSlots]);
 
   useEffect(() => {
     // Only fetch when currentWeekStart changes for Weekly view
@@ -1819,6 +1829,8 @@ const StaffSchedule = () => {
           selectedSlot={selectedSlot}
           onSubmit={handleSubmitBooking}
           currentUser={currentUser}
+          bookings={getFormattedBookings()}
+          blockedSlots={blockedSlots}
           timeSlots={timeSlots}
           disableDynamicTimeLogic={true}
         />

@@ -9,6 +9,10 @@ import {
 } from "@mui/material";
 import Modal from "react-modal";
 import { animated, useSpring } from "@react-spring/web";
+import {
+  formatBookingTimeRange,
+  resolveBookingDuration,
+} from "../../utils/bookingDisplay";
 import "../../styles/booking.css";
 
 Modal.setAppElement("#root");
@@ -56,11 +60,18 @@ const ConfirmationModal = ({
     config: { tension: 150, friction: 26 },
   });
 
+  const bookingDuration = resolveBookingDuration(
+    bookingDetails,
+    services,
+    serviceDuration,
+  );
+
   // Transform payment_method for display
-  const displayedPaymentMethod =
-    bookingDetails?.payment_method === "Stripe"
-      ? "Online Payment"
-      : bookingDetails?.payment_method;
+  const displayedPaymentMethod = ["Stripe", "FPX"].includes(
+    bookingDetails?.payment_method,
+  )
+    ? "Online Payment"
+    : bookingDetails?.payment_method;
 
   return (
     <Modal
@@ -102,15 +113,10 @@ const ConfirmationModal = ({
               </Typography>
               <Typography>
                 <strong>Time:</strong>{" "}
-                {bookingDetails.time
-                  ? new Date(
-                      `1970-01-01T${bookingDetails.time}`
-                    ).toLocaleTimeString("en-GB", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })
-                  : "N/A"}
+                {formatBookingTimeRange(bookingDetails.time, bookingDuration)}
+              </Typography>
+              <Typography>
+                <strong>Duration:</strong> {bookingDuration} min
               </Typography>
               <Typography>
                 <strong>Client:</strong> {bookingDetails.customer_name}
@@ -165,24 +171,19 @@ const ConfirmationModal = ({
               {paymentMethod === "card" && (
                 <Button
                   variant="contained"
-                  onClick={() =>
-                    initiatePaymentSession(
-                      bookingDetails?.id,
-                      setLoading,
-                      setPaymentError,
-                      setClientSecret,
-                      clientSecretRef,
-                      setBookingDetails,
-                      setIsPaymentMethodModalOpen,
-                      setIsFPXModalOpen,
-                      setBookings,
-                      scrollToSection,
-                      bookingHistoryRef,
-                      showSuccessMessage,
-                      showErrorMessage,
-                      setIsConfirmationOpen
-                    )
-                  }
+                  onClick={() => {
+                    setBookingDetails((prev) => ({
+                      ...prev,
+                      payment_method: "Online Payment",
+                      payment_status: "Pending",
+                    }));
+                    setClientSecret("");
+                    clientSecretRef.current = null;
+                    setIsFPXModalOpen(false);
+                    showSuccessMessage?.(
+                      "Online payment selected (demo mode).",
+                    );
+                  }}
                   disabled={loading.paymentInit}
                   sx={{
                     backgroundColor: "#1a1a1a",
@@ -191,8 +192,8 @@ const ConfirmationModal = ({
                   }}
                 >
                   {loading.paymentInit
-                    ? "Initiating Payment..."
-                    : "Proceed to Payment"}
+                    ? "Processing..."
+                    : "Confirm Online Payment"}
                 </Button>
               )}
               {paymentMethod === "outlet" && (
@@ -213,7 +214,7 @@ const ConfirmationModal = ({
                       scrollToSection,
                       bookingHistoryRef,
                       showSuccessMessage,
-                      showErrorMessage
+                      showErrorMessage,
                     );
                   }}
                   disabled={loading.payment}
@@ -244,13 +245,22 @@ const ConfirmationModal = ({
               setActiveStep(0);
               setSelectedDate(new Date(bookingDetails.date));
               setOutletId(
-                Array.isArray(outlets) ? outlets.find((o) => o.shortform === bookingDetails.outlet)?.id || "" : ""
+                Array.isArray(outlets)
+                  ? outlets.find((o) => o.shortform === bookingDetails.outlet)
+                      ?.id || ""
+                  : "",
               );
               setStaffId(
-                Array.isArray(staff) ? staff.find((s) => s.username === bookingDetails.staff_name)?.id || "" : ""
+                Array.isArray(staff)
+                  ? staff.find((s) => s.username === bookingDetails.staff_name)
+                      ?.id || ""
+                  : "",
               );
               setServiceId(
-                Array.isArray(services) ? services.find((s) => s.name === bookingDetails.service)?.id || "" : ""
+                Array.isArray(services)
+                  ? services.find((s) => s.name === bookingDetails.service)
+                      ?.id || ""
+                  : "",
               );
               setTime(bookingDetails.time);
               setClientName(bookingDetails.customer_name);

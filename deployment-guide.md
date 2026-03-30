@@ -27,10 +27,7 @@
    ```
    NODE_ENV=production
    PORT=5000
-   DB_HOST=your-railway-mysql-host
-   DB_USER=root
-   DB_PASSWORD=your-password
-   DB_NAME=huuk
+   MONGODB_URI=your-mongodb-connection-string
    JWT_SECRET=your-jwt-secret
    STRIPE_SECRET_KEY=your-stripe-key
    TWILIO_ACCOUNT_SID=your-twilio-sid
@@ -44,7 +41,7 @@
 4. **Deploy Steps**
    - Push to GitHub
    - Connect Railway to your GitHub repo
-   - Add MySQL database service
+   - Add a MongoDB service (Railway Mongo plugin or MongoDB Atlas) and set `MONGODB_URI`
    - Deploy automatically
 
 ### Option 2: VPS Deployment (DigitalOcean/Exabytes)
@@ -58,9 +55,8 @@
    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
    sudo apt-get install -y nodejs
    
-   # Install MySQL
-   sudo apt install mysql-server -y
-   sudo mysql_secure_installation
+   # Install MongoDB (example: Ubuntu package)
+   # See https://www.mongodb.com/docs/manual/installation/
    
    # Install Nginx
    sudo apt install nginx -y
@@ -88,19 +84,9 @@
    cp -r build/* ../server/public/
    ```
 
-3. **Database Setup**
-   ```bash
-   # Create database
-   sudo mysql -u root -p
-   CREATE DATABASE huuk;
-   CREATE USER 'huukuser'@'localhost' IDENTIFIED BY 'strong_password';
-   GRANT ALL PRIVILEGES ON huuk.* TO 'huukuser'@'localhost';
-   FLUSH PRIVILEGES;
-   EXIT;
-   
-   # Run migrations
-   mysql -u huukuser -p huuk < server/migrations/create_slot_reservations.sql
-   ```
+3. **Database**
+
+   Install and start MongoDB, then set `MONGODB_URI` in `server/.env` (for example `mongodb://127.0.0.1:27017/huuk`).
 
 4. **Nginx Configuration**
    ```nginx
@@ -160,33 +146,8 @@
    ```
 
 2. **Docker Compose**
-   ```yaml
-   version: '3.8'
-   services:
-     app:
-       build: .
-       ports:
-         - "5000:5000"
-       environment:
-         - NODE_ENV=production
-         - DB_HOST=db
-         - DB_USER=root
-         - DB_PASSWORD=password
-         - DB_NAME=huuk
-       depends_on:
-         - db
-     
-     db:
-       image: mysql:8.0
-       environment:
-         - MYSQL_ROOT_PASSWORD=password
-         - MYSQL_DATABASE=huuk
-       volumes:
-         - mysql_data:/var/lib/mysql
-   
-   volumes:
-     mysql_data:
-   ```
+
+   Use the repo root `docker-compose.yml`: it runs **mongo** and **api** with `MONGODB_URI=mongodb://mongo:27017/huuk` by default. Override `MONGODB_URI` in `.env` if needed.
 
 ## 🔧 Production Checklist
 
@@ -212,7 +173,7 @@ Your project has Electron integration. For mobile:
 
 - Never commit .env files
 - Use strong JWT secrets
-- Enable MySQL SSL
+- Use TLS for MongoDB when exposed beyond localhost (Atlas or `mongodb+srv://`)
 - Set up firewall rules
 - Regular security updates
 - Monitor for suspicious activity

@@ -4,6 +4,7 @@ import { useProfile } from "../../ProfileContext";
 import axios from "axios";
 import styles from "../../styles/StaffProfiles.css";
 import { FaEnvelope, FaPhoneAlt } from "react-icons/fa"; // Import the icons
+import { OUTLET_NAMES_TITLE } from "../../constants/outlets";
 
 const StaffProfiles = () => {
   // Show alert when component is accessed
@@ -26,24 +27,7 @@ const StaffProfiles = () => {
   const itemsPerPage = 6; // Set to 6 profiles per page
   const navigate = useNavigate();
 
-  const outlets = [
-    "IOI City Mall",
-    "Lot 10 Bukit Bintang",
-    "Melawati Mall",
-    "Mid Valley (Centre Court)",
-    "Mid Valley (North Court)",
-    "One Utama (New Wing)",
-    "Pavilion Bukit Jalil",
-    "Pavilion Damansara Heights",
-    "Pavilion Kuala Lumpur",
-    "Publika",
-    "Setia City Mall",
-    "Starling Mall",
-    "Sunway Pyramid",
-    "The Exchange TRX",
-    "Wangsa Walk Mall",
-    "Wangsa Walk Mall 2",
-  ];
+  const outlets = OUTLET_NAMES_TITLE;
 
   useEffect(() => {
     const fetchStaffList = async () => {
@@ -64,13 +48,13 @@ const StaffProfiles = () => {
         console.log("Request config:", config);
         const response = await axios.get(
           "http://localhost:5000/api/users/staffs",
-          config
+          config,
         );
         console.log(
           "Staff fetch response type:",
           typeof response.data,
           "isArray:",
-          Array.isArray(response.data)
+          Array.isArray(response.data),
         );
         console.log("Staff fetch response:", response.data);
         const data = Array.isArray(response.data)
@@ -118,7 +102,7 @@ const StaffProfiles = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredStaffList.slice(
     indexOfFirstItem,
-    indexOfLastItem
+    indexOfLastItem,
   );
 
   const [menuOpen, setMenuOpen] = useState(null);
@@ -147,8 +131,8 @@ const StaffProfiles = () => {
         selectedOutlets.some(
           (outlet) =>
             staff.outlet &&
-            staff.outlet.trim().toLowerCase() === outlet.trim().toLowerCase()
-        )
+            staff.outlet.trim().toLowerCase() === outlet.trim().toLowerCase(),
+        ),
       );
       setFilteredStaffList([...filtered]);
       console.log("Filtered staff list (by outlets):", filtered);
@@ -175,7 +159,7 @@ const StaffProfiles = () => {
   if (!profile || !profile.role) {
     console.log(
       "Profile or role missing, redirecting to login. Profile:",
-      profile
+      profile,
     );
     navigate("/login");
     return null;
@@ -231,7 +215,7 @@ const StaffProfiles = () => {
                     setSelectedOutlets((prev) =>
                       isChecked
                         ? [...prev, outlet]
-                        : prev.filter((o) => o !== outlet)
+                        : prev.filter((o) => o !== outlet),
                     );
                   }}
                 />

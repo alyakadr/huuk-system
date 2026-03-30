@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { attachJwtUserIds } = require("../utils/attachJwtUser");
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
 if (!JWT_SECRET || JWT_SECRET === "your_jwt_secret_key") {
@@ -26,7 +27,9 @@ function verifyToken(req, res, next) {
       console.log("Invalid token payload, missing userId or role");
       return res.status(401).json({ message: "Invalid token payload" });
     }
-    req.userId = decoded.userId;
+    if (!attachJwtUserIds(req, decoded.userId)) {
+      return res.status(401).json({ message: "Invalid token payload" });
+    }
     req.role = decoded.role;
     console.log("User role from token:", req.role, "User ID:", req.userId);
     next();

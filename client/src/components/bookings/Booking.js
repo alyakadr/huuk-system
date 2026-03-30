@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   Stepper,
   Step,
@@ -18,6 +24,7 @@ import EnhancedServiceDropdown from "./EnhancedServiceDropdown";
 import EnhancedTimeSlotDropdown from "./EnhancedTimeSlotDropdown";
 import SimpleCalendar from "../common/SimpleCalendar";
 import { useNavigate, useLocation } from "react-router-dom";
+import { io } from "socket.io-client";
 import { useProfile } from "../../ProfileContext";
 import "../../styles/booking.css";
 import "../../styles/customerHomepage.css";
@@ -26,7 +33,17 @@ import styles from "../../styles/homepage.module.css";
 import PaymentForm from "./PaymentForm";
 import Modal from "react-modal";
 import { useSpring, animated } from "@react-spring/web";
-import { MdPhone, MdLock, MdBadge, MdPerson, MdEmail, MdVisibility, MdVisibilityOff, MdOutlineInfo, MdErrorOutline } from "react-icons/md";
+import {
+  MdPhone,
+  MdLock,
+  MdBadge,
+  MdPerson,
+  MdEmail,
+  MdVisibility,
+  MdVisibilityOff,
+  MdOutlineInfo,
+  MdErrorOutline,
+} from "react-icons/md";
 import modalImage from "../../assets/modalcust1.jpg";
 import axios from "axios";
 import PaymentModal from "./PaymentModal";
@@ -62,9 +79,9 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
   ];
 
   // Persistent booking data keys
-  const BOOKING_DATA_KEY = 'huuk_booking_form_data';
-  const INCOMPLETE_BOOKING_KEY = 'huuk_incomplete_booking';
-  const BOOKING_TIMER_KEY = 'huuk_booking_timer';
+  const BOOKING_DATA_KEY = "huuk_booking_form_data";
+  const INCOMPLETE_BOOKING_KEY = "huuk_incomplete_booking";
+  const BOOKING_TIMER_KEY = "huuk_booking_timer";
 
   // Load persisted data from localStorage
   const loadPersistedData = useCallback(() => {
@@ -72,14 +89,14 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
       const savedData = localStorage.getItem(BOOKING_DATA_KEY);
       if (savedData) {
         const parsedData = JSON.parse(savedData);
-      // Reduced logging frequency for persistence operations
-      if (DEBUG && Math.random() < 0.1) {
-        debugLog('[PERSISTENCE] Loading saved booking data:', parsedData);
-      }
+        // Reduced logging frequency for persistence operations
+        if (DEBUG && Math.random() < 0.1) {
+          debugLog("[PERSISTENCE] Loading saved booking data:", parsedData);
+        }
         return parsedData;
       }
     } catch (error) {
-      console.error('❌ [PERSISTENCE] Error loading persisted data:', error);
+      console.error("❌ [PERSISTENCE] Error loading persisted data:", error);
     }
     return null;
   }, []);
@@ -90,13 +107,15 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
       localStorage.setItem(BOOKING_DATA_KEY, JSON.stringify(data));
       // Reduced logging frequency for persistence operations
       if (DEBUG && Math.random() < 0.1) {
-        debugLog('[PERSISTENCE] Saved booking data to localStorage');
+        debugLog("[PERSISTENCE] Saved booking data to localStorage");
       }
     } catch (error) {
-      console.error('❌ [PERSISTENCE] Error saving data to localStorage:', error);
+      console.error(
+        "❌ [PERSISTENCE] Error saving data to localStorage:",
+        error,
+      );
     }
   }, []);
-
 
   // Clear persisted data
   const clearPersistedData = useCallback(() => {
@@ -104,9 +123,9 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
       localStorage.removeItem(BOOKING_DATA_KEY);
       localStorage.removeItem(INCOMPLETE_BOOKING_KEY);
       localStorage.removeItem(BOOKING_TIMER_KEY);
-      debugLog('🧹 [PERSISTENCE] Cleared persisted booking data');
+      debugLog("🧹 [PERSISTENCE] Cleared persisted booking data");
     } catch (error) {
-      console.error('❌ [PERSISTENCE] Error clearing persisted data:', error);
+      console.error("❌ [PERSISTENCE] Error clearing persisted data:", error);
     }
   }, []);
 
@@ -116,43 +135,49 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
     if (data) {
       // Reduced logging frequency for persistence operations
       if (DEBUG && Math.random() < 0.1) {
-        debugLog('[PERSISTENCE] Restoring state from localStorage:', data);
+        debugLog("[PERSISTENCE] Restoring state from localStorage:", data);
       }
     } else {
-      debugLog('📦 [PERSISTENCE] No persisted data found, using defaults');
+      debugLog("📦 [PERSISTENCE] No persisted data found, using defaults");
     }
     return data;
   });
-  
+
   const [activeStep, setActiveStep] = useState(() => {
     const step = bookingUtils.getActiveStep({
-      selectedDate: persistedData?.selectedDate ? new Date(persistedData.selectedDate) : new Date(),
+      selectedDate: persistedData?.selectedDate
+        ? new Date(persistedData.selectedDate)
+        : new Date(),
       outletId: persistedData?.outletId || "",
       staffId: persistedData?.staffId || "",
       serviceId: persistedData?.serviceId || "",
       time: persistedData?.time || "",
-      clientName: persistedData?.clientName || ""
+      clientName: persistedData?.clientName || "",
     });
     return step || 0;
   });
   const [selectedDate, setSelectedDate] = useState(
-    persistedData?.selectedDate ? new Date(persistedData.selectedDate) : new Date()
+    persistedData?.selectedDate
+      ? new Date(persistedData.selectedDate)
+      : new Date(),
   );
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [outletId, setOutletId] = useState(persistedData?.outletId || "");
   const [staffId, setStaffId] = useState(persistedData?.staffId || "");
   const [time, setTime] = useState(persistedData?.time || "");
   const [serviceId, setServiceId] = useState(persistedData?.serviceId || "");
-  const [serviceDuration, setServiceDuration] = useState(persistedData?.serviceDuration || null);
+  const [serviceDuration, setServiceDuration] = useState(
+    persistedData?.serviceDuration || null,
+  );
   const [clientName, setClientName] = useState(persistedData?.clientName || "");
-  
+
   // Only log initial state occasionally to reduce console spam
   if (DEBUG && Math.random() < 0.1) {
-    debugLog('[INITIAL STATE] State initialized with:', {
+    debugLog("[INITIAL STATE] State initialized with:", {
       time: persistedData?.time || "",
       clientName: persistedData?.clientName || "",
       isEditingBooking: false,
-      hasPersistedData: !!persistedData
+      hasPersistedData: !!persistedData,
     });
   }
   const [outlets, setOutlets] = useState([]);
@@ -206,7 +231,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
   const [signUpPhoneNumber, setSignUpPhoneNumber] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
-const [signUpUsername, setSignUpUsername] = useState("");
+  const [signUpUsername, setSignUpUsername] = useState("");
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
   const [signUpErrors, setSignUpErrors] = useState({
     name: "",
@@ -228,10 +253,17 @@ const [signUpUsername, setSignUpUsername] = useState("");
   const clientSecretRef = useRef(null);
   const cleanupTimerRef = useRef(null);
   const bookingStartTimeRef = useRef(null);
+  const latestRealtimeRefreshRef = useRef(null);
 
   const navigate = useNavigate();
-  const { profile, updateProfile, loading: profileLoading, setIsSignInOpen, isSignInOpen } = useProfile();
-  
+  const {
+    profile,
+    updateProfile,
+    loading: profileLoading,
+    setIsSignInOpen,
+    isSignInOpen,
+  } = useProfile();
+
   // Add debug log to check profile data
   useEffect(() => {
     console.log("🧪 [PROFILE DEBUG] Current profile data:", {
@@ -240,18 +272,28 @@ const [signUpUsername, setSignUpUsername] = useState("");
       role: profile?.role,
       email: profile?.email,
       phone: profile?.phone_number,
-      token: profile?.token ? "present" : "missing"
+      token: profile?.token ? "present" : "missing",
     });
   }, [profile]);
-  
+
   const location = useLocation();
-  
+
   // Save current form data to localStorage whenever it changes
   useEffect(() => {
-    if (selectedDate || outletId || staffId || serviceId || time || clientName) {
+    if (
+      selectedDate ||
+      outletId ||
+      staffId ||
+      serviceId ||
+      time ||
+      clientName
+    ) {
       // Only save if we have valid data
-      const isValidDate = selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime());
-      
+      const isValidDate =
+        selectedDate &&
+        selectedDate instanceof Date &&
+        !isNaN(selectedDate.getTime());
+
       const formData = {
         selectedDate: isValidDate ? selectedDate.toISOString() : null,
         outletId: outletId || null,
@@ -260,25 +302,136 @@ const [signUpUsername, setSignUpUsername] = useState("");
         time: time || null,
         clientName: clientName || null,
         serviceDuration: serviceDuration || null,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      
+
       // Only save if we have at least one meaningful value
-      if (isValidDate || outletId || staffId || serviceId || time || clientName) {
+      if (
+        isValidDate ||
+        outletId ||
+        staffId ||
+        serviceId ||
+        time ||
+        clientName
+      ) {
         saveDataToLocalStorage(formData);
       }
     }
-  }, [selectedDate, outletId, staffId, serviceId, time, clientName, serviceDuration, saveDataToLocalStorage]);
+  }, [
+    selectedDate,
+    outletId,
+    staffId,
+    serviceId,
+    time,
+    clientName,
+    serviceDuration,
+    saveDataToLocalStorage,
+  ]);
 
   // Helper function to show success messages
   const showSuccessMessage = (message) => {
-    setSnackbar({ open: true, message: message || "Booking successful!", severity: "success" });
+    setSnackbar({
+      open: true,
+      message: message || "Booking successful!",
+      severity: "success",
+    });
   };
 
   // Helper function to show error messages
   const showErrorMessage = (message) => {
     setSnackbar({ open: true, message, severity: "error" });
   };
+
+  const resetBookingFlowState = useCallback(() => {
+    setActiveStep(0);
+    setSelectedDate(new Date());
+    setOutletId("");
+    setStaffId("");
+    setServiceId("");
+    setServiceDuration(null);
+    setTime("");
+    setClientName("");
+    setStaff([]);
+    setTimeSlots([]);
+    setServices([]);
+    setStaffAvailabilities({});
+    setBookingDetails(null);
+    setBookingId(null);
+  }, []);
+
+  const refreshRealtimeAvailability = useCallback(() => {
+    if (!selectedDate || !outletId) {
+      return;
+    }
+
+    const formattedDate = selectedDate.toISOString().split("T")[0];
+
+    client
+      .get(`/bookings?date=${formattedDate}&outlet_id=${outletId}`)
+      .then((response) => {
+        const latestBookings = Array.isArray(response.data)
+          ? response.data
+          : [];
+        setBookings(latestBookings);
+
+        if (!serviceId || (!staffId && staffId !== "any")) {
+          return;
+        }
+
+        bookingUtils.fetchTimeSlots(
+          selectedDate,
+          outletId,
+          staffId,
+          serviceId,
+          setLoading,
+          setTimeSlots,
+          setErrors,
+          isEditingBooking ? currentBookingTime : null,
+          isEditingBooking ? currentBookingId : null,
+          latestBookings,
+          serviceDuration || 60,
+          modalBookings,
+        );
+      })
+      .catch((error) => {
+        console.error(
+          "❌ [REALTIME] Error refreshing booking availability:",
+          error,
+        );
+      });
+  }, [
+    selectedDate,
+    outletId,
+    staffId,
+    serviceId,
+    isEditingBooking,
+    currentBookingTime,
+    currentBookingId,
+    serviceDuration,
+    modalBookings,
+  ]);
+
+  useEffect(() => {
+    latestRealtimeRefreshRef.current = refreshRealtimeAvailability;
+  }, [refreshRealtimeAvailability]);
+
+  useEffect(() => {
+    const socket = io(API_BASE_URL);
+    const handleRealtimeUpdate = () => {
+      latestRealtimeRefreshRef.current?.();
+    };
+
+    socket.on("bookingUpdated", handleRealtimeUpdate);
+    socket.on("booking_updated", handleRealtimeUpdate);
+    socket.on("slotUpdate", handleRealtimeUpdate);
+
+    return () => {
+      socket.off("bookingUpdated", handleRealtimeUpdate);
+      socket.off("booking_updated", handleRealtimeUpdate);
+      socket.off("slotUpdate", handleRealtimeUpdate);
+      socket.disconnect();
+    };
+  }, []);
 
   // Validation functions
   const validateFullName = (fullname) => {
@@ -292,16 +445,22 @@ const [signUpUsername, setSignUpUsername] = useState("");
   };
 
   const validatePassword = (password) => {
-    const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,}$/;
     return re.test(password);
   };
 
   // Sign-up handler
   const handleSignUp = async (e) => {
     e.preventDefault();
-    setLoading(prev => ({ ...prev, signUp: true }));
-    setSignUpErrors({ name: "", phoneNumber: "", password: "", username: "", confirmPassword: "" });
-    
+    setLoading((prev) => ({ ...prev, signUp: true }));
+    setSignUpErrors({
+      name: "",
+      phoneNumber: "",
+      password: "",
+      username: "",
+      confirmPassword: "",
+    });
+
     let newErrors = {
       email: "",
       username: "",
@@ -319,7 +478,8 @@ const [signUpUsername, setSignUpUsername] = useState("");
     }
 
     if (!validatePassword(signUpPassword)) {
-      newErrors.password = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.";
+      newErrors.password =
+        "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.";
     }
 
     if (signUpPassword !== signUpConfirmPassword) {
@@ -328,7 +488,7 @@ const [signUpUsername, setSignUpUsername] = useState("");
 
     if (Object.values(newErrors).some((e) => e !== "")) {
       setSignUpErrors(newErrors);
-      setLoading(prev => ({ ...prev, signUp: false }));
+      setLoading((prev) => ({ ...prev, signUp: false }));
       return;
     }
 
@@ -340,7 +500,7 @@ const [signUpUsername, setSignUpUsername] = useState("");
           password: signUpPassword,
           username: signUpUsername,
           email: signUpEmail,
-        }
+        },
       );
       if (response.data.message) {
         await axios.post(`${API_BASE_URL}/customers/register`, {
@@ -352,40 +512,83 @@ const [signUpUsername, setSignUpUsername] = useState("");
         setSignUpPhoneNumber("");
         setSignUpPassword("");
         setSignUpEmail("");
-        setSignUpErrors({ email: "", username: "", phoneNumber: "", password: "", confirmPassword: "" });
+        setSignUpErrors({
+          email: "",
+          username: "",
+          phoneNumber: "",
+          password: "",
+          confirmPassword: "",
+        });
         setIsSignInOpen(true);
       }
     } catch (error) {
       // Support multiple field errors from backend (object)
       const errData = error.response?.data;
-      if (errData && typeof errData === 'object' && (errData.email || errData.username || errData.phoneNumber || errData.password || errData.confirmPassword)) {
+      if (
+        errData &&
+        typeof errData === "object" &&
+        (errData.email ||
+          errData.username ||
+          errData.phoneNumber ||
+          errData.password ||
+          errData.confirmPassword)
+      ) {
         setSignUpErrors({
           email: errData.email || "",
           username: errData.username || "",
           phoneNumber: errData.phoneNumber || "",
           password: errData.password || "",
-          confirmPassword: errData.confirmPassword || ""
+          confirmPassword: errData.confirmPassword || "",
         });
       } else {
         const message = errData?.message || "Sign-up failed";
         // Try to parse which field the error is about
-        if (message.toLowerCase().includes('email')) {
-          setSignUpErrors({ email: message, username: "", phoneNumber: "", password: "", confirmPassword: "" });
-        } else if (message.toLowerCase().includes('username')) {
-          setSignUpErrors({ email: "", username: message, phoneNumber: "", password: "", confirmPassword: "" });
-        } else if (message.toLowerCase().includes('phone')) {
-          setSignUpErrors({ email: "", username: "", phoneNumber: message, password: "", confirmPassword: "" });
-        } else if (message.toLowerCase().includes('password')) {
-          setSignUpErrors({ email: "", username: "", phoneNumber: "", password: message, confirmPassword: "" });
+        if (message.toLowerCase().includes("email")) {
+          setSignUpErrors({
+            email: message,
+            username: "",
+            phoneNumber: "",
+            password: "",
+            confirmPassword: "",
+          });
+        } else if (message.toLowerCase().includes("username")) {
+          setSignUpErrors({
+            email: "",
+            username: message,
+            phoneNumber: "",
+            password: "",
+            confirmPassword: "",
+          });
+        } else if (message.toLowerCase().includes("phone")) {
+          setSignUpErrors({
+            email: "",
+            username: "",
+            phoneNumber: message,
+            password: "",
+            confirmPassword: "",
+          });
+        } else if (message.toLowerCase().includes("password")) {
+          setSignUpErrors({
+            email: "",
+            username: "",
+            phoneNumber: "",
+            password: message,
+            confirmPassword: "",
+          });
         } else {
-          setSignUpErrors({ email: message, username: "", phoneNumber: "", password: "", confirmPassword: "" });
+          setSignUpErrors({
+            email: message,
+            username: "",
+            phoneNumber: "",
+            password: "",
+            confirmPassword: "",
+          });
         }
       }
     } finally {
-      setLoading(prev => ({ ...prev, signUp: false }));
+      setLoading((prev) => ({ ...prev, signUp: false }));
     }
   };
-
 
   // Cleanup incomplete bookings function
   const cleanupIncompleteBooking = useCallback(async (bookingId) => {
@@ -396,22 +599,24 @@ const [signUpUsername, setSignUpUsername] = useState("");
       if (!token) return;
 
       debugLog(`🧹 [CLEANUP] Attempting to delete draft booking: ${bookingId}`);
-      
+
       const response = await client.delete(`/bookings/${bookingId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       debugLog(`✅ [CLEANUP] Successfully deleted draft booking: ${bookingId}`);
-      
+
       // Clear the incomplete booking from localStorage
       localStorage.removeItem(INCOMPLETE_BOOKING_KEY);
       localStorage.removeItem(BOOKING_TIMER_KEY);
-      
+
       setIncompleteBookingId(null);
       setIsBookingActive(false);
-      
     } catch (error) {
-      console.error(`❌ [CLEANUP] Error deleting draft booking ${bookingId}:`, error);
+      console.error(
+        `❌ [CLEANUP] Error deleting draft booking ${bookingId}:`,
+        error,
+      );
       // Still clear the local references even if deletion fails
       localStorage.removeItem(INCOMPLETE_BOOKING_KEY);
       localStorage.removeItem(BOOKING_TIMER_KEY);
@@ -421,31 +626,36 @@ const [signUpUsername, setSignUpUsername] = useState("");
   }, []);
 
   // Start cleanup timer for draft bookings
-  const startCleanupTimer = useCallback((bookingId) => {
-    if (!bookingId) return;
+  const startCleanupTimer = useCallback(
+    (bookingId) => {
+      if (!bookingId) return;
 
-    debugLog(`⏰ [CLEANUP] Starting 5-minute cleanup timer for draft booking: ${bookingId}`);
-    
-    // Clear any existing timer
-    if (cleanupTimerRef.current) {
-      clearTimeout(cleanupTimerRef.current);
-    }
+      debugLog(
+        `⏰ [CLEANUP] Starting 5-minute cleanup timer for draft booking: ${bookingId}`,
+      );
 
-    // Store booking info in localStorage
-    localStorage.setItem(INCOMPLETE_BOOKING_KEY, bookingId.toString());
-    localStorage.setItem(BOOKING_TIMER_KEY, (Date.now() + 300000).toString()); // 5 minutes from now
-    
-    setIncompleteBookingId(bookingId);
-    setIsBookingActive(true);
-    bookingStartTimeRef.current = Date.now();
+      // Clear any existing timer
+      if (cleanupTimerRef.current) {
+        clearTimeout(cleanupTimerRef.current);
+      }
 
-    // Set 5-minute timer for draft bookings
-    cleanupTimerRef.current = setTimeout(() => {
-      cleanupIncompleteBooking(bookingId);
-    }, 300000); // 5 minutes
+      // Store booking info in localStorage
+      localStorage.setItem(INCOMPLETE_BOOKING_KEY, bookingId.toString());
+      localStorage.setItem(BOOKING_TIMER_KEY, (Date.now() + 300000).toString()); // 5 minutes from now
 
-    setBookingCleanupTimer(cleanupTimerRef.current);
-  }, [cleanupIncompleteBooking]);
+      setIncompleteBookingId(bookingId);
+      setIsBookingActive(true);
+      bookingStartTimeRef.current = Date.now();
+
+      // Set 5-minute timer for draft bookings
+      cleanupTimerRef.current = setTimeout(() => {
+        cleanupIncompleteBooking(bookingId);
+      }, 300000); // 5 minutes
+
+      setBookingCleanupTimer(cleanupTimerRef.current);
+    },
+    [cleanupIncompleteBooking],
+  );
 
   // Cancel cleanup timer (when booking is completed)
   const cancelCleanupTimer = useCallback(() => {
@@ -454,48 +664,100 @@ const [signUpUsername, setSignUpUsername] = useState("");
       cleanupTimerRef.current = null;
       setBookingCleanupTimer(null);
     }
-    
+
     localStorage.removeItem(INCOMPLETE_BOOKING_KEY);
     localStorage.removeItem(BOOKING_TIMER_KEY);
     setIncompleteBookingId(null);
     setIsBookingActive(false);
     bookingStartTimeRef.current = null;
-    
-    debugLog('⏹️ [CLEANUP] Cleanup timer cancelled');
+
+    debugLog("⏹️ [CLEANUP] Cleanup timer cancelled");
   }, []);
+
+  const cancelDraftBookingFlow = useCallback(
+    async ({ resetForm = true, useKeepalive = false } = {}) => {
+      const activeDraftId = incompleteBookingId || bookingId;
+
+      if (activeDraftId && isBookingActive) {
+        try {
+          const token = getAuthToken();
+
+          if (useKeepalive && token) {
+            await fetch(`${API_BASE_URL}/bookings/${activeDraftId}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` },
+              keepalive: true,
+            });
+
+            localStorage.removeItem(INCOMPLETE_BOOKING_KEY);
+            localStorage.removeItem(BOOKING_TIMER_KEY);
+            setIncompleteBookingId(null);
+            setIsBookingActive(false);
+          } else {
+            await cleanupIncompleteBooking(activeDraftId);
+          }
+        } catch (error) {
+          console.error(
+            "❌ [CLEANUP] Error cancelling draft booking flow:",
+            error,
+          );
+        }
+      }
+
+      if (resetForm) {
+        resetBookingFlowState();
+      }
+    },
+    [
+      incompleteBookingId,
+      bookingId,
+      isBookingActive,
+      cleanupIncompleteBooking,
+      resetBookingFlowState,
+    ],
+  );
 
   // Check for existing incomplete bookings on component mount
   useEffect(() => {
     const checkIncompleteBookings = () => {
       try {
-        const incompleteBookingId = localStorage.getItem(INCOMPLETE_BOOKING_KEY);
+        const incompleteBookingId = localStorage.getItem(
+          INCOMPLETE_BOOKING_KEY,
+        );
         const timerEndTime = localStorage.getItem(BOOKING_TIMER_KEY);
-        
+
         if (incompleteBookingId && timerEndTime) {
           const currentTime = Date.now();
           const endTime = parseInt(timerEndTime);
-          
-                  if (currentTime >= endTime) {
-          // Timer has expired, clean up immediately
-          debugLog('⏰ [CLEANUP] Found expired draft booking, cleaning up immediately');
-          cleanupIncompleteBooking(incompleteBookingId);
-        } else {
-          // Timer still active, resume the countdown
-          const remainingTime = endTime - currentTime;
-          debugLog(`⏰ [CLEANUP] Resuming cleanup timer with ${remainingTime}ms remaining`);
-            
+
+          if (currentTime >= endTime) {
+            // Timer has expired, clean up immediately
+            debugLog(
+              "⏰ [CLEANUP] Found expired draft booking, cleaning up immediately",
+            );
+            cleanupIncompleteBooking(incompleteBookingId);
+          } else {
+            // Timer still active, resume the countdown
+            const remainingTime = endTime - currentTime;
+            debugLog(
+              `⏰ [CLEANUP] Resuming cleanup timer with ${remainingTime}ms remaining`,
+            );
+
             setIncompleteBookingId(incompleteBookingId);
             setIsBookingActive(true);
-            
+
             cleanupTimerRef.current = setTimeout(() => {
               cleanupIncompleteBooking(incompleteBookingId);
             }, remainingTime);
-            
+
             setBookingCleanupTimer(cleanupTimerRef.current);
           }
         }
       } catch (error) {
-        console.error('❌ [CLEANUP] Error checking incomplete bookings:', error);
+        console.error(
+          "❌ [CLEANUP] Error checking incomplete bookings:",
+          error,
+        );
       }
     };
 
@@ -506,15 +768,19 @@ const [signUpUsername, setSignUpUsername] = useState("");
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (isBookingActive && incompleteBookingId) {
+        cancelDraftBookingFlow({ resetForm: false, useKeepalive: true });
         // Don't prevent the unload, just ensure the timer info is saved
-        debugLog('📄 [CLEANUP] Page refreshing/closing with active draft booking, timer will continue');
-        e.returnValue = 'You have a draft booking. If you leave, it will be automatically cancelled in 5 minutes if not completed.';
+        debugLog(
+          "📄 [CLEANUP] Page refreshing/closing with active draft booking, timer will continue",
+        );
+        e.returnValue =
+          "You have a draft booking. If you leave, it will be automatically cancelled in 5 minutes if not completed.";
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isBookingActive, incompleteBookingId]);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [cancelDraftBookingFlow, isBookingActive, incompleteBookingId]);
 
   // Cleanup timer on component unmount
   useEffect(() => {
@@ -526,11 +792,7 @@ const [signUpUsername, setSignUpUsername] = useState("");
   }, []);
 
   useEffect(() => {
-    bookingUtils.fetchOutlets(
-      setLoading,
-      setOutlets,
-      setErrors
-    );
+    bookingUtils.fetchOutlets(setLoading, setOutlets, setErrors);
   }, []);
 
   useEffect(() => {
@@ -547,30 +809,34 @@ const [signUpUsername, setSignUpUsername] = useState("");
           if (booking && booking.payment_status === "Paid") {
             // Cancel cleanup timer since payment is successful
             cancelCleanupTimer();
-            
+
             setBookingDetails({
               id: booking.booking_id,
               outlet: booking.outlet_shortform,
               service: booking.service_name,
+              service_duration:
+                booking.serviceDuration || booking.service_duration || null,
+              serviceDuration:
+                booking.serviceDuration || booking.service_duration || null,
               date: booking.date,
               time: booking.time,
               customer_name: booking.customer_name,
               staff_name: booking.staff_name,
               price: Number(booking.price) || 0,
-              payment_method: booking.payment_method || "Stripe",
+              payment_method: booking.payment_method || "Online Payment",
               payment_status: booking.payment_status,
             });
             setBookingId(booking.booking_id);
             showSuccessMessage("Booking successful!");
-            
+
             // Clear persisted form data after successful payment
             clearPersistedData();
-            
-setTimeout(() => {
-  if (bookingHistoryRef.current) {
-    scrollToSection(bookingHistoryRef);
-  }
-}, 2000);
+
+            setTimeout(() => {
+              if (bookingHistoryRef.current) {
+                scrollToSection(bookingHistoryRef);
+              }
+            }, 2000);
           }
         })
         .catch((error) => {
@@ -584,10 +850,7 @@ setTimeout(() => {
 
   useEffect(() => {
     if (bookingId && isBookingDetailsOpen) {
-      bookingUtils.fetchReview(
-        bookingId,
-        setBookingDetails
-      );
+      bookingUtils.fetchReview(bookingId, setBookingDetails);
     }
   }, [bookingId, isBookingDetailsOpen]);
 
@@ -613,7 +876,7 @@ setTimeout(() => {
     services,
     normalizeTime,
     setCurrentBookingId,
-    updateBookingInList
+    updateBookingInList,
   ) => {
     // Prefill all fields
     bookingUtils.handleEditBooking(
@@ -633,7 +896,7 @@ setTimeout(() => {
       staff,
       services,
       normalizeTime,
-      setCurrentBookingId
+      setCurrentBookingId,
     );
     // Set to last step so all fields are visible/editable
     setActiveStep(steps.length - 1);
@@ -655,30 +918,45 @@ setTimeout(() => {
       staffId,
       serviceId,
       time,
-      clientName
+      clientName,
     );
     setActiveStep(newActiveStep);
-  }, [selectedDate, outletId, staffId, serviceId, time, clientName, activeStep, isEditingBooking]);
+  }, [
+    selectedDate,
+    outletId,
+    staffId,
+    serviceId,
+    time,
+    clientName,
+    activeStep,
+    isEditingBooking,
+  ]);
 
   const handleChange = (field, value) => {
     debugLog(`Changing ${field} to`, value);
-    debugLog('Current array states:', {
-      outlets: Array.isArray(outlets) ? `Array(${outlets.length})` : typeof outlets,
+    debugLog("Current array states:", {
+      outlets: Array.isArray(outlets)
+        ? `Array(${outlets.length})`
+        : typeof outlets,
       staff: Array.isArray(staff) ? `Array(${staff.length})` : typeof staff,
-      services: Array.isArray(services) ? `Array(${services.length})` : typeof services,
-      timeSlots: Array.isArray(timeSlots) ? `Array(${timeSlots.length})` : typeof timeSlots
+      services: Array.isArray(services)
+        ? `Array(${services.length})`
+        : typeof services,
+      timeSlots: Array.isArray(timeSlots)
+        ? `Array(${timeSlots.length})`
+        : typeof timeSlots,
     });
     switch (field) {
       case "selectedDate":
         const utcDate = value
           ? new Date(
-              Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())
+              Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()),
             )
           : null;
-        debugLog('[DATE CHANGE] Date changed:', {
-          oldDate: selectedDate?.toISOString().split('T')[0],
-          newDate: utcDate?.toISOString().split('T')[0],
-          isEditingBooking
+        debugLog("[DATE CHANGE] Date changed:", {
+          oldDate: selectedDate?.toISOString().split("T")[0],
+          newDate: utcDate?.toISOString().split("T")[0],
+          isEditingBooking,
         });
         setSelectedDate(utcDate);
         if (!isEditingBooking) {
@@ -696,9 +974,13 @@ setTimeout(() => {
           setIsEditingBooking(false);
           setCurrentBookingId(null);
           setCurrentBookingTime(null);
-          debugLog("[DATE CHANGE] Date changed, clearing all selections and edit state (new booking)");
+          debugLog(
+            "[DATE CHANGE] Date changed, clearing all selections and edit state (new booking)",
+          );
         } else {
-          debugLog("[DATE CHANGE] Date changed, preserving all selections (editing existing booking)");
+          debugLog(
+            "[DATE CHANGE] Date changed, preserving all selections (editing existing booking)",
+          );
         }
         setErrors({});
         break;
@@ -715,7 +997,9 @@ setTimeout(() => {
           setServices([]);
           setStaffAvailabilities({});
         } else {
-          debugLog('[OUTLET CHANGE] Outlet changed, preserving dependent selections (editing mode)');
+          debugLog(
+            "[OUTLET CHANGE] Outlet changed, preserving dependent selections (editing mode)",
+          );
         }
         setErrors({});
         break;
@@ -728,89 +1012,126 @@ setTimeout(() => {
           setClientName("");
           setTimeSlots([]);
         } else {
-          debugLog('[STAFF CHANGE] Staff changed, preserving dependent selections (editing mode)');
+          debugLog(
+            "[STAFF CHANGE] Staff changed, preserving dependent selections (editing mode)",
+          );
         }
         setErrors({});
         break;
       case "serviceId":
         setServiceId(value);
-        let selectedService = Array.isArray(services) ? services.find((s) => s.id === value) : null;
-        let newServiceDuration = selectedService ? selectedService.duration : null;
+        let selectedService = Array.isArray(services)
+          ? services.find((s) => s.id === value)
+          : null;
+        let newServiceDuration = selectedService
+          ? selectedService.duration
+          : null;
         // Debug log for selected service
         if (selectedService) {
-          debugLog('[SERVICE DEBUG] Selected service:', selectedService.name, 'Duration:', selectedService.duration);
+          debugLog(
+            "[SERVICE DEBUG] Selected service:",
+            selectedService.name,
+            "Duration:",
+            selectedService.duration,
+          );
           // TEMP FIX: If Coloring Black Hair and duration > 90, override for testing
-          if (selectedService.name && selectedService.name.toLowerCase().includes('coloring black hair') && selectedService.duration > 90) {
-            debugLog('[SERVICE DEBUG] Overriding Coloring Black Hair duration from', selectedService.duration, 'to 90 for slot testing');
+          if (
+            selectedService.name &&
+            selectedService.name
+              .toLowerCase()
+              .includes("coloring black hair") &&
+            selectedService.duration > 90
+          ) {
+            debugLog(
+              "[SERVICE DEBUG] Overriding Coloring Black Hair duration from",
+              selectedService.duration,
+              "to 90 for slot testing",
+            );
             newServiceDuration = 90;
             selectedService = { ...selectedService, duration: 90 };
           }
         }
         setServiceDuration(newServiceDuration);
-        
-        debugLog('[SERVICE CHANGE] Service changed:', {
+
+        debugLog("[SERVICE CHANGE] Service changed:", {
           oldServiceId: serviceId,
           newServiceId: value,
           newServiceDuration,
           serviceName: selectedService?.name,
-          isEditingBooking
+          isEditingBooking,
         });
-        
+
         // Check service duration compatibility when editing
         if (isEditingBooking && time && newServiceDuration && serviceDuration) {
           const oldDuration = serviceDuration;
           const durationChange = newServiceDuration - oldDuration;
-          
-          debugLog('[SERVICE CHANGE] Duration analysis:', {
+
+          debugLog("[SERVICE CHANGE] Duration analysis:", {
             oldDuration,
             newDuration: newServiceDuration,
             durationChange,
-            currentTime: time
+            currentTime: time,
           });
-          
+
           if (durationChange > 0) {
             // New service is longer - check if it fits
             const timeToMinutes = (timeStr) => {
-              const [hours, minutes] = timeStr.split(':').map(Number);
+              const [hours, minutes] = timeStr.split(":").map(Number);
               return hours * 60 + minutes;
             };
-            
+
             const currentTimeMinutes = timeToMinutes(time);
             const newEndTimeMinutes = currentTimeMinutes + newServiceDuration;
             const oldEndTimeMinutes = currentTimeMinutes + oldDuration;
-            
-            debugLog('[SERVICE CHANGE] Time slot analysis:', {
+
+            debugLog("[SERVICE CHANGE] Time slot analysis:", {
               currentTimeMinutes,
               oldEndTimeMinutes,
               newEndTimeMinutes,
-              timeExtension: newEndTimeMinutes - oldEndTimeMinutes
+              timeExtension: newEndTimeMinutes - oldEndTimeMinutes,
             });
-            
+
             // Check if the extended time would conflict with other bookings
-            const hasConflict = bookings.some(booking => {
+            const hasConflict = bookings.some((booking) => {
               if (booking.id === currentBookingId) return false; // Skip current booking
-              
+
               const bookingTimeMinutes = timeToMinutes(booking.time);
-              const bookingEndMinutes = bookingTimeMinutes + (booking.serviceDuration || 60);
-              
+              const bookingEndMinutes =
+                bookingTimeMinutes + (booking.serviceDuration || 60);
+
               // Check for overlap
-              return (currentTimeMinutes < bookingEndMinutes && newEndTimeMinutes > bookingTimeMinutes);
+              return (
+                currentTimeMinutes < bookingEndMinutes &&
+                newEndTimeMinutes > bookingTimeMinutes
+              );
             });
-            
+
             if (hasConflict) {
-              debugLog('[SERVICE CHANGE] ⚠️ Service duration conflict detected!');
-              showErrorMessage(`⚠️ Warning: The new service (${newServiceDuration} min) requires ${durationChange} more minutes than the current slot. This may conflict with other bookings. Please select a different time slot.`);
+              debugLog(
+                "[SERVICE CHANGE] ⚠️ Service duration conflict detected!",
+              );
+              showErrorMessage(
+                `⚠️ Warning: The new service (${newServiceDuration} min) requires ${durationChange} more minutes than the current slot. This may conflict with other bookings. Please select a different time slot.`,
+              );
             } else {
-              debugLog('[SERVICE CHANGE] ✅ New service duration fits in current slot');
-              showSuccessMessage(`✅ Service updated successfully. The new duration (${newServiceDuration} min) fits in the current time slot.`);
+              debugLog(
+                "[SERVICE CHANGE] ✅ New service duration fits in current slot",
+              );
+              showSuccessMessage(
+                `✅ Service updated successfully. The new duration (${newServiceDuration} min) fits in the current time slot.`,
+              );
             }
           } else if (durationChange < 0) {
             // New service is shorter - this is always safe
-            debugLog('[SERVICE CHANGE] ✅ New service is shorter, no conflicts possible');
-            showSuccessMessage(`✅ Service updated successfully. The new duration (${newServiceDuration} min) fits comfortably in the current time slot.`);
+            debugLog(
+              "[SERVICE CHANGE] ✅ New service is shorter, no conflicts possible",
+            );
+            showSuccessMessage(
+              `✅ Service updated successfully. The new duration (${newServiceDuration} min) fits comfortably in the current time slot.`,
+            );
           }
         }
-        
+
         // Only clear dependent fields if not editing
         if (!isEditingBooking) {
           setTime("");
@@ -818,35 +1139,37 @@ setTimeout(() => {
           // Clear time slots to force refresh with new service duration
           setTimeSlots([]);
         } else {
-          debugLog('[SERVICE CHANGE] Service changed, preserving time and client name (editing mode)');
+          debugLog(
+            "[SERVICE CHANGE] Service changed, preserving time and client name (editing mode)",
+          );
         }
-        
+
         setErrors({});
         break;
       case "time":
         const normalizedTime = bookingUtils.normalizeTime(value);
-        debugLog('⏰ [TIME CHANGE] Time selection details:', {
+        debugLog("⏰ [TIME CHANGE] Time selection details:", {
           originalValue: value,
           normalizedTime: normalizedTime,
           previousTime: time,
           isEditingBooking: isEditingBooking,
-          clientName: clientName
+          clientName: clientName,
         });
         setTime(normalizedTime);
-        
+
         // Only reset client name if not editing
         if (!isEditingBooking) {
           setClientName("");
-          debugLog('🧹 [TIME CHANGE] Client name reset (not editing)');
+          debugLog("🧹 [TIME CHANGE] Client name reset (not editing)");
         } else {
-          debugLog('📝 [TIME CHANGE] Client name preserved (editing mode)');
+          debugLog("📝 [TIME CHANGE] Client name preserved (editing mode)");
         }
-        
+
         setErrors({});
-        
-        debugLog('⏰ [TIME CHANGE] Time state updated:', {
+
+        debugLog("⏰ [TIME CHANGE] Time state updated:", {
           newTime: normalizedTime,
-          stateAfterUpdate: 'Will be updated in next render'
+          stateAfterUpdate: "Will be updated in next render",
         });
         break;
       case "clientName":
@@ -859,12 +1182,15 @@ setTimeout(() => {
   };
 
   // Defensive dropdown logic: always allow current value when editing
-  const getDropdownOptions = (options, currentValue, key = 'id') => {
-    if (!options.some(opt => String(opt[key]) === String(currentValue)) && currentValue) {
+  const getDropdownOptions = (options, currentValue, key = "id") => {
+    if (
+      !options.some((opt) => String(opt[key]) === String(currentValue)) &&
+      currentValue
+    ) {
       // If current value is not in options, add a placeholder option
       return [
         ...options,
-        { [key]: currentValue, name: '[Current Selection]', disabled: true }
+        { [key]: currentValue, name: "[Current Selection]", disabled: true },
       ];
     }
     return options;
@@ -878,17 +1204,21 @@ setTimeout(() => {
   const handleFormSubmit = async () => {
     // Add detailed token and profile debugging
     console.log("🔍 [FORM DEBUG] DETAILED AUTH CHECK:", {
-      profile: profile ? {
-        id: profile.id,
-        role: profile.role,
-        hasToken: !!profile.token
-      } : null,
+      profile: profile
+        ? {
+            id: profile.id,
+            role: profile.role,
+            hasToken: !!profile.token,
+          }
+        : null,
       isLoggedIn: !!profile,
-      customerToken: localStorage.getItem("customer_token") ? "present" : "missing",
+      customerToken: localStorage.getItem("customer_token")
+        ? "present"
+        : "missing",
       legacyToken: localStorage.getItem("token") ? "present" : "missing",
       staffToken: localStorage.getItem("staff_token") ? "present" : "missing",
     });
-    
+
     debugLog("🎯 [FORM DEBUG] Form submit triggered with:", {
       selectedDate: selectedDate?.toISOString(),
       outletId,
@@ -900,7 +1230,7 @@ setTimeout(() => {
       isEditingBooking, // Log editing state
       currentBookingId: currentBookingId, // Log current booking ID
       token: localStorage.getItem("token") ? "present" : "missing",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     if (
@@ -910,7 +1240,7 @@ setTimeout(() => {
         staffId,
         serviceId,
         time,
-        clientName
+        clientName,
       )
     ) {
       const validationErrors = {
@@ -929,7 +1259,9 @@ setTimeout(() => {
       return;
     }
     if (staffId === "any" && time) {
-      debugLog("�� [FORM DEBUG] Resolving 'any' staff to specific staff member");
+      debugLog(
+        "�� [FORM DEBUG] Resolving 'any' staff to specific staff member",
+      );
       try {
         const dateStr = selectedDate.toISOString().split("T")[0];
         const response = await client.get("/bookings/staff-by-time", {
@@ -959,17 +1291,20 @@ setTimeout(() => {
       }
     }
     // Check authentication before proceeding
-    debugLog("🔐 [FORM DEBUG] Auth check - current state:", { isLoggedIn: !!profile, profileLoading });
-    
+    debugLog("🔐 [FORM DEBUG] Auth check - current state:", {
+      isLoggedIn: !!profile,
+      profileLoading,
+    });
+
     if (profileLoading) {
       debugLog("🔄 [FORM DEBUG] Profile still loading, waiting...");
       showErrorMessage("Please wait, loading user profile...");
       return;
     }
-    
-    if (!profile || !profile.id || profile.role !== 'customer') {
+
+    if (!profile || !profile.id || profile.role !== "customer") {
       debugLog("🔓 [FORM DEBUG] User not authenticated, opening sign-in modal");
-      
+
       // Save current form data to localStorage before opening sign-in modal
       const formData = {
         selectedDate: selectedDate ? selectedDate.toISOString() : null,
@@ -978,133 +1313,146 @@ setTimeout(() => {
         serviceId,
         time,
         clientName,
-        serviceDuration
+        serviceDuration,
       };
-      localStorage.setItem('TEMP_BOOKING_FORM_DATA', JSON.stringify(formData));
-      debugLog("💾 [FORM DEBUG] Saved form data to localStorage before login:", formData);
-      
+      localStorage.setItem("TEMP_BOOKING_FORM_DATA", JSON.stringify(formData));
+      debugLog(
+        "💾 [FORM DEBUG] Saved form data to localStorage before login:",
+        formData,
+      );
+
       setIsSignInOpen(true);
       return; // Add this return statement to prevent booking submission when not logged in
     } else {
-      debugLog("✅ [FORM DEBUG] Auth passed, checking slot availability before submission");
-      debugLog("📝 [FORM DEBUG] Editing state:", { 
-        isEditingBooking, 
-        currentBookingId, 
-        currentBookingTime 
+      debugLog(
+        "✅ [FORM DEBUG] Auth passed, checking slot availability before submission",
+      );
+      debugLog("📝 [FORM DEBUG] Editing state:", {
+        isEditingBooking,
+        currentBookingId,
+        currentBookingTime,
       });
-      
+
       // Show loading state during slot check
-      setLoading(prev => ({ ...prev, payment: true }));
-      
+      setLoading((prev) => ({ ...prev, payment: true }));
+
       try {
         // Check slot availability before proceeding with submission
         let isSlotAvailable = true;
         if (!(isEditingBooking && time === currentBookingTime)) {
-          isSlotAvailable = await bookingUtils.checkSlotAvailabilityBeforeSubmission(
-            outletId,
-            serviceId,
-            staffId,
-            selectedDate,
-            time,
-            setTimeSlots,
-            setTime,
-            showErrorMessage,
-            isEditingBooking,
-            currentBookingTime,
-            currentBookingId
-          );
+          isSlotAvailable =
+            await bookingUtils.checkSlotAvailabilityBeforeSubmission(
+              outletId,
+              serviceId,
+              staffId,
+              selectedDate,
+              time,
+              setTimeSlots,
+              setTime,
+              showErrorMessage,
+              isEditingBooking,
+              currentBookingTime,
+              currentBookingId,
+            );
         }
         if (!isSlotAvailable) {
           debugLog("❌ [FORM DEBUG] Slot not available, submission cancelled");
           return;
         }
-        
-        debugLog("✅ [FORM DEBUG] Slot available, proceeding with booking submission");
+
+        debugLog(
+          "✅ [FORM DEBUG] Slot available, proceeding with booking submission",
+        );
         debugLog("📝 [FORM DEBUG] Booking details before submission:", {
           bookingDetails,
           bookingDetailsId: bookingDetails?.id,
-          isEditingBooking
+          isEditingBooking,
         });
-      await bookingUtils.handleBookingSubmit(
-        outletId,
-        serviceId,
-        staffId,
-        selectedDate,
-        time,
-        clientName,
-        setBookingError,
-        setBookingId,
-        setBookings,
-        setBookingDetails,
-        setIsBookingDetailsOpen,
-        setActiveStep,
-        setSelectedDate,
-        setOutletId,
-        setStaffId,
-        setServiceId,
-        setServiceDuration,
-        setTime,
-        setClientName,
-        setStaff,
-        setTimeSlots,
-        setServices,
-        setStaffAvailabilities,
-        showSuccessMessage,
-        showErrorMessage,
-        isEditingBooking,
-        currentBookingId, // Use currentBookingId instead of bookingDetails?.id
-        startCleanupTimer,
-        cancelCleanupTimer,
-        clearPersistedData,
-        serviceDuration,
-        staff // Pass the staff array
-      );
-      
-      // If we're editing a booking, update it in the modal list as well
-      if (isEditingBooking && currentBookingId) {
-        // Find the staff member by ID to get the name
-        const selectedStaff = staff.find(s => s.id === staffId);
-        const staffName = selectedStaff ? (selectedStaff.name || selectedStaff.username) : "N/A";
-        
-        // Create a complete booking object with all necessary fields
-        const updatedBooking = {
-          id: currentBookingId,
-          customer_name: clientName,
-          outlet: outlets.find(o => o.id === outletId)?.name || "N/A",
-          outlet_id: outletId,
-          staff_name: staffName,
-          staff_id: staffId,
-          service: services.find(s => s.id === serviceId)?.name || "N/A",
-          service_id: serviceId,
-          date: selectedDate.toISOString().split("T")[0],
-          time: time,
-          price: services.find(s => s.id === serviceId)?.price || 0,
-          serviceDuration: serviceDuration || 30,
-          payment_method: bookingDetails?.payment_method || "Pending",
-          payment_status: bookingDetails?.payment_status || "Pending"
-        };
-        
-        console.log("📝 [FORM DEBUG] Updating booking details after successful edit:", updatedBooking);
-        
-        // Update bookingDetails to trigger the useEffect in BookingDetailsModal
-        setBookingDetails(updatedBooking);
-        
-        // Update the booking in the lists
-        updateBookingInList(updatedBooking);
-        
-        // Open the booking details modal to show the updated booking
-        setTimeout(() => {
-          setIsBookingDetailsOpen(true);
-        }, 100);
-      }
+        await bookingUtils.handleBookingSubmit(
+          outletId,
+          serviceId,
+          staffId,
+          selectedDate,
+          time,
+          clientName,
+          setBookingError,
+          setBookingId,
+          setBookings,
+          setBookingDetails,
+          setIsBookingDetailsOpen,
+          setActiveStep,
+          setSelectedDate,
+          setOutletId,
+          setStaffId,
+          setServiceId,
+          setServiceDuration,
+          setTime,
+          setClientName,
+          setStaff,
+          setTimeSlots,
+          setServices,
+          setStaffAvailabilities,
+          showSuccessMessage,
+          showErrorMessage,
+          isEditingBooking,
+          currentBookingId, // Use currentBookingId instead of bookingDetails?.id
+          startCleanupTimer,
+          cancelCleanupTimer,
+          clearPersistedData,
+          serviceDuration,
+          staff, // Pass the staff array
+        );
+
+        // If we're editing a booking, update it in the modal list as well
+        if (isEditingBooking && currentBookingId) {
+          // Find the staff member by ID to get the name
+          const selectedStaff = staff.find((s) => s.id === staffId);
+          const staffName = selectedStaff
+            ? selectedStaff.name || selectedStaff.username
+            : "N/A";
+
+          // Create a complete booking object with all necessary fields
+          const updatedBooking = {
+            id: currentBookingId,
+            customer_name: clientName,
+            outlet: outlets.find((o) => o.id === outletId)?.name || "N/A",
+            outlet_id: outletId,
+            staff_name: staffName,
+            staff_id: staffId,
+            service: services.find((s) => s.id === serviceId)?.name || "N/A",
+            service_id: serviceId,
+            date: selectedDate.toISOString().split("T")[0],
+            time: time,
+            price: services.find((s) => s.id === serviceId)?.price || 0,
+            serviceDuration: serviceDuration || 30,
+            payment_method: bookingDetails?.payment_method || "Pending",
+            payment_status: bookingDetails?.payment_status || "Pending",
+          };
+
+          console.log(
+            "📝 [FORM DEBUG] Updating booking details after successful edit:",
+            updatedBooking,
+          );
+
+          // Update bookingDetails to trigger the useEffect in BookingDetailsModal
+          setBookingDetails(updatedBooking);
+
+          // Update the booking in the lists
+          updateBookingInList(updatedBooking);
+
+          // Open the booking details modal to show the updated booking
+          setTimeout(() => {
+            setIsBookingDetailsOpen(true);
+          }, 100);
+        }
       } catch (error) {
         console.error("[FORM DEBUG] Error during booking process:", error);
         showErrorMessage("An error occurred during booking. Please try again.");
-        setLoading(prev => ({ ...prev, payment: false }));
+        setLoading((prev) => ({ ...prev, payment: false }));
         // Only reset editing state on error, not on success
         setIsEditingBooking(false);
       } finally {
-        setLoading(prev => ({ ...prev, payment: false }));
+        setLoading((prev) => ({ ...prev, payment: false }));
       }
     }
   };
@@ -1119,23 +1467,38 @@ setTimeout(() => {
         setStaff,
         setStaffAvailabilities,
         setErrors,
-        bookingUtils.toTitleCase
+        bookingUtils.toTitleCase,
       );
-      bookingUtils.fetchServices(selectedDate, outletId, setLoading, setServices, setErrors);
+      bookingUtils.fetchServices(
+        selectedDate,
+        outletId,
+        setLoading,
+        setServices,
+        setErrors,
+      );
 
       // Fetch existing bookings for the current day to determine availability
       debugLog("📅 [BOOKINGS] Fetching existing bookings for date and outlet", {
-        date: selectedDate.toISOString().split('T')[0],
-        outletId: outletId
+        date: selectedDate.toISOString().split("T")[0],
+        outletId: outletId,
       });
-      
-      client.get(`/bookings?date=${selectedDate.toISOString().split('T')[0]}&outlet_id=${outletId}`)
-        .then(response => {
-          debugLog("✅ [BOOKINGS] Successfully fetched bookings:", response.data);
+
+      client
+        .get(
+          `/bookings?date=${selectedDate.toISOString().split("T")[0]}&outlet_id=${outletId}`,
+        )
+        .then((response) => {
+          debugLog(
+            "✅ [BOOKINGS] Successfully fetched bookings:",
+            response.data,
+          );
           setBookings(response.data);
         })
-        .catch(error => {
-          console.error('❌ [BOOKINGS] Error fetching existing bookings:', error);
+        .catch((error) => {
+          console.error(
+            "❌ [BOOKINGS] Error fetching existing bookings:",
+            error,
+          );
           setBookings([]); // Set empty array on error to prevent stale data
         });
     } else {
@@ -1156,17 +1519,23 @@ setTimeout(() => {
         serviceId: serviceId,
         serviceDuration: serviceDuration,
         bookingsLength: bookings.length,
-        shouldFetch: selectedDate && outletId && (staffId || staffId === "any") && serviceId
+        shouldFetch:
+          selectedDate &&
+          outletId &&
+          (staffId || staffId === "any") &&
+          serviceId,
       });
     }
 
     // Clear the current selected time when dependencies change (except when editing)
-    if (!isEditingBooking && time && (
-      !selectedDate || 
-      !outletId || 
-      (!staffId && staffId !== "any") || 
-      !serviceId
-    )) {
+    if (
+      !isEditingBooking &&
+      time &&
+      (!selectedDate ||
+        !outletId ||
+        (!staffId && staffId !== "any") ||
+        !serviceId)
+    ) {
       debugLog("[SLOTS] Clearing selected time due to dependency change");
       setTime("");
     }
@@ -1181,7 +1550,9 @@ setTimeout(() => {
     ) {
       // Reduced slot clearing logging frequency
       if (DEBUG && Math.random() < 0.1) {
-        debugLog("[SLOTS] Conditions not met, will clear timeSlots after debounce");
+        debugLog(
+          "[SLOTS] Conditions not met, will clear timeSlots after debounce",
+        );
       }
       // Use debounce for clearing as well to prevent race conditions
       const clearTimeoutId = setTimeout(() => {
@@ -1196,11 +1567,18 @@ setTimeout(() => {
 
     // Debounce the API call to prevent excessive requests
     const timeoutId = setTimeout(() => {
-      debugLog("[SLOTS] All conditions met, calling fetchTimeSlots with bookings:", {
-        bookingsCount: bookings.length,
-        bookings: bookings.map(b => ({ id: b.id, time: b.time, service_id: b.service_id }))
-      });
-      
+      debugLog(
+        "[SLOTS] All conditions met, calling fetchTimeSlots with bookings:",
+        {
+          bookingsCount: bookings.length,
+          bookings: bookings.map((b) => ({
+            id: b.id,
+            time: b.time,
+            service_id: b.service_id,
+          })),
+        },
+      );
+
       bookingUtils.fetchTimeSlots(
         selectedDate,
         outletId,
@@ -1213,30 +1591,45 @@ setTimeout(() => {
         isEditingBooking ? currentBookingId : null, // Pass current booking ID when editing
         bookings, // Existing bookings to filter out
         serviceDuration || 60, // Use service duration or default to 60 minutes
-        modalBookings // Pass modal bookings for conflict checking
+        modalBookings, // Pass modal bookings for conflict checking
       );
     }, 300); // 300ms debounce
 
     // Cleanup timeout on dependency change
     return () => clearTimeout(timeoutId);
-  }, [selectedDate, outletId, staffId, serviceId, serviceDuration, bookings, isEditingBooking, currentBookingTime, currentBookingId, time, modalBookings]); // Added bookings and editing state to dependencies
+  }, [
+    selectedDate,
+    outletId,
+    staffId,
+    serviceId,
+    serviceDuration,
+    bookings,
+    isEditingBooking,
+    currentBookingTime,
+    currentBookingId,
+    time,
+    modalBookings,
+  ]); // Added bookings and editing state to dependencies
 
   // Separate useEffect to handle editing state changes without triggering time slot refetch
   useEffect(() => {
     if (isEditingBooking && currentBookingTime && currentBookingId) {
-      debugLog("📝 [EDIT MODE] Editing state activated, but not refetching slots to prevent loops", {
-        currentBookingTime,
-        currentBookingId,
-        isEditingBooking
-      });
+      debugLog(
+        "📝 [EDIT MODE] Editing state activated, but not refetching slots to prevent loops",
+        {
+          currentBookingTime,
+          currentBookingId,
+          isEditingBooking,
+        },
+      );
     }
   }, [isEditingBooking, currentBookingTime, currentBookingId]);
 
   // Handle time slot selection for better UX
   const handleTimeSlotSelected = useCallback((selectedTime) => {
-    debugLog('⏰ [TIME SLOT] Time slot selected:', selectedTime);
+    debugLog("⏰ [TIME SLOT] Time slot selected:", selectedTime);
     // Track selected time slots and avoid duplicates
-    setSelectedTimeSlots(prev => [...new Set([...prev, selectedTime])]);
+    setSelectedTimeSlots((prev) => [...new Set([...prev, selectedTime])]);
   }, []);
 
   // Clear selected time slots when form is reset
@@ -1246,8 +1639,43 @@ setTimeout(() => {
     }
   }, [selectedDate, outletId, staffId, serviceId]);
 
+  useEffect(() => {
+    if (
+      !time ||
+      !selectedDate ||
+      !outletId ||
+      !serviceId ||
+      (!staffId && staffId !== "any") ||
+      loading.slots
+    ) {
+      return;
+    }
+
+    const slotStillAvailable =
+      Array.isArray(timeSlots) &&
+      timeSlots.some((slot) => String(slot) === String(time));
+
+    if (slotStillAvailable) {
+      return;
+    }
+
+    setTime("");
+    showErrorMessage(
+      "Selected time slot is no longer available. Please choose another time.",
+    );
+  }, [
+    time,
+    timeSlots,
+    selectedDate,
+    outletId,
+    staffId,
+    serviceId,
+    loading.slots,
+  ]);
+
   // Add this state at the top with other useState hooks
-  const [shouldAutoSubmitAfterLogin, setShouldAutoSubmitAfterLogin] = useState(false);
+  const [shouldAutoSubmitAfterLogin, setShouldAutoSubmitAfterLogin] =
+    useState(false);
 
   // Add this useEffect after all state hooks
   useEffect(() => {
@@ -1292,12 +1720,20 @@ setTimeout(() => {
           cancelCleanupTimer,
           clearPersistedData,
           serviceDuration,
-          staff // Pass the staff array
+          staff, // Pass the staff array
         );
         setShouldAutoSubmitAfterLogin(false);
       }
     }
-  }, [shouldAutoSubmitAfterLogin, selectedDate, outletId, staffId, serviceId, time, clientName]);
+  }, [
+    shouldAutoSubmitAfterLogin,
+    selectedDate,
+    outletId,
+    staffId,
+    serviceId,
+    time,
+    clientName,
+  ]);
 
   // Add these states at the top with other useState hooks
   const [pendingBookingData, setPendingBookingData] = useState(null);
@@ -1306,7 +1742,11 @@ setTimeout(() => {
   // Add this useEffect to restore form state from pendingBookingData
   useEffect(() => {
     if (readyToSubmitBooking && pendingBookingData) {
-      setSelectedDate(pendingBookingData.selectedDate ? new Date(pendingBookingData.selectedDate) : new Date());
+      setSelectedDate(
+        pendingBookingData.selectedDate
+          ? new Date(pendingBookingData.selectedDate)
+          : new Date(),
+      );
       setOutletId(pendingBookingData.outletId || "");
       setStaffId(pendingBookingData.staffId || "");
       setServiceId(pendingBookingData.serviceId || "");
@@ -1360,20 +1800,28 @@ setTimeout(() => {
           cancelCleanupTimer,
           clearPersistedData,
           serviceDuration,
-          staff // Pass the staff array
+          staff, // Pass the staff array
         );
         setReadyToSubmitBooking(false);
         setPendingBookingData(null);
       })();
     }
-  }, [readyToSubmitBooking, selectedDate, outletId, staffId, serviceId, time, clientName]);
+  }, [
+    readyToSubmitBooking,
+    selectedDate,
+    outletId,
+    staffId,
+    serviceId,
+    time,
+    clientName,
+  ]);
 
   // Add at the top with other useState hooks
   const [pendingInit, setPendingInit] = useState(null);
   // ... existing code ...
   // On load, store persisted data in pendingInit
   useEffect(() => {
-    const saved = localStorage.getItem('huuk_booking_form_data');
+    const saved = localStorage.getItem("huuk_booking_form_data");
     if (saved) {
       setPendingInit(JSON.parse(saved));
     }
@@ -1383,14 +1831,21 @@ setTimeout(() => {
   useEffect(() => {
     if (
       pendingInit &&
-      Array.isArray(services) && services.length > 0 &&
-      Array.isArray(staff) && staff.length > 0 &&
-      Array.isArray(outlets) && outlets.length > 0
+      Array.isArray(services) &&
+      services.length > 0 &&
+      Array.isArray(staff) &&
+      staff.length > 0 &&
+      Array.isArray(outlets) &&
+      outlets.length > 0
     ) {
-      if (outlets.some(o => String(o.id) === String(pendingInit.outletId))) setOutletId(pendingInit.outletId);
-      if (staff.some(s => String(s.id) === String(pendingInit.staffId))) setStaffId(pendingInit.staffId);
-      if (services.some(s => String(s.id) === String(pendingInit.serviceId))) setServiceId(pendingInit.serviceId);
-      if (pendingInit.selectedDate) setSelectedDate(new Date(pendingInit.selectedDate));
+      if (outlets.some((o) => String(o.id) === String(pendingInit.outletId)))
+        setOutletId(pendingInit.outletId);
+      if (staff.some((s) => String(s.id) === String(pendingInit.staffId)))
+        setStaffId(pendingInit.staffId);
+      if (services.some((s) => String(s.id) === String(pendingInit.serviceId)))
+        setServiceId(pendingInit.serviceId);
+      if (pendingInit.selectedDate)
+        setSelectedDate(new Date(pendingInit.selectedDate));
       if (pendingInit.time) setTime(pendingInit.time);
       if (pendingInit.clientName) setClientName(pendingInit.clientName);
       setPendingInit(null);
@@ -1399,8 +1854,8 @@ setTimeout(() => {
   // ... existing code ...
   // Block time slot fetch until all dependencies are loaded and valid
   useEffect(() => {
-    debugLog('[DEBUG] useEffect for time slot fetch triggered');
-    debugLog('[DEBUG] Dependencies:', {
+    debugLog("[DEBUG] useEffect for time slot fetch triggered");
+    debugLog("[DEBUG] Dependencies:", {
       selectedDate,
       outletId,
       staffId,
@@ -1408,21 +1863,25 @@ setTimeout(() => {
       serviceDuration,
       isEditingBooking,
       currentBookingTime,
-      currentBookingId
+      currentBookingId,
     });
 
     // Only run if all IDs are set and present in their arrays
-    const outletValid = outletId && Array.isArray(outlets) && outlets.some(o => String(o.id) === String(outletId));
-    const staffValid = staffId && Array.isArray(staff) && staff.some(s => String(s.id) === String(staffId));
-    const serviceValid = serviceId && Array.isArray(services) && services.some(s => String(s.id) === String(serviceId));
+    const outletValid =
+      outletId &&
+      Array.isArray(outlets) &&
+      outlets.some((o) => String(o.id) === String(outletId));
+    const staffValid =
+      staffId &&
+      Array.isArray(staff) &&
+      staff.some((s) => String(s.id) === String(staffId));
+    const serviceValid =
+      serviceId &&
+      Array.isArray(services) &&
+      services.some((s) => String(s.id) === String(serviceId));
 
-    if (
-      selectedDate &&
-      outletValid &&
-      staffValid &&
-      serviceValid
-    ) {
-      debugLog('[DEBUG] All dependencies valid, calling fetchTimeSlots');
+    if (selectedDate && outletValid && staffValid && serviceValid) {
+      debugLog("[DEBUG] All dependencies valid, calling fetchTimeSlots");
       bookingUtils.fetchTimeSlots(
         selectedDate,
         outletId,
@@ -1432,23 +1891,35 @@ setTimeout(() => {
         setTimeSlots,
         setErrors,
         isEditingBooking ? currentBookingTime : null, // Always pass currentBookingTime when editing
-        isEditingBooking ? currentBookingId : null,   // Always pass currentBookingId when editing
+        isEditingBooking ? currentBookingId : null, // Always pass currentBookingId when editing
         bookings,
         serviceDuration || 60,
-        modalBookings
+        modalBookings,
       );
     } else {
-      debugLog('[DEBUG] Not all dependencies valid, not calling fetchTimeSlots', {
-        selectedDate,
-        outletId,
-        outletValid,
-        staffId,
-        staffValid,
-        serviceId,
-        serviceValid
-      });
+      debugLog(
+        "[DEBUG] Not all dependencies valid, not calling fetchTimeSlots",
+        {
+          selectedDate,
+          outletId,
+          outletValid,
+          staffId,
+          staffValid,
+          serviceId,
+          serviceValid,
+        },
+      );
     }
-  }, [selectedDate, outletId, staffId, serviceId, serviceDuration, isEditingBooking, currentBookingTime, currentBookingId]);
+  }, [
+    selectedDate,
+    outletId,
+    staffId,
+    serviceId,
+    serviceDuration,
+    isEditingBooking,
+    currentBookingTime,
+    currentBookingId,
+  ]);
   // ... existing code ...
 
   // Defensive reset for serviceId if not in available services
@@ -1457,7 +1928,7 @@ setTimeout(() => {
       serviceId &&
       Array.isArray(services) &&
       services.length > 0 &&
-      !services.some(s => String(s.id) === String(serviceId))
+      !services.some((s) => String(s.id) === String(serviceId))
     ) {
       setServiceId("");
     }
@@ -1465,79 +1936,110 @@ setTimeout(() => {
 
   // Add updateBookingInList function to update booking in modal/bookings list after editing
   const updateBookingInList = (editedBooking) => {
-    console.log("🔄 [UPDATE BOOKING] Updating booking in lists:", editedBooking);
-    
+    console.log(
+      "🔄 [UPDATE BOOKING] Updating booking in lists:",
+      editedBooking,
+    );
+
     if (!editedBooking || !editedBooking.id) {
-      console.error("🔄 [UPDATE BOOKING] Invalid booking object or missing ID:", editedBooking);
+      console.error(
+        "🔄 [UPDATE BOOKING] Invalid booking object or missing ID:",
+        editedBooking,
+      );
       return;
     }
-    
+
     // Ensure staff_name is set correctly
     let updatedBooking = { ...editedBooking };
-    
+
     // If staff_name is missing but we have staff_id, look it up
-    if ((!updatedBooking.staff_name || updatedBooking.staff_name === "N/A") && updatedBooking.staff_id) {
-      const matchingStaff = staff.find(s => s.id === updatedBooking.staff_id);
+    if (
+      (!updatedBooking.staff_name || updatedBooking.staff_name === "N/A") &&
+      updatedBooking.staff_id
+    ) {
+      const matchingStaff = staff.find((s) => s.id === updatedBooking.staff_id);
       if (matchingStaff) {
-        updatedBooking.staff_name = matchingStaff.name || matchingStaff.username;
-        console.log("🔄 [UPDATE BOOKING] Found staff name from staff array:", updatedBooking.staff_name);
+        updatedBooking.staff_name =
+          matchingStaff.name || matchingStaff.username;
+        console.log(
+          "🔄 [UPDATE BOOKING] Found staff name from staff array:",
+          updatedBooking.staff_name,
+        );
       }
     }
-    
-    setModalBookings(prev => {
+
+    setModalBookings((prev) => {
       // Ensure we have bookings to update
       if (!prev || prev.length === 0) {
-        console.log("🔄 [UPDATE BOOKING] No modal bookings to update, adding new booking");
+        console.log(
+          "🔄 [UPDATE BOOKING] No modal bookings to update, adding new booking",
+        );
         return [updatedBooking];
       }
-      
+
       // Find the booking by ID (handle different ID formats)
-      const bookingIndex = prev.findIndex(b => 
-        String(b.id) === String(updatedBooking.id) || 
-        (b.id && updatedBooking.id && 
-         (b.customer_name === updatedBooking.customer_name &&
-          b.date === updatedBooking.date &&
-          b.time === updatedBooking.time))
+      const bookingIndex = prev.findIndex(
+        (b) =>
+          String(b.id) === String(updatedBooking.id) ||
+          (b.id &&
+            updatedBooking.id &&
+            b.customer_name === updatedBooking.customer_name &&
+            b.date === updatedBooking.date &&
+            b.time === updatedBooking.time),
       );
-      
+
       if (bookingIndex !== -1) {
         // Update existing booking
         const updated = [...prev];
         updated[bookingIndex] = { ...prev[bookingIndex], ...updatedBooking };
-        console.log("🔄 [UPDATE BOOKING] Updated modal booking at index", bookingIndex);
+        console.log(
+          "🔄 [UPDATE BOOKING] Updated modal booking at index",
+          bookingIndex,
+        );
         return updated;
       } else {
         // Add as new booking if not found
-        console.log("🔄 [UPDATE BOOKING] Booking not found in modal bookings, adding as new");
+        console.log(
+          "🔄 [UPDATE BOOKING] Booking not found in modal bookings, adding as new",
+        );
         return [...prev, updatedBooking];
       }
     });
-    
-    setBookings(prev => {
+
+    setBookings((prev) => {
       // Ensure we have bookings to update
       if (!prev || prev.length === 0) {
-        console.log("🔄 [UPDATE BOOKING] No main bookings to update, adding new booking");
+        console.log(
+          "🔄 [UPDATE BOOKING] No main bookings to update, adding new booking",
+        );
         return [updatedBooking];
       }
-      
+
       // Find the booking by ID (handle different ID formats)
-      const bookingIndex = prev.findIndex(b => 
-        String(b.id) === String(updatedBooking.id) || 
-        (b.id && updatedBooking.id && 
-         (b.customer_name === updatedBooking.customer_name &&
-          b.date === updatedBooking.date &&
-          b.time === updatedBooking.time))
+      const bookingIndex = prev.findIndex(
+        (b) =>
+          String(b.id) === String(updatedBooking.id) ||
+          (b.id &&
+            updatedBooking.id &&
+            b.customer_name === updatedBooking.customer_name &&
+            b.date === updatedBooking.date &&
+            b.time === updatedBooking.time),
       );
-      
+
       if (bookingIndex !== -1) {
         // Update existing booking
         const updated = [...prev];
         updated[bookingIndex] = { ...prev[bookingIndex], ...updatedBooking };
-        console.log("🔄 [UPDATE BOOKING] Updated main booking at index", bookingIndex);
+        console.log(
+          "🔄 [UPDATE BOOKING] Updated main booking at index",
+          bookingIndex,
+        );
         return updated;
       } else {
         // Add as new booking if not found
-        console.log("🔄 [UPDATE BOOKING] Booking not found in main bookings, adding as new");
+        console.log(
+          "🔄 [UPDATE BOOKING] Booking not found in main bookings, adding as new",
+        );
         return [...prev, updatedBooking];
       }
     });
@@ -1546,7 +2048,8 @@ setTimeout(() => {
   // Add these states at the top of the component:
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
-  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
+  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] =
+    useState(false);
 
   // 1. Add at the top with other useState hooks:
   const [justBookedAfterLogin, setJustBookedAfterLogin] = useState(false);
@@ -1562,62 +2065,68 @@ setTimeout(() => {
   // Listen for the custom booking-login-success event
   useEffect(() => {
     const handleLoginSuccess = (event) => {
-      console.log('[BOOKING] Login success event received with booking data');
+      console.log("[BOOKING] Login success event received with booking data");
       const bookingData = event.detail?.bookingData;
       if (bookingData) {
         // Set the booking data and trigger submission
         setPendingBookingData(bookingData);
         setReadyToSubmitBooking(true);
         // Remove the temporary data
-        localStorage.removeItem('TEMP_BOOKING_FORM_DATA');
+        localStorage.removeItem("TEMP_BOOKING_FORM_DATA");
       }
     };
 
     // Add event listener
-    window.addEventListener('booking-login-success', handleLoginSuccess);
+    window.addEventListener("booking-login-success", handleLoginSuccess);
 
     // Clean up
     return () => {
-      window.removeEventListener('booking-login-success', handleLoginSuccess);
+      window.removeEventListener("booking-login-success", handleLoginSuccess);
     };
   }, []);
 
   // Add a function to check if the user is logged in after sign-in modal closes
   const checkAndSubmitAfterLogin = useCallback(() => {
-    console.log("🔄 [AUTH] Checking if user is logged in after sign-in modal closed");
-    
+    console.log(
+      "🔄 [AUTH] Checking if user is logged in after sign-in modal closed",
+    );
+
     // Check if user is logged in
-    const isLoggedIn = !!profile && profile.id && profile.role === 'customer';
-    const hasToken = !!localStorage.getItem("customer_token") || !!localStorage.getItem("token");
-    
-    console.log("🔄 [AUTH] Login status:", { 
-      isLoggedIn, 
+    const isLoggedIn = !!profile && profile.id && profile.role === "customer";
+    const hasToken =
+      !!localStorage.getItem("customer_token") ||
+      !!localStorage.getItem("token");
+
+    console.log("🔄 [AUTH] Login status:", {
+      isLoggedIn,
       hasToken,
-      profile: profile ? { id: profile.id, role: profile.role } : null
+      profile: profile ? { id: profile.id, role: profile.role } : null,
     });
-    
+
     // If user is logged in and has token, submit booking
     if (isLoggedIn && hasToken) {
       console.log("✅ [AUTH] User is logged in, submitting booking");
-      
+
       // Get saved form data
-      const savedFormData = localStorage.getItem('TEMP_BOOKING_FORM_DATA');
+      const savedFormData = localStorage.getItem("TEMP_BOOKING_FORM_DATA");
       if (savedFormData) {
         const formData = JSON.parse(savedFormData);
         console.log("📝 [AUTH] Retrieved saved form data:", formData);
-        
+
         // Set form data
-        if (formData.selectedDate) setSelectedDate(new Date(formData.selectedDate));
+        if (formData.selectedDate)
+          setSelectedDate(new Date(formData.selectedDate));
         if (formData.outletId) setOutletId(formData.outletId);
         if (formData.staffId) setStaffId(formData.staffId);
         if (formData.serviceId) setServiceId(formData.serviceId);
         if (formData.time) setTime(formData.time);
         if (formData.clientName) setClientName(formData.clientName);
-        if (formData.serviceDuration) setServiceDuration(formData.serviceDuration);
-        
+        if (formData.serviceDuration)
+          setServiceDuration(formData.serviceDuration);
+
         // Remove saved form data
-        localStorage.removeItem('TEMP_BOOKING_FORM_DATA');
-        
+        localStorage.removeItem("TEMP_BOOKING_FORM_DATA");
+
         // Submit booking after a short delay to ensure all state is updated
         setTimeout(() => {
           console.log("🚀 [AUTH] Submitting booking after login");
@@ -1626,7 +2135,7 @@ setTimeout(() => {
       }
     }
   }, [profile, handleFormSubmit]);
-  
+
   // Add useEffect to check login status when sign-in modal closes
   useEffect(() => {
     // When sign-in modal closes and we have a profile, check if we should submit booking
@@ -1646,29 +2155,49 @@ setTimeout(() => {
         >
           {steps.map((label) => (
             <Step key={label}>
-              <StepLabel sx={{ fontFamily: 'Quicksand, sans-serif' }}>{label}</StepLabel>
+              <StepLabel sx={{ fontFamily: "Quicksand, sans-serif" }}>
+                {label}
+              </StepLabel>
             </Step>
           ))}
         </Stepper>
-        
+
         <div className="cust-form">
           <div className="form-columns">
             <div className="form-column-left">
               <div className="form-field">
                 <label>Date</label>
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: "relative" }}>
                   <input
                     type="text"
-                    value={selectedDate ? selectedDate.toLocaleDateString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric'
-                    }).replace(/\//g, '-') : ''}
-                    onClick={() => !(isEditingBooking && isEditLocked) && setIsDatePickerOpen(true)}
+                    value={
+                      selectedDate
+                        ? selectedDate
+                            .toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })
+                            .replace(/\//g, "-")
+                        : ""
+                    }
+                    onClick={() =>
+                      !(isEditingBooking && isEditLocked) &&
+                      setIsDatePickerOpen(true)
+                    }
                     readOnly
                     placeholder="Select a date"
                     className="name-input"
-                    style={{ cursor: isEditingBooking && isEditLocked ? 'not-allowed' : 'pointer', background: isEditingBooking && isEditLocked ? '#f5f5f5' : undefined }}
+                    style={{
+                      cursor:
+                        isEditingBooking && isEditLocked
+                          ? "not-allowed"
+                          : "pointer",
+                      background:
+                        isEditingBooking && isEditLocked
+                          ? "#f5f5f5"
+                          : undefined,
+                    }}
                     disabled={isEditingBooking && isEditLocked}
                   />
                   <SimpleCalendar
@@ -1686,8 +2215,16 @@ setTimeout(() => {
               <div className="form-field">
                 <label>Outlet</label>
                 <EnhancedOutletDropdown
-                  value={Array.isArray(outlets) && outlets.some(o => String(o.id) === String(outletId)) ? outletId : ""}
-                  onChange={(id) => !(isEditingBooking && isEditLocked) && handleChange("outletId", id)}
+                  value={
+                    Array.isArray(outlets) &&
+                    outlets.some((o) => String(o.id) === String(outletId))
+                      ? outletId
+                      : ""
+                  }
+                  onChange={(id) =>
+                    !(isEditingBooking && isEditLocked) &&
+                    handleChange("outletId", id)
+                  }
                   disabled={isEditingBooking && isEditLocked}
                   outlets={Array.isArray(outlets) ? outlets : []}
                   loading={loading.outlets}
@@ -1698,8 +2235,16 @@ setTimeout(() => {
               <div className="form-field">
                 <label>Barber</label>
                 <EnhancedBarberDropdown
-                  value={Array.isArray(staff) && staff.some(s => String(s.id) === String(staffId)) ? staffId : ""}
-                  onChange={(id) => !(isEditingBooking && isEditLocked) && handleChange("staffId", id)}
+                  value={
+                    Array.isArray(staff) &&
+                    staff.some((s) => String(s.id) === String(staffId))
+                      ? staffId
+                      : ""
+                  }
+                  onChange={(id) =>
+                    !(isEditingBooking && isEditLocked) &&
+                    handleChange("staffId", id)
+                  }
                   disabled={isEditingBooking && isEditLocked}
                   staff={Array.isArray(staff) ? staff : []}
                   loading={loading.staff}
@@ -1712,13 +2257,22 @@ setTimeout(() => {
             <div className="form-column-right">
               <div className="form-field">
                 <label>Service</label>
-                {debugLog('[DEBUG] Rendering EnhancedServiceDropdown', {
-                  value: Array.isArray(services) && services.some(s => String(s.id) === String(serviceId)) ? String(serviceId) : "",
+                {debugLog("[DEBUG] Rendering EnhancedServiceDropdown", {
+                  value:
+                    Array.isArray(services) &&
+                    services.some((s) => String(s.id) === String(serviceId))
+                      ? String(serviceId)
+                      : "",
                   services,
-                  disabled: !staffId && staffId !== "any"
+                  disabled: !staffId && staffId !== "any",
                 })}
                 <EnhancedServiceDropdown
-                  value={Array.isArray(services) && services.some(s => String(s.id) === String(serviceId)) ? String(serviceId) : ""}
+                  value={
+                    Array.isArray(services) &&
+                    services.some((s) => String(s.id) === String(serviceId))
+                      ? String(serviceId)
+                      : ""
+                  }
                   onChange={(id) => handleChange("serviceId", id)}
                   disabled={!staffId && staffId !== "any"}
                   services={Array.isArray(services) ? services : []}
@@ -1730,14 +2284,25 @@ setTimeout(() => {
               </div>
               <div className="form-field">
                 <label>Time</label>
-                {debugLog('[DEBUG] Rendering EnhancedTimeSlotDropdown', {
-                  value: Array.isArray(timeSlots) && timeSlots.some(slot => String(slot) === String(time)) ? time : "",
+                {debugLog("[DEBUG] Rendering EnhancedTimeSlotDropdown", {
+                  value:
+                    Array.isArray(timeSlots) &&
+                    timeSlots.some((slot) => String(slot) === String(time))
+                      ? time
+                      : "",
                   timeSlots,
-                  disabled: !serviceId
+                  disabled: !serviceId,
                 })}
                 <EnhancedTimeSlotDropdown
-                  value={Array.isArray(timeSlots) && timeSlots.some(slot => String(slot) === String(time)) ? time : ""}
-                  onChange={(selectedTime) => handleChange("time", selectedTime)}
+                  value={
+                    Array.isArray(timeSlots) &&
+                    timeSlots.some((slot) => String(slot) === String(time))
+                      ? time
+                      : ""
+                  }
+                  onChange={(selectedTime) =>
+                    handleChange("time", selectedTime)
+                  }
                   disabled={!serviceId}
                   timeSlots={Array.isArray(timeSlots) ? timeSlots : []}
                   loading={loading.slots}
@@ -1774,7 +2339,15 @@ setTimeout(() => {
           )}
 
           {isEditingBooking ? (
-            <div style={{ display: 'flex', flexDirection: 'row', gap: 8, flexWrap: 'nowrap', marginTop: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                gap: 8,
+                flexWrap: "nowrap",
+                marginTop: 16,
+              }}
+            >
               <Button
                 variant="outlined"
                 color="secondary"
@@ -1796,7 +2369,11 @@ setTimeout(() => {
                   setStaffAvailabilities({});
                   setErrors({});
                 }}
-                style={{ whiteSpace: 'nowrap', fontFamily: 'Quicksand, sans-serif', fontWeight: 'bold' }}
+                style={{
+                  whiteSpace: "nowrap",
+                  fontFamily: "Quicksand, sans-serif",
+                  fontWeight: "bold",
+                }}
               >
                 Cancel Edit
               </Button>
@@ -1804,7 +2381,11 @@ setTimeout(() => {
                 variant="contained"
                 color="primary"
                 onClick={handleFormSubmit}
-                style={{ whiteSpace: 'nowrap', fontFamily: 'Quicksand, sans-serif', fontWeight: 'bold' }}
+                style={{
+                  whiteSpace: "nowrap",
+                  fontFamily: "Quicksand, sans-serif",
+                  fontWeight: "bold",
+                }}
               >
                 Confirm Edit
               </Button>
@@ -1814,19 +2395,18 @@ setTimeout(() => {
               variant="contained"
               color="primary"
               onClick={handleFormSubmit}
-              style={{ marginTop: 16, fontFamily: 'Quicksand, sans-serif', fontWeight: 'bold' }}
+              style={{
+                marginTop: 16,
+                fontFamily: "Quicksand, sans-serif",
+                fontWeight: "bold",
+              }}
             >
               Submit
             </Button>
           )}
         </div>
       </div>
-     
-         
 
-        
-    
-      
       {/* Sign-up Modal */}
       <Modal
         isOpen={isSignUpOpen}
@@ -1842,9 +2422,9 @@ setTimeout(() => {
         <animated.div
           style={{
             ...signUpAnimation,
-            width: '1000px',
-            maxWidth: '100vw',
-            minWidth: '320px',
+            width: "1000px",
+            maxWidth: "100vw",
+            minWidth: "320px",
           }}
           className={styles["homepage-signup-modal-container"]}
         >
@@ -1861,7 +2441,10 @@ setTimeout(() => {
                 Already have an account?{" "}
               </span>
               <span
-                onClick={() => { setIsSignUpOpen(false); setIsSignInOpen(true); }}
+                onClick={() => {
+                  setIsSignUpOpen(false);
+                  setIsSignInOpen(true);
+                }}
                 className={styles["sign-in-text-homepage"]}
               >
                 Sign In
@@ -1872,7 +2455,10 @@ setTimeout(() => {
           <div className={styles["homepage-signup-right-section"]}>
             <h2 className={styles["sign-up-heading-homepage"]}>Sign Up</h2>
             {loading.signUp && <div>Loading...</div>}
-            <form onSubmit={handleSignUp} className={styles["sign-up-form-homepage"]}>
+            <form
+              onSubmit={handleSignUp}
+              className={styles["sign-up-form-homepage"]}
+            >
               <label htmlFor="signUpName">Email</label>
               <div style={{ position: "relative" }}>
                 <MdEmail
@@ -1964,7 +2550,9 @@ setTimeout(() => {
                 />
               </div>
               {signUpErrors.username && (
-                <p className={styles["error-homepage"]}>{signUpErrors.username}</p>
+                <p className={styles["error-homepage"]}>
+                  {signUpErrors.username}
+                </p>
               )}
 
               <label htmlFor="signUpPhoneNumber">Phone Number</label>
@@ -2010,9 +2598,11 @@ setTimeout(() => {
                 />
               </div>
               {signUpErrors.phoneNumber && (
-                <p className={styles["error-homepage"]}>{signUpErrors.phoneNumber}</p>
+                <p className={styles["error-homepage"]}>
+                  {signUpErrors.phoneNumber}
+                </p>
               )}
-              
+
               <label htmlFor="signUpPassword">Password</label>
               <div style={{ position: "relative" }}>
                 <MdLock
@@ -2026,7 +2616,7 @@ setTimeout(() => {
                   }}
                 />
                 <input
-                  type={showSignUpPassword ? 'text' : 'password'}
+                  type={showSignUpPassword ? "text" : "password"}
                   id="signUpPassword"
                   placeholder="Enter your password"
                   value={signUpPassword}
@@ -2051,30 +2641,34 @@ setTimeout(() => {
                     fontSize: "0.9rem",
                     boxShadow: "0px 7px 8px rgba(0, 0, 0, 0.4)",
                     boxSizing: "border-box",
-                    paddingRight: '40px',
+                    paddingRight: "40px",
                   }}
                   disabled={loading.signUp}
                 />
                 <span
                   onClick={() => setShowSignUpPassword((prev) => !prev)}
                   style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: '10px',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    color: '#1a1a1a',
-                    fontSize: '1.2rem'
+                    position: "absolute",
+                    top: "50%",
+                    right: "10px",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    color: "#1a1a1a",
+                    fontSize: "1.2rem",
                   }}
                   tabIndex={0}
                   role="button"
-                  aria-label={showSignUpPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showSignUpPassword ? "Hide password" : "Show password"
+                  }
                 >
                   {showSignUpPassword ? <MdVisibilityOff /> : <MdVisibility />}
                 </span>
               </div>
               {signUpErrors.password && (
-                <p className={styles["error-homepage"]}>{signUpErrors.password}</p>
+                <p className={styles["error-homepage"]}>
+                  {signUpErrors.password}
+                </p>
               )}
 
               <label htmlFor="signUpConfirmPassword">Confirm Password</label>
@@ -2090,13 +2684,16 @@ setTimeout(() => {
                   }}
                 />
                 <input
-                  type={showSignUpConfirmPassword ? 'text' : 'password'}
+                  type={showSignUpConfirmPassword ? "text" : "password"}
                   id="signUpConfirmPassword"
                   placeholder="Confirm your password"
                   value={signUpConfirmPassword}
                   onChange={(e) => {
                     setSignUpConfirmPassword(e.target.value);
-                    setSignUpErrors((prev) => ({ ...prev, confirmPassword: "" }));
+                    setSignUpErrors((prev) => ({
+                      ...prev,
+                      confirmPassword: "",
+                    }));
                   }}
                   style={{
                     paddingLeft: "40px",
@@ -2115,30 +2712,40 @@ setTimeout(() => {
                     fontSize: "0.9rem",
                     boxShadow: "0px 7px 8px rgba(0, 0, 0, 0.4)",
                     boxSizing: "border-box",
-                    paddingRight: '40px',
+                    paddingRight: "40px",
                   }}
                   disabled={loading.signUp}
                 />
                 <span
                   onClick={() => setShowSignUpConfirmPassword((prev) => !prev)}
                   style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: '10px',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    color: '#1a1a1a',
-                    fontSize: '1.2rem'
+                    position: "absolute",
+                    top: "50%",
+                    right: "10px",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    color: "#1a1a1a",
+                    fontSize: "1.2rem",
                   }}
                   tabIndex={0}
                   role="button"
-                  aria-label={showSignUpConfirmPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showSignUpConfirmPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
                 >
-                  {showSignUpConfirmPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                  {showSignUpConfirmPassword ? (
+                    <MdVisibilityOff />
+                  ) : (
+                    <MdVisibility />
+                  )}
                 </span>
               </div>
               {signUpErrors.confirmPassword && (
-                <p className={styles["error-homepage"]}>{signUpErrors.confirmPassword}</p>
+                <p className={styles["error-homepage"]}>
+                  {signUpErrors.confirmPassword}
+                </p>
               )}
 
               <button
@@ -2160,7 +2767,13 @@ setTimeout(() => {
               setSignUpEmail("");
               setSignUpUsername("");
               setSignUpConfirmPassword("");
-              setSignUpErrors({ name: "", phoneNumber: "", password: "", username: "", confirmPassword: "" });
+              setSignUpErrors({
+                name: "",
+                phoneNumber: "",
+                password: "",
+                username: "",
+                confirmPassword: "",
+              });
               setLoading((prev) => ({ ...prev, signUp: false }));
             }}
           >
@@ -2168,25 +2781,13 @@ setTimeout(() => {
           </button>
         </animated.div>
       </Modal>
-      
+
       <BookingDetailsModal
         isOpen={isBookingDetailsOpen}
-        onClose={() => {
+        onClose={async () => {
           setIsBookingDetailsOpen(false);
-          // Only reset form if not editing (i.e., after a new booking)
           if (!isEditingBooking) {
-            setActiveStep(0);
-            setSelectedDate(new Date());
-            setOutletId("");
-            setStaffId("");
-            setServiceId("");
-            setServiceDuration(null);
-            setTime("");
-            setClientName("");
-            setStaff([]);
-            setTimeSlots([]);
-            setServices([]);
-            setStaffAvailabilities({});
+            await cancelDraftBookingFlow();
           }
         }}
         bookings={bookings}
@@ -2199,7 +2800,7 @@ setTimeout(() => {
             setIsBookingDetailsOpen,
             setBookingError,
             showSuccessMessage,
-            showErrorMessage
+            showErrorMessage,
           )
         }
         handleAddBooking={() =>
@@ -2221,7 +2822,7 @@ setTimeout(() => {
             setCurrentBookingTime,
             setCurrentBookingId,
             setBookingDetails, // Add this parameter
-            setBookingId // Add this parameter
+            setBookingId, // Add this parameter
           )
         }
         handleEditBooking={(booking) =>
@@ -2243,7 +2844,7 @@ setTimeout(() => {
             services,
             bookingUtils.normalizeTime,
             setCurrentBookingId,
-            updateBookingInList
+            updateBookingInList,
           )
         }
         openPaymentMethodModal={() => {
@@ -2273,14 +2874,16 @@ setTimeout(() => {
           setCurrentBookingTime(null);
           debugLog("📝 [EDIT] Edit state reset after completion");
         }}
+        onDraftCancelled={() => cancelDraftBookingFlow()}
         updateBookingInList={updateBookingInList}
       />
       <PaymentModal
         isOpen={isPaymentMethodModalOpen}
-        onClose={() => {
+        onClose={async () => {
           setIsPaymentMethodModalOpen(false);
           setPaymentMethod("fpx");
           setPaymentError("");
+          await cancelDraftBookingFlow({ resetForm: false });
         }}
         paymentMethod={paymentMethod}
         setPaymentMethod={setPaymentMethod}
@@ -2305,7 +2908,7 @@ setTimeout(() => {
             scrollToSection,
             bookingHistoryRef,
             showSuccessMessage,
-            showErrorMessage
+            showErrorMessage,
           )
         }
         handlePayAtOutlet={() =>
@@ -2323,7 +2926,7 @@ setTimeout(() => {
             scrollToSection,
             bookingHistoryRef,
             showSuccessMessage,
-            showErrorMessage
+            showErrorMessage,
           )
         }
         scrollToSection={scrollToSection}
@@ -2338,11 +2941,12 @@ setTimeout(() => {
       />
       <FPXModal
         isOpen={isFPXModalOpen}
-        onClose={() => {
+        onClose={async () => {
           setIsFPXModalOpen(false);
           setClientSecret("");
           clientSecretRef.current = null;
           setPaymentError("");
+          await cancelDraftBookingFlow({ resetForm: false });
         }}
         clientSecret={clientSecret}
         clientName={clientName}
@@ -2360,13 +2964,14 @@ setTimeout(() => {
       />
       <ConfirmationModal
         isOpen={isConfirmationOpen}
-        onClose={() => {
+        onClose={async () => {
           setIsConfirmationOpen(false);
           setPaymentMethod("fpx");
           setClientSecret("");
           clientSecretRef.current = null;
           setBookingDetails(null);
           setPaymentError("");
+          await cancelDraftBookingFlow({ resetForm: false });
         }}
         bookingDetails={bookingDetails}
         paymentMethod={paymentMethod}
@@ -2389,7 +2994,7 @@ setTimeout(() => {
             scrollToSection,
             bookingHistoryRef,
             showSuccessMessage,
-            showErrorMessage
+            showErrorMessage,
           )
         }
         handlePayAtOutlet={() =>
@@ -2407,10 +3012,12 @@ setTimeout(() => {
             scrollToSection,
             bookingHistoryRef,
             showSuccessMessage,
-            showErrorMessage
+            showErrorMessage,
           )
         }
-        handleDownloadReceipt={() => bookingUtils.handleDownloadReceipt(bookingDetails)}
+        handleDownloadReceipt={() =>
+          bookingUtils.handleDownloadReceipt(bookingDetails)
+        }
         serviceDuration={serviceDuration}
         outlets={outlets}
         staff={staff}
@@ -2448,7 +3055,8 @@ setTimeout(() => {
             fontSize: "0.9rem",
             fontFamily: "Quicksand, sans-serif",
             fontWeight: 500,
-            backgroundColor: snackbar.severity === "success" ? "#4caf50" : "#ff6b4a", // Green for success, red for error
+            backgroundColor:
+              snackbar.severity === "success" ? "#4caf50" : "#ff6b4a", // Green for success, red for error
             color: "#fff",
             border: `2px solid ${snackbar.severity === "success" ? "#4caf50" : "#ff6b4a"}`,
             "& .MuiAlert-icon": {

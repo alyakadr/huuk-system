@@ -11,6 +11,7 @@ const attendanceSchema = new mongoose.Schema(
     time_in: { type: String },
     time_out: { type: String },
     document_path: { type: String },
+    document_upload_count: { type: Number, default: 0 },
     remarks: { type: String },
     reason: { type: String },
     outlet: { type: String, default: "default" },

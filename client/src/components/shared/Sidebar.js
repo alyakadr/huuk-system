@@ -5,7 +5,8 @@ import { useProfile } from "../../ProfileContext";
 import Cookies from "js-cookie";
 
 // Create a default profile picture as data URL
-const defaultProfile = "data:image/svg+xml,%3Csvg width='130' height='130' viewBox='0 0 130 130' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='130' height='130' rx='65' fill='%23e5e7eb'/%3E%3Ccircle cx='65' cy='45' r='18' fill='%239ca3af'/%3E%3Cpath d='M35 100c0-16.57 13.43-30 30-30s30 13.43 30 30v10H35v-10z' fill='%239ca3af'/%3E%3C/svg%3E";
+const defaultProfile =
+  "data:image/svg+xml,%3Csvg width='130' height='130' viewBox='0 0 130 130' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='130' height='130' rx='65' fill='%23e5e7eb'/%3E%3Ccircle cx='65' cy='45' r='18' fill='%239ca3af'/%3E%3Cpath d='M35 100c0-16.57 13.43-30 30-30s30 13.43 30 30v10H35v-10z' fill='%239ca3af'/%3E%3C/svg%3E";
 
 const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -20,25 +21,73 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
 
   // Sync profile context with user data
   useEffect(() => {
-    if (user && user.id && (!profile || profile.id !== user.id)) {
-      console.log('Syncing profile context with user data:', user);
+    if (!user || !user.id) {
+      return;
+    }
+
+    const shouldSyncProfile =
+      !profile ||
+      profile.id !== user.id ||
+      profile.username !== user.username ||
+      profile.role !== user.role ||
+      profile.outlet !== user.outlet ||
+      profile.profile_picture !== user.profile_picture;
+
+    if (shouldSyncProfile) {
+      console.log("Syncing profile context with user data:", user);
       updateProfile(user);
     }
-  }, [user?.id, profile?.id, updateProfile]);
+  }, [
+    user?.id,
+    user?.username,
+    user?.role,
+    user?.outlet,
+    user?.profile_picture,
+    profile?.id,
+    profile?.username,
+    profile?.role,
+    profile?.outlet,
+    profile?.profile_picture,
+    updateProfile,
+  ]);
+
+  const rawRole = profile?.role || user?.role || "";
+  const normalizedRole = String(rawRole).trim().toLowerCase();
+
+  const resolveDisplayedOutlet = () => {
+    if (profile?.outlet) return profile.outlet;
+    if (user?.outlet) return user.outlet;
+
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem("staff_loggedInUser") || "{}",
+      );
+      return stored?.outlet || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const displayedOutlet = resolveDisplayedOutlet();
+  const shouldShowOutlet =
+    normalizedRole === "staff" || normalizedRole === "manager";
 
   // Track profile picture changes for smooth updates
   const [profileImageUrl, setProfileImageUrl] = useState(defaultProfile);
   const [imageLoading, setImageLoading] = useState(false);
   const [failedUrls, setFailedUrls] = useState(new Set());
-  
+
   // Update profile image URL when profile changes
   useEffect(() => {
     const profilePicture = profile?.profile_picture || user?.profile_picture;
-    
+
     // If profile picture is default or null, use default immediately
-    if (!profilePicture || profilePicture === '/Uploads/profile_pictures/default.jpg') {
+    if (
+      !profilePicture ||
+      profilePicture === "/Uploads/profile_pictures/default.jpg"
+    ) {
       if (profileImageUrl !== defaultProfile) {
-        console.log('Using default profile picture');
+        console.log("Using default profile picture");
         setProfileImageUrl(defaultProfile);
         setImageLoading(false);
         // Clear failed URLs for future attempts
@@ -46,52 +95,54 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       }
       return;
     }
-    
+
     // Ensure the URL is properly formatted
-    const url = profilePicture.startsWith('http') 
-      ? profilePicture 
+    const url = profilePicture.startsWith("http")
+      ? profilePicture
       : `${baseURL}${profilePicture}`;
-    
+
     // Force refresh on profile picture changes - clear failed URLs cache
-    const profileChanged = profile?.profile_picture && profile.profile_picture !== user?.profile_picture;
+    const profileChanged =
+      profile?.profile_picture &&
+      profile.profile_picture !== user?.profile_picture;
     if (profileChanged) {
-      console.log('Profile picture changed, clearing failed URLs cache');
+      console.log("Profile picture changed, clearing failed URLs cache");
       setFailedUrls(new Set());
     }
-    
+
     // Check if this URL has already failed before (skip if profile just changed)
     if (!profileChanged && failedUrls.has(url)) {
-      console.log('Profile picture URL previously failed, using default:', url);
+      console.log("Profile picture URL previously failed, using default:", url);
       setProfileImageUrl(defaultProfile);
       return;
     }
-    
+
     // Update if URL has changed or if we need to force refresh
     if (url !== profileImageUrl && !imageLoading) {
-      console.log('Profile picture URL updated:', url);
+      console.log("Profile picture URL updated:", url);
       setImageLoading(true);
-      
+
       // Test if the image can be loaded with better error handling
       const img = new Image();
-      
+
       // Add cache busting for new uploads
       const cacheBustedUrl = profileChanged ? `${url}?t=${Date.now()}` : url;
-      
+
       // Add timeout to prevent hanging
       const timeoutId = setTimeout(() => {
-        console.warn('Profile image load timeout, marking as failed:', url);
-        setFailedUrls(prev => new Set([...prev, url]));
+        console.warn("Profile image load timeout, marking as failed:", url);
+        setFailedUrls((prev) => new Set([...prev, url]));
         setProfileImageUrl(defaultProfile);
         setImageLoading(false);
       }, 5000); // Increased timeout for new uploads
-      
+
       img.onload = () => {
         clearTimeout(timeoutId);
-        console.log('Profile image loaded successfully:', url);
+        console.log("Profile image loaded successfully:", url);
         setProfileImageUrl(url);
         setImageLoading(false);
         // Remove from failed URLs if it was there
-        setFailedUrls(prev => {
+        setFailedUrls((prev) => {
           const newSet = new Set(prev);
           newSet.delete(url);
           return newSet;
@@ -99,17 +150,24 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       };
       img.onerror = (error) => {
         clearTimeout(timeoutId);
-        console.warn('Profile image failed to load, marking as failed:', url);
-        setFailedUrls(prev => new Set([...prev, url]));
+        console.warn("Profile image failed to load, marking as failed:", url);
+        setFailedUrls((prev) => new Set([...prev, url]));
         setProfileImageUrl(defaultProfile);
         setImageLoading(false);
       };
-      
+
       // Set source with cache busting if needed
       img.src = cacheBustedUrl;
     }
-  }, [profile?.profile_picture, user?.profile_picture, profileImageUrl, imageLoading, failedUrls, baseURL]);
-  
+  }, [
+    profile?.profile_picture,
+    user?.profile_picture,
+    profileImageUrl,
+    imageLoading,
+    failedUrls,
+    baseURL,
+  ]);
+
   // Get the profile picture URL
   const getProfilePictureUrl = () => {
     return profileImageUrl;
@@ -117,38 +175,46 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
 
   const handleLogout = () => {
     // Set a flag to prevent any re-authentication attempts during logout
-    localStorage.setItem('FORCE_LOGOUT_IN_PROGRESS', 'true');
-    
+    localStorage.setItem("FORCE_LOGOUT_IN_PROGRESS", "true");
+
     // Set logging out flag to prevent auto re-login in ProfileContext
     if (setIsLoggingOut) {
       setIsLoggingOut(true);
     }
-    
+
     // STEP 1: Clear ProfileContext first to prevent re-authentication
     try {
       updateProfile(null);
     } catch (error) {
-      console.error('Error clearing ProfileContext:', error);
+      console.error("Error clearing ProfileContext:", error);
     }
-    
+
     // STEP 2: Clear all authentication cookies
     try {
       Cookies.remove("email");
     } catch (error) {
-      console.error('Error clearing cookies:', error);
+      console.error("Error clearing cookies:", error);
     }
-    
+
     // STEP 3: Aggressively clear ALL localStorage items that could contain auth data
     const keysToRemove = [
-      'staff_loggedInUser', 'staff_token', 'staff_userId',
-      'customer_loggedInUser', 'customer_token', 'customer_userId',
-      'loggedInUser', 'token', 'userId',
-      'isTimeInConfirmed', 'timeIn',
-      'lastVisitedPage', 'switchModeTimestamp',
-      'FORCE_LOGOUT_IN_PROGRESS' // Clear this last
+      "staff_loggedInUser",
+      "staff_token",
+      "staff_userId",
+      "customer_loggedInUser",
+      "customer_token",
+      "customer_userId",
+      "loggedInUser",
+      "token",
+      "userId",
+      "isTimeInConfirmed",
+      "timeIn",
+      "lastVisitedPage",
+      "switchModeTimestamp",
+      "FORCE_LOGOUT_IN_PROGRESS", // Clear this last
     ];
-    
-    keysToRemove.forEach(key => {
+
+    keysToRemove.forEach((key) => {
       try {
         if (localStorage.getItem(key)) {
           localStorage.removeItem(key);
@@ -157,25 +223,25 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         console.error(`Error removing ${key}:`, error);
       }
     });
-    
+
     // STEP 4: Clear session storage completely
     try {
       sessionStorage.clear();
     } catch (error) {
-      console.error('Error clearing sessionStorage:', error);
+      console.error("Error clearing sessionStorage:", error);
     }
-    
+
     // STEP 5: Force immediate redirect to clean login interface
     setTimeout(() => {
       try {
         // Final cleanup of the logout flag
-        localStorage.removeItem('FORCE_LOGOUT_IN_PROGRESS');
+        localStorage.removeItem("FORCE_LOGOUT_IN_PROGRESS");
         // Redirect with fromLogout parameter to show clean login interface
-        window.location.replace('/staff-login?fromLogout=true');
+        window.location.replace("/staff-login?fromLogout=true");
       } catch (error) {
-        console.error('Error during redirect:', error);
+        console.error("Error during redirect:", error);
         // Fallback redirect with parameter
-        window.location.href = '/staff-login?fromLogout=true';
+        window.location.href = "/staff-login?fromLogout=true";
       }
     }, 250); // Small delay to ensure all cleanup is complete
   };
@@ -220,7 +286,7 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
             alt="Profile"
             className={`profile-img ${minimized ? "small" : ""}`}
             onError={(e) => {
-              console.log('Profile image onError triggered, using default');
+              console.log("Profile image onError triggered, using default");
               // Prevent infinite loop by only setting default if not already default
               if (e.target.src !== defaultProfile) {
                 e.target.src = defaultProfile;
@@ -276,14 +342,21 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
           </div>
           {!minimized && (
             <>
-              <h2 className="profile-name">{profile?.username || user?.username || "User"}</h2>
-              <p className="profile-role" style={{ marginBottom: "15px", marginTop: "0px" }}>
-                {(profile?.role || user?.role)
-                  ? (profile?.role || user?.role).charAt(0).toUpperCase() + (profile?.role || user?.role).slice(1)
+              <h2 className="profile-name">
+                {profile?.username || user?.username || "User"}
+              </h2>
+              <p
+                className="profile-role"
+                style={{ marginBottom: "15px", marginTop: "0px" }}
+              >
+                {rawRole
+                  ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1)
                   : "Role"}
               </p>
-              {(profile?.role || user?.role) === "staff" && (
-                <p className="profile-outlet">{profile?.outlet || user?.outlet || "Outlet"}</p>
+              {shouldShowOutlet && (
+                <p className="profile-outlet">
+                  {displayedOutlet || "Outlet not assigned"}
+                </p>
               )}
             </>
           )}
@@ -315,9 +388,19 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                       setOpenDropdown(null);
                     }
                   }}
-                  title={minimized ? (item.disabled ? `${item.label} (Disabled)` : item.label) : undefined}
+                  title={
+                    minimized
+                      ? item.disabled
+                        ? `${item.label} (Disabled)`
+                        : item.label
+                      : undefined
+                  }
                   style={{
-                    cursor: item.disabled ? "not-allowed" : (hasSubNav || item.path ? "pointer" : "default"),
+                    cursor: item.disabled
+                      ? "not-allowed"
+                      : hasSubNav || item.path
+                        ? "pointer"
+                        : "default",
                     opacity: item.disabled ? 0.5 : 1,
                   }}
                 >

@@ -30,7 +30,9 @@ const EditProfile = () => {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
-  const profileUserId = profile.id || globalProfile.id;
+  const safeProfile = profile || {};
+  const safeGlobalProfile = globalProfile || {};
+  const profileUserId = safeProfile.id || safeGlobalProfile.id || null;
 
   const fetchProfileRequest = useCallback(async () => {
     const response = await axios.get(`${API_BASE_URL}/api/users/profile`, {
@@ -63,17 +65,17 @@ const EditProfile = () => {
   });
 
   const getDashboardPath = useCallback(() => {
-    const userRole = profile.role || globalProfile.role;
+    const userRole = safeProfile.role || safeGlobalProfile.role;
     if (userRole === "manager") return "/manager";
     if (userRole === "staff") return "/staff";
     return "/";
-  }, [profile.role, globalProfile.role]);
+  }, [safeProfile.role, safeGlobalProfile.role]);
 
   useEffect(() => {
-    if (!profile.id && authToken) {
+    if (!safeProfile.id && authToken) {
       fetchProfile();
     }
-  }, [profile.id, authToken, fetchProfile]);
+  }, [safeProfile.id, authToken, fetchProfile]);
 
   useEffect(() => {
     if (globalProfile?.id) {
@@ -167,11 +169,19 @@ const EditProfile = () => {
       return;
     }
 
+    if (!profileUserId) {
+      alert("Profile is still loading. Please try again.");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("address", profile.address || globalProfile.address || "");
+    formData.append(
+      "address",
+      safeProfile.address || safeGlobalProfile.address || "",
+    );
     formData.append(
       "phone_number",
-      profile.phone_number || globalProfile.phone_number || "",
+      safeProfile.phone_number || safeGlobalProfile.phone_number || "",
     );
 
     if (selectedImage) {
@@ -199,7 +209,7 @@ const EditProfile = () => {
       );
       // Update the global profile context immediately with token
       const updatedProfile = {
-        ...globalProfile,
+        ...safeGlobalProfile,
         ...response.data,
         token: authToken,
       };
@@ -294,8 +304,8 @@ const EditProfile = () => {
               <img
                 src={
                   selectedImage ||
-                  (profile.profile_picture
-                    ? `http://localhost:5000${profile.profile_picture}`
+                  (safeProfile.profile_picture
+                    ? `http://localhost:5000${safeProfile.profile_picture}`
                     : defaultProfile)
                 }
                 alt="Profile"
@@ -319,10 +329,10 @@ const EditProfile = () => {
             </div>
             <div className="staff-profile-info">
               <h2 className="staff-profile-name">
-                {profile.fullname || "Staff Member"}
+                {safeProfile.fullname || "Staff Member"}
               </h2>
               <span className="staff-profile-role">
-                {(profile.role || "Staff").toUpperCase()}
+                {(safeProfile.role || "Staff").toUpperCase()}
               </span>
               <button
                 className="staff-change-password-btn"
@@ -351,7 +361,7 @@ const EditProfile = () => {
                 <span className="staff-input-icon material-icons">person</span>
                 <input
                   type="text"
-                  value={profile.fullname || ""}
+                  value={safeProfile.fullname || ""}
                   readOnly
                   className="staff-form-input readonly"
                   placeholder="Full name"
@@ -370,7 +380,7 @@ const EditProfile = () => {
                 </span>
                 <input
                   type="text"
-                  value={profile.username || ""}
+                  value={safeProfile.username || ""}
                   readOnly
                   className="staff-form-input readonly"
                   placeholder="Username"
@@ -387,7 +397,7 @@ const EditProfile = () => {
                 <span className="staff-input-icon material-icons">email</span>
                 <input
                   type="email"
-                  value={profile.email || ""}
+                  value={safeProfile.email || ""}
                   readOnly
                   className="staff-form-email-input readonly"
                   placeholder="Email address"
@@ -407,7 +417,7 @@ const EditProfile = () => {
                 <input
                   type="text"
                   name="address"
-                  value={profile.address || ""}
+                  value={safeProfile.address || ""}
                   onChange={handleChange}
                   placeholder="Enter your address"
                   className="staff-form-input"
@@ -424,7 +434,7 @@ const EditProfile = () => {
                   <input
                     type="text"
                     name="phone_number"
-                    value={profile.phone_number || ""}
+                    value={safeProfile.phone_number || ""}
                     onChange={handleChange}
                     placeholder="10-123456789"
                     className="staff-form-input staff-phone-input"
@@ -455,7 +465,7 @@ const EditProfile = () => {
       <ChangePasswordModal
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
-        userId={profile.id || globalProfile.id}
+        userId={safeProfile.id || safeGlobalProfile.id || ""}
       />
 
       {/* Hidden elements for image processing */}

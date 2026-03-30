@@ -3,6 +3,10 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const {
+  PASSWORD_POLICY_MESSAGE,
+  isPasswordValid,
+} = require("../utils/passwordPolicy");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -17,22 +21,26 @@ const handleSignIn = async (req, res, allowedRoles) => {
   }
 
   const { email, password } = req.body;
+  const normalizedEmail =
+    typeof email === "string" ? email.trim().toLowerCase() : "";
 
-  if (!email || !password) {
+  if (!normalizedEmail || !password) {
     return res.status(400).json({ message: "Email and password required" });
   }
 
   try {
-    const user = await User.findOne({ email: email.toLowerCase() }).lean();
+    const user = await User.findOne({ email: normalizedEmail }).lean();
 
     if (!user) {
-      console.log(`[Auth Failure] Reason: User not found for email: ${email.toLowerCase()}`);
+      console.log(
+        `[Auth Failure] Reason: User not found for email: ${normalizedEmail}`,
+      );
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
     if (!allowedRoles.includes(user.role)) {
       console.log(
-        `[Auth Failure] Reason: Role not allowed. User role: '${user.role}', Allowed roles: '${allowedRoles.join(", ")}'`
+        `[Auth Failure] Reason: Role not allowed. User role: '${user.role}', Allowed roles: '${allowedRoles.join(", ")}'`,
       );
       return res.status(403).json({
         message: `Access restricted to ${allowedRoles.join(" or ")} only`,
@@ -40,17 +48,25 @@ const handleSignIn = async (req, res, allowedRoles) => {
     }
 
     if (user.isApproved === 0) {
-      console.log(`[Auth Failure] Reason: User account not approved for email: ${email.toLowerCase()}`);
-      return res.status(403).json({ message: "Account pending approval by manager" });
+      console.log(
+        `[Auth Failure] Reason: User account not approved for email: ${normalizedEmail}`,
+      );
+      return res
+        .status(403)
+        .json({ message: "Account pending approval by manager" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log(`[Auth Failure] Reason: Incorrect password for email: ${email.toLowerCase()}`);
+      console.log(
+        `[Auth Failure] Reason: Incorrect password for email: ${normalizedEmail}`,
+      );
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    console.log(`Sign-in successful for user: ${user._id} (${user.email}) with role: ${user.role}`);
+    console.log(
+      `Sign-in successful for user: ${user._id} (${user.email}) with role: ${user.role}`,
+    );
 
     const payload = {
       userId: user._id.toString(),
@@ -69,7 +85,8 @@ const handleSignIn = async (req, res, allowedRoles) => {
         email: user.email,
         role: user.role,
         outlet: user.outlet,
-        profile_picture: user.profile_picture || "/Uploads/profile_pictures/default.jpg",
+        profile_picture:
+          user.profile_picture || "/Uploads/profile_pictures/default.jpg",
       },
       token,
     });
@@ -86,30 +103,49 @@ router.post("/customer/signin", async (req, res) => {
   }
 
   const { phone_number, password } = req.body;
+  const normalizedPhone =
+    typeof phone_number === "string" ? phone_number.trim() : "";
 
-  if (!phone_number || !password) {
-    return res.status(400).json({ message: "Phone number and password required" });
+  if (!normalizedPhone || !password) {
+    return res
+      .status(400)
+      .json({ message: "Phone number and password required" });
   }
 
   try {
-    const user = await User.findOne({ phone_number, role: "customer" }).lean();
+    const user = await User.findOne({
+      phone_number: normalizedPhone,
+      role: "customer",
+    }).lean();
 
     if (!user) {
-      console.log(`Sign-in failed: No customer found with phone: ${phone_number}`);
-      return res.status(401).json({ message: "Invalid phone number or password" });
+      console.log(
+        `Sign-in failed: No customer found with phone: ${normalizedPhone}`,
+      );
+      return res
+        .status(401)
+        .json({ message: "Invalid phone number or password" });
     }
 
     if (user.isApproved === 0) {
-      return res.status(403).json({ message: "Account pending approval by manager" });
+      return res
+        .status(403)
+        .json({ message: "Account pending approval by manager" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log(`Sign-in failed: Wrong password for phone: ${phone_number}`);
-      return res.status(401).json({ message: "Invalid phone number or password" });
+      console.log(
+        `Sign-in failed: Wrong password for phone: ${normalizedPhone}`,
+      );
+      return res
+        .status(401)
+        .json({ message: "Invalid phone number or password" });
     }
 
-    console.log(`Sign-in successful for user: ${user._id} (${user.phone_number}) with role: ${user.role}`);
+    console.log(
+      `Sign-in successful for user: ${user._id} (${user.phone_number}) with role: ${user.role}`,
+    );
 
     const payload = {
       userId: user._id.toString(),
@@ -128,7 +164,8 @@ router.post("/customer/signin", async (req, res) => {
         phone_number: user.phone_number,
         role: user.role,
         outlet: user.outlet,
-        profile_picture: user.profile_picture || "/Uploads/profile_pictures/default.jpg",
+        profile_picture:
+          user.profile_picture || "/Uploads/profile_pictures/default.jpg",
       },
       token,
     });
@@ -152,12 +189,20 @@ router.post("/signup", async (req, res) => {
   const { email, password, fullname, username, userType, outlet } = req.body;
 
   if (!email || !password || !fullname || !username || !userType) {
-    return res.status(400).json({ message: "Please fill all required fields." });
+    return res
+      .status(400)
+      .json({ message: "Please fill all required fields." });
+  }
+
+  if (!isPasswordValid(password)) {
+    return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
   }
 
   const allowedRoles = ["staff", "manager"];
   if (!allowedRoles.includes(userType)) {
-    return res.status(400).json({ message: "Invalid user type. Must be 'staff' or 'manager'." });
+    return res
+      .status(400)
+      .json({ message: "Invalid user type. Must be 'staff' or 'manager'." });
   }
 
   try {
@@ -203,7 +248,9 @@ router.post("/signup", async (req, res) => {
     return res.json({ message: "User registered successfully" });
   } catch (err) {
     console.error("Signup error:", err.message);
-    return res.status(500).json({ message: "Server error during signup", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error during signup", error: err.message });
   }
 });
 
@@ -228,16 +275,26 @@ router.post("/customer/signup", async (req, res) => {
   });
 
   if (!phone_number || !password || !email || !username) {
-    return res.status(400).json({ message: "Please fill all required fields." });
+    return res
+      .status(400)
+      .json({ message: "Please fill all required fields." });
+  }
+
+  if (!isPasswordValid(password)) {
+    return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
   }
 
   try {
     const phoneCount = await User.countDocuments({ phone_number });
     if (phoneCount > 0) {
-      return res.status(400).json({ message: "Phone number is already registered." });
+      return res
+        .status(400)
+        .json({ message: "Phone number is already registered." });
     }
 
-    const emailCount = await User.countDocuments({ email: email.toLowerCase() });
+    const emailCount = await User.countDocuments({
+      email: email.toLowerCase(),
+    });
     if (emailCount > 0) {
       return res.status(400).json({ message: "Email is already registered." });
     }
@@ -258,7 +315,9 @@ router.post("/customer/signup", async (req, res) => {
     return res.json({ message: "Customer registered successfully" });
   } catch (err) {
     console.error("Customer signup error:", err.message);
-    return res.status(500).json({ message: "Server error during signup", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error during signup", error: err.message });
   }
 });
 
@@ -281,7 +340,10 @@ router.get("/validate", async (req, res) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret_key");
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "your_jwt_secret_key",
+    );
     console.log("[VALIDATE] Token validated successfully:", {
       userId: decoded.userId,
       role: decoded.role,
@@ -335,7 +397,10 @@ router.get("/validate-token", async (req, res) => {
   }
 
   const token = authHeader.split(" ")[1];
-  console.log("[VALIDATE-TOKEN] Token extracted:", token?.substring(0, 20) + "...");
+  console.log(
+    "[VALIDATE-TOKEN] Token extracted:",
+    token?.substring(0, 20) + "...",
+  );
 
   if (!token) {
     console.log("[VALIDATE-TOKEN] No token found after split");
@@ -343,7 +408,10 @@ router.get("/validate-token", async (req, res) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret_key");
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "your_jwt_secret_key",
+    );
     console.log("[VALIDATE-TOKEN] Token validated successfully:", {
       userId: decoded.userId,
       role: decoded.role,
@@ -354,7 +422,10 @@ router.get("/validate-token", async (req, res) => {
       const user = await User.findById(decoded.userId).lean();
 
       if (!user) {
-        console.log("[VALIDATE-TOKEN] User not found in database:", decoded.userId);
+        console.log(
+          "[VALIDATE-TOKEN] User not found in database:",
+          decoded.userId,
+        );
         return res.status(401).json({ message: "User not found" });
       }
 
@@ -393,7 +464,9 @@ router.post("/refresh", async (req, res) => {
 
     const tokenAge = Date.now() / 1000 - decoded.iat;
     if (tokenAge > 7 * 24 * 60 * 60) {
-      return res.status(401).json({ message: "Token too old, please login again" });
+      return res
+        .status(401)
+        .json({ message: "Token too old, please login again" });
     }
 
     try {
@@ -416,7 +489,9 @@ router.post("/refresh", async (req, res) => {
 
       const newToken = jwt.sign(newPayload, JWT_SECRET, { expiresIn: "1h" });
 
-      console.log(`Token refreshed for user: ${user._id} (${user.email || user.phone_number})`);
+      console.log(
+        `Token refreshed for user: ${user._id} (${user.email || user.phone_number})`,
+      );
 
       res.json({
         success: true,

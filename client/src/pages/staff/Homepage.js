@@ -11,19 +11,27 @@ import banner4 from "../../assets/banner4.png";
 import banner5 from "../../assets/banner5.png";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { MdEmail, MdLock, MdBadge, MdPerson, MdVisibility, MdVisibilityOff } from "react-icons/md";
+import {
+  MdEmail,
+  MdLock,
+  MdBadge,
+  MdPerson,
+  MdVisibility,
+  MdVisibilityOff,
+} from "react-icons/md";
 import { useProfile } from "../../ProfileContext";
 import { getUserSession, clearUserSession } from "../../utils/sessionUtils";
 
 Modal.setAppElement("#root");
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : "http://localhost:5000/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL
+  ? `${process.env.REACT_APP_API_URL}/api`
+  : "http://localhost:5000/api";
 
 const Homepage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Helper function to check if we're showing clean login interface
   const isCleanLoginInterface = () => {
     const urlParams = new URLSearchParams(location.search);
@@ -55,27 +63,35 @@ const Homepage = () => {
   });
   const [isSignInOpen, setSignInOpen] = useState(false);
   const [isSignUpOpen, setSignUpOpen] = useState(false);
-  const { profile, updateProfile, loading: profileLoading, setIsLoggingOut } = useProfile();
+  const {
+    profile,
+    updateProfile,
+    loading: profileLoading,
+    setIsLoggingOut,
+  } = useProfile();
   const [loading, setLoading] = useState(false);
   const banners = [banner1, banner2, banner3, banner4, banner5];
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
-  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
+  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] =
+    useState(false);
   // Handle clean redirect without showing modals for certain scenarios
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const signupRequired = urlParams.get("signupRequired");
     const fromLogout = urlParams.get("fromLogout");
     const sessionExpired = urlParams.get("sessionExpired");
-    
+
     if (location.pathname === "/staff-login" && !profile) {
       // Skip modal for logout and session expiry - show clean login interface
       if (fromLogout === "true" || sessionExpired === "true") {
-        console.log('Clean redirect detected, showing login interface without modal');
+        console.log(
+          "Clean redirect detected, showing login interface without modal",
+        );
         // Don't open any modal - user will see the clean login interface
         return;
       }
-      
+
       // Normal flow - open appropriate modal
       if (signupRequired === "true") {
         setSignUpOpen(true);
@@ -114,32 +130,40 @@ const Homepage = () => {
 
   useEffect(() => {
     // Check if logout is in progress to prevent automatic redirects
-    const logoutInProgress = localStorage.getItem('FORCE_LOGOUT_IN_PROGRESS');
+    const logoutInProgress = localStorage.getItem("FORCE_LOGOUT_IN_PROGRESS");
     if (logoutInProgress) {
-      console.log('Logout in progress, skipping profile-based redirect');
+      console.log("Logout in progress, skipping profile-based redirect");
       return;
     }
-    
+
     // Check if we're showing clean login interface (from logout or session expiry)
     const urlParams = new URLSearchParams(location.search);
     const fromLogout = urlParams.get("fromLogout");
     const sessionExpired = urlParams.get("sessionExpired");
-    
+
     if (fromLogout === "true" || sessionExpired === "true") {
-      console.log('Clean login interface active, skipping profile-based redirect');
+      console.log(
+        "Clean login interface active, skipping profile-based redirect",
+      );
       // Clear the profile if it exists to prevent redirect loops
       if (profile) {
-        console.log('Clearing existing profile for clean login interface');
+        console.log("Clearing existing profile for clean login interface");
         updateProfile(null);
       }
       return;
     }
-    
+
     if (profile && !profileLoading) {
       // Only redirect if we're not already showing a modal and not in the middle of logging out
       // Also check if we're on the exact staff-login path to prevent redirect loops
-      if (location.pathname === "/staff-login" && !isSignInOpen && !isSignUpOpen) {
-        console.log('Profile detected on staff-login page, redirecting to dashboard');
+      if (
+        location.pathname === "/staff-login" &&
+        !isSignInOpen &&
+        !isSignUpOpen
+      ) {
+        console.log(
+          "Profile detected on staff-login page, redirecting to dashboard",
+        );
         if (profile.role === "staff") {
           navigate("/staff/attendance");
         } else if (profile.role === "manager") {
@@ -147,20 +171,27 @@ const Homepage = () => {
         }
       }
     }
-  }, [profile, profileLoading, navigate, location.pathname, isSignInOpen, isSignUpOpen, updateProfile, location.search]);
+  }, [
+    profile,
+    profileLoading,
+    navigate,
+    location.pathname,
+    isSignInOpen,
+    isSignUpOpen,
+    updateProfile,
+    location.search,
+  ]);
 
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
     setSignInErrors({ email: "", password: "" });
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/staff/signin`,
-        {
-          email,
-          password,
-        }
-      );
+      const normalizedEmail = email.trim().toLowerCase();
+      const response = await axios.post(`${API_BASE_URL}/auth/staff/signin`, {
+        email: normalizedEmail,
+        password,
+      });
       if (response.data.success) {
         const { token, user } = response.data;
         const userData = {
@@ -170,7 +201,7 @@ const Homepage = () => {
         // Let ProfileContext handle all storage - it will use role-specific keys
         updateProfile(userData);
         if (isChecked) {
-          Cookies.set("email", email, { expires: 7 });
+          Cookies.set("email", normalizedEmail, { expires: 7 });
         } else {
           Cookies.remove("email");
         }
@@ -196,8 +227,7 @@ const Homepage = () => {
   };
 
   const validatePassword = (password) => {
-    const re =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,}$/;
     return re.test(password);
   };
 
@@ -227,7 +257,7 @@ const Homepage = () => {
           `${API_BASE_URL}/users/checkUsername`,
           {
             username,
-          }
+          },
         );
         if (response.data.exists) {
           newErrors.username = "Username is already taken.";
@@ -244,12 +274,9 @@ const Homepage = () => {
       newErrors.email = "Invalid email address.";
     } else {
       try {
-        const response = await axios.post(
-          `${API_BASE_URL}/users/checkEmail`,
-          {
-            email: signUpEmail,
-          }
-        );
+        const response = await axios.post(`${API_BASE_URL}/users/checkEmail`, {
+          email: signUpEmail,
+        });
         if (response.data.exists) {
           newErrors.email = "Email is already registered.";
         }
@@ -303,13 +330,21 @@ const Homepage = () => {
     } catch (error) {
       // Support multiple field errors from backend (object)
       const errData = error.response?.data;
-      if (errData && typeof errData === 'object' && (errData.fullname || errData.username || errData.email || errData.password || errData.confirmPassword)) {
+      if (
+        errData &&
+        typeof errData === "object" &&
+        (errData.fullname ||
+          errData.username ||
+          errData.email ||
+          errData.password ||
+          errData.confirmPassword)
+      ) {
         setErrors({
           fullname: errData.fullname || "",
           username: errData.username || "",
           email: errData.email || "",
           password: errData.password || "",
-          confirmPassword: errData.confirmPassword || ""
+          confirmPassword: errData.confirmPassword || "",
         });
       } else {
         alert(error.response?.data?.message || "Sign-up failed");
@@ -329,12 +364,13 @@ const Homepage = () => {
   useEffect(() => {
     if (isSignUpOpen) {
       // Fetch outlets when signup modal is opened
-      axios.get(`${API_BASE_URL}/bookings/outlets`)
+      axios
+        .get(`${API_BASE_URL}/bookings/outlets`)
         .then((response) => {
           if (Array.isArray(response.data)) {
-            setOutlets(response.data.map(o => o.name || o));
+            setOutlets(response.data.map((o) => o.name || o));
           } else if (Array.isArray(response.data.outlets)) {
-            setOutlets(response.data.outlets.map(o => o.name || o));
+            setOutlets(response.data.outlets.map((o) => o.name || o));
           } else {
             setOutlets([]);
           }
@@ -373,28 +409,28 @@ const Homepage = () => {
     if (setIsLoggingOut) {
       setIsLoggingOut(true);
     }
-    
+
     // Set flag to prevent automatic redirects during logout
-    localStorage.setItem('FORCE_LOGOUT_IN_PROGRESS', 'true');
-    
+    localStorage.setItem("FORCE_LOGOUT_IN_PROGRESS", "true");
+
     // Clear cookies
     Cookies.remove("email");
-    
+
     // Clear session storage
     sessionStorage.clear();
-    
+
     // Use ProfileContext's proper logout method
     updateProfile(null);
-    
+
     // Force a hard navigation to clean login page with fromLogout parameter
     setTimeout(() => {
       // Clean up logout flag
-      localStorage.removeItem('FORCE_LOGOUT_IN_PROGRESS');
-      
+      localStorage.removeItem("FORCE_LOGOUT_IN_PROGRESS");
+
       if (setIsLoggingOut) {
         setIsLoggingOut(false);
       }
-      
+
       // Redirect to clean login interface with fromLogout parameter
       window.location.href = "/staff-login?fromLogout=true";
     }, 50); // Reduced timeout for faster logout
@@ -425,7 +461,8 @@ const Homepage = () => {
             {profile && !isCleanLoginInterface() ? (
               <div>
                 <p style={{ color: "#1a1a1a", marginBottom: "10px" }}>
-                  Already signed in as {profile.role}: {profile.username || profile.fullname || ""}
+                  Already signed in as {profile.role}:{" "}
+                  {profile.username || profile.fullname || ""}
                 </p>
                 <button
                   className={styles["logout-btn-homepage"]}
@@ -470,7 +507,7 @@ const Homepage = () => {
                     : styles["fadeOut-homepage"]
                 }`}
                 style={{
-                  zIndex: currentBanner === index ? 2 : 1
+                  zIndex: currentBanner === index ? 2 : 1,
                 }}
               />
             ))}
@@ -510,9 +547,9 @@ const Homepage = () => {
         <animated.div
           style={{
             ...signInAnimation,
-            width: '1000px',
-            maxWidth: '100vw',
-            minWidth: '320px',
+            width: "1000px",
+            maxWidth: "100vw",
+            minWidth: "320px",
           }}
           className={styles["homepage-signin-modal-container"]}
         >
@@ -601,7 +638,7 @@ const Homepage = () => {
                   }}
                 />
                 <input
-                  type={showSignInPassword ? 'text' : 'password'}
+                  type={showSignInPassword ? "text" : "password"}
                   id="password"
                   value={password}
                   onChange={(e) => {
@@ -630,23 +667,27 @@ const Homepage = () => {
                 <span
                   onClick={() => setShowSignInPassword((prev) => !prev)}
                   style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: '10px',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    color: '#1a1a1a',
-                    fontSize: '1.2rem'
+                    position: "absolute",
+                    top: "50%",
+                    right: "10px",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    color: "#1a1a1a",
+                    fontSize: "1.2rem",
                   }}
                   tabIndex={0}
                   role="button"
-                  aria-label={showSignInPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showSignInPassword ? "Hide password" : "Show password"
+                  }
                 >
                   {showSignInPassword ? <MdVisibilityOff /> : <MdVisibility />}
                 </span>
               </div>
               {signInErrors.password && (
-                <p className={styles["error-homepage"]}>{signInErrors.password}</p>
+                <p className={styles["error-homepage"]}>
+                  {signInErrors.password}
+                </p>
               )}
 
               <button
@@ -721,9 +762,9 @@ const Homepage = () => {
         <animated.div
           style={{
             ...signUpAnimation,
-            width: '1000px',
-            maxWidth: '100vw',
-            minWidth: '320px',
+            width: "1000px",
+            maxWidth: "100vw",
+            minWidth: "320px",
           }}
           className={styles["homepage-signup-modal-container"]}
         >
@@ -932,7 +973,7 @@ const Homepage = () => {
                   }}
                 />
                 <input
-                  type={showSignUpPassword ? 'text' : 'password'}
+                  type={showSignUpPassword ? "text" : "password"}
                   id="password"
                   value={signUpPassword}
                   placeholder="Password"
@@ -961,17 +1002,19 @@ const Homepage = () => {
                 <span
                   onClick={() => setShowSignUpPassword((prev) => !prev)}
                   style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: '10px',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    color: '#1a1a1a',
-                    fontSize: '1.2rem'
+                    position: "absolute",
+                    top: "50%",
+                    right: "10px",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    color: "#1a1a1a",
+                    fontSize: "1.2rem",
                   }}
                   tabIndex={0}
                   role="button"
-                  aria-label={showSignUpPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showSignUpPassword ? "Hide password" : "Show password"
+                  }
                 >
                   {showSignUpPassword ? <MdVisibilityOff /> : <MdVisibility />}
                 </span>
@@ -993,7 +1036,7 @@ const Homepage = () => {
                   }}
                 />
                 <input
-                  type={showSignUpConfirmPassword ? 'text' : 'password'}
+                  type={showSignUpConfirmPassword ? "text" : "password"}
                   id="confirmPassword"
                   value={signUpConfirmPassword}
                   placeholder="Confirm Password"
@@ -1022,23 +1065,33 @@ const Homepage = () => {
                 <span
                   onClick={() => setShowSignUpConfirmPassword((prev) => !prev)}
                   style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: '10px',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    color: '#1a1a1a',
-                    fontSize: '1.2rem'
+                    position: "absolute",
+                    top: "50%",
+                    right: "10px",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    color: "#1a1a1a",
+                    fontSize: "1.2rem",
                   }}
                   tabIndex={0}
                   role="button"
-                  aria-label={showSignUpConfirmPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showSignUpConfirmPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
                 >
-                  {showSignUpConfirmPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                  {showSignUpConfirmPassword ? (
+                    <MdVisibilityOff />
+                  ) : (
+                    <MdVisibility />
+                  )}
                 </span>
               </div>
               {errors.confirmPassword && (
-                <p className={styles["error-homepage"]}>{errors.confirmPassword}</p>
+                <p className={styles["error-homepage"]}>
+                  {errors.confirmPassword}
+                </p>
               )}
 
               <button

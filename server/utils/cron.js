@@ -1,55 +1,46 @@
 const cron = require("node-cron");
-const pool = require("../config/db");
+const Booking = require("../models/Booking");
 const { sendAppointmentReminder } = require("./smsService");
 
 const startCronJobs = () => {
-  // Run every hour to send reminders
   cron.schedule("0 * * * *", async () => {
-    let connection;
     try {
-      connection = await pool.getConnection();
       const now = new Date();
-      const [bookings] = await connection.query(
-        `SELECT b.id, b.date, b.time, u.phone_number, s.name AS service_name, o.shortform AS outlet_shortform, u.fullname AS staff_name
-         FROM bookings b
-         JOIN users u ON b.user_id = u.id
-         JOIN services s ON b.service_id = s.id
-         JOIN outlets o ON b.outlet_id = o.id
-         WHERE b.status = 'Pending'`
-      );
+      const bookings = await Booking.find({ status: "Pending" })
+        .populate("user_id", "phone_number fullname")
+        .populate("service_id", "name")
+        .populate("outlet_id", "shortform")
+        .populate("staff_id", "fullname")
+        .lean();
+
       for (const booking of bookings) {
+        const phone = booking.user_id?.phone_number;
+        if (!phone) continue;
+
         const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
-
-        if (!booking.phone_number) continue;
-
         const hoursDiff = (bookingDateTime - now) / (1000 * 60 * 60);
+
         const bookingDetails = {
-          id: booking.id,
-          outlet: booking.outlet_shortform,
-          service: booking.service_name,
+          id: booking._id.toString(),
+          outlet: booking.outlet_id?.shortform,
+          service: booking.service_id?.name,
           date: booking.date,
           time: booking.time,
-          staff_name: booking.staff_name
+          staff_name: booking.staff_id?.fullname,
         };
 
         try {
           if (hoursDiff >= 24 && hoursDiff < 25) {
-            // Send 24-hour reminder
-            await sendAppointmentReminder(bookingDetails, booking.phone_number, '24h');
-            console.log(`Sent 24-hour reminder for booking ${booking.id}`);
+            await sendAppointmentReminder(bookingDetails, phone, "24h");
           } else if (hoursDiff >= 1 && hoursDiff < 2) {
-            // Send 1-hour reminder
-            await sendAppointmentReminder(bookingDetails, booking.phone_number, '1h');
-            console.log(`Sent 1-hour reminder for booking ${booking.id}`);
+            await sendAppointmentReminder(bookingDetails, phone, "1h");
           }
         } catch (smsError) {
-          console.error(`Failed to send SMS for booking ${booking.id}:`, smsError.message);
+          console.error(`SMS failed for booking ${booking._id}:`, smsError.message);
         }
       }
     } catch (err) {
       console.error("Cron job error:", err.message);
-    } finally {
-      if (connection) connection.release();
     }
   });
 };

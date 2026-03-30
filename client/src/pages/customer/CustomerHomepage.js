@@ -3,7 +3,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Modal from "react-modal";
 import { useSpring, animated } from "@react-spring/web";
 import axios from "axios";
-import { MdPhone, MdLock, MdEmail, MdPerson, MdVisibility, MdVisibilityOff, MdErrorOutline } from 'react-icons/md';
+import {
+  MdPhone,
+  MdLock,
+  MdEmail,
+  MdPerson,
+  MdVisibility,
+  MdVisibilityOff,
+  MdErrorOutline,
+} from "react-icons/md";
 import "../../styles/customerHomepage.css";
 import styles from "../../styles/homepage.module.css";
 import logo from "../../assets/logo.PNG";
@@ -21,8 +29,9 @@ import { useProfile } from "../../ProfileContext";
 
 Modal.setAppElement("#root");
 
-
-const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : "http://localhost:5000/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL
+  ? `${process.env.REACT_APP_API_URL}/api`
+  : "http://localhost:5000/api";
 
 const CustomerHomepage = () => {
   const { profile, setIsSignInOpen } = useProfile();
@@ -47,7 +56,8 @@ const CustomerHomepage = () => {
     signUp: false,
   });
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
-  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
+  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] =
+    useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -66,7 +76,7 @@ const CustomerHomepage = () => {
   useEffect(() => {
     if (loginRequired) {
       const params = new URLSearchParams(location.search);
-      params.delete('loginRequired');
+      params.delete("loginRequired");
       navigate({ search: params.toString() }, { replace: true });
     }
   }, [loginRequired, navigate, location.search]);
@@ -76,11 +86,11 @@ const CustomerHomepage = () => {
     const handleOpenSignUpModal = () => {
       setSignUpOpen(true);
     };
-    
-    window.addEventListener('open-signup-modal', handleOpenSignUpModal);
-    
+
+    window.addEventListener("open-signup-modal", handleOpenSignUpModal);
+
     return () => {
-      window.removeEventListener('open-signup-modal', handleOpenSignUpModal);
+      window.removeEventListener("open-signup-modal", handleOpenSignUpModal);
     };
   }, []);
 
@@ -101,7 +111,7 @@ const CustomerHomepage = () => {
   // Hide scrollbars but keep scroll functionality
   useEffect(() => {
     // Add custom scrollbar styles to hide scrollbars
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = `
       /* Hide scrollbars for webkit browsers */
       ::-webkit-scrollbar {
@@ -123,13 +133,12 @@ const CustomerHomepage = () => {
       }
     `;
     document.head.appendChild(style);
-    
+
     return () => {
       // Cleanup: remove custom styles when component unmounts
       document.head.removeChild(style);
     };
   }, []);
-
 
   const scrollToSection = (ref) => {
     ref.current.scrollIntoView({ behavior: "smooth" });
@@ -140,10 +149,8 @@ const CustomerHomepage = () => {
     return regex.test(email);
   };
 
-
   const validatePassword = (password) => {
-    const re =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,}$/;
     return re.test(password);
   };
 
@@ -153,9 +160,15 @@ const CustomerHomepage = () => {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    setLoading(prev => ({ ...prev, signUp: true }));
-    setSignUpErrors({ email: "", username: "", phoneNumber: "", password: "", confirmPassword: "" });
-    
+    setLoading((prev) => ({ ...prev, signUp: true }));
+    setSignUpErrors({
+      email: "",
+      username: "",
+      phoneNumber: "",
+      password: "",
+      confirmPassword: "",
+    });
+
     let newErrors = {
       email: "",
       username: "",
@@ -187,10 +200,9 @@ const CustomerHomepage = () => {
 
     if (Object.values(newErrors).some((e) => e !== "")) {
       setSignUpErrors(newErrors);
-      setLoading(prev => ({ ...prev, signUp: false }));
+      setLoading((prev) => ({ ...prev, signUp: false }));
       return;
     }
-
 
     try {
       console.log("[FRONTEND DEBUG] Sending signup request with data:", {
@@ -198,9 +210,9 @@ const CustomerHomepage = () => {
         password: signUpPassword ? "[PROVIDED]" : "[MISSING]",
         username: signUpUsername,
         email: signUpEmail,
-        url: `${API_BASE_URL}/auth/customer/signup`
+        url: `${API_BASE_URL}/auth/customer/signup`,
       });
-      
+
       const response = await axios.post(
         `${API_BASE_URL}/auth/customer/signup`,
         {
@@ -208,7 +220,7 @@ const CustomerHomepage = () => {
           password: signUpPassword,
           username: signUpUsername,
           email: signUpEmail,
-        }
+        },
       );
       if (response.data.message) {
         alert(response.data.message);
@@ -230,31 +242,69 @@ const CustomerHomepage = () => {
     } catch (error) {
       // Support multiple field errors from backend (object)
       const errData = error.response?.data;
-      if (errData && typeof errData === 'object' && (errData.email || errData.username || errData.phoneNumber || errData.password || errData.confirmPassword)) {
+      if (
+        errData &&
+        typeof errData === "object" &&
+        (errData.email ||
+          errData.username ||
+          errData.phoneNumber ||
+          errData.password ||
+          errData.confirmPassword)
+      ) {
         setSignUpErrors({
           email: errData.email || "",
           username: errData.username || "",
           phoneNumber: errData.phoneNumber || "",
           password: errData.password || "",
-          confirmPassword: errData.confirmPassword || ""
+          confirmPassword: errData.confirmPassword || "",
         });
       } else {
         const message = error.response?.data?.message || "Sign-up failed";
         // Try to parse which field the error is about
-        if (message.toLowerCase().includes('email')) {
-          setSignUpErrors({ email: message, username: "", phoneNumber: "", password: "", confirmPassword: "" });
-        } else if (message.toLowerCase().includes('username')) {
-          setSignUpErrors({ email: "", username: message, phoneNumber: "", password: "", confirmPassword: "" });
-        } else if (message.toLowerCase().includes('phone')) {
-          setSignUpErrors({ email: "", username: "", phoneNumber: message, password: "", confirmPassword: "" });
-        } else if (message.toLowerCase().includes('password')) {
-          setSignUpErrors({ email: "", username: "", phoneNumber: "", password: message, confirmPassword: "" });
+        if (message.toLowerCase().includes("email")) {
+          setSignUpErrors({
+            email: message,
+            username: "",
+            phoneNumber: "",
+            password: "",
+            confirmPassword: "",
+          });
+        } else if (message.toLowerCase().includes("username")) {
+          setSignUpErrors({
+            email: "",
+            username: message,
+            phoneNumber: "",
+            password: "",
+            confirmPassword: "",
+          });
+        } else if (message.toLowerCase().includes("phone")) {
+          setSignUpErrors({
+            email: "",
+            username: "",
+            phoneNumber: message,
+            password: "",
+            confirmPassword: "",
+          });
+        } else if (message.toLowerCase().includes("password")) {
+          setSignUpErrors({
+            email: "",
+            username: "",
+            phoneNumber: "",
+            password: message,
+            confirmPassword: "",
+          });
         } else {
-          setSignUpErrors({ email: message, username: "", phoneNumber: "", password: "", confirmPassword: "" });
+          setSignUpErrors({
+            email: message,
+            username: "",
+            phoneNumber: "",
+            password: "",
+            confirmPassword: "",
+          });
         }
       }
     } finally {
-      setLoading(prev => ({ ...prev, signUp: false }));
+      setLoading((prev) => ({ ...prev, signUp: false }));
     }
   };
 
@@ -274,7 +324,13 @@ const CustomerHomepage = () => {
     setSignUpPhoneNumber("");
     setSignUpPassword("");
     setSignUpConfirmPassword("");
-    setSignUpErrors({ email: "", username: "", phoneNumber: "", password: "", confirmPassword: "" });
+    setSignUpErrors({
+      email: "",
+      username: "",
+      phoneNumber: "",
+      password: "",
+      confirmPassword: "",
+    });
   };
 
   const signUpAnimation = useSpring({
@@ -286,7 +342,7 @@ const CustomerHomepage = () => {
   // console.log("Modal image path:", modalImage); // Debug image path - commented to reduce console spam
 
   return (
-    <div className="cust-homepage" style={{width: "100vw", height: "100vh"}}>
+    <div className="cust-homepage" style={{ width: "100vw", height: "100vh" }}>
       <CustHeader
         isLoggedIn={isLoggedIn}
         openSignInModal={openSignInModal}
@@ -402,9 +458,9 @@ const CustomerHomepage = () => {
         <animated.div
           style={{
             ...signUpAnimation,
-            width: '1000px',
-            maxWidth: '100vw',
-            minWidth: '320px',
+            width: "1000px",
+            maxWidth: "100vw",
+            minWidth: "320px",
           }}
           className={styles["homepage-signup-modal-container"]}
         >
@@ -432,7 +488,10 @@ const CustomerHomepage = () => {
           <div className={styles["homepage-signup-right-section"]}>
             <h2 className={styles["sign-up-heading-homepage"]}>Sign Up</h2>
             {loading.signUp && <div>Loading...</div>}
-            <form className={styles["sign-up-form-homepage"]} onSubmit={handleSignUp}>
+            <form
+              className={styles["sign-up-form-homepage"]}
+              onSubmit={handleSignUp}
+            >
               <label htmlFor="email">Email</label>
               <div style={{ position: "relative", marginBottom: "18px" }}>
                 <MdEmail
@@ -476,7 +535,6 @@ const CustomerHomepage = () => {
                 <p className={styles["error-homepage"]}>{signUpErrors.email}</p>
               )}
 
-
               <label htmlFor="username">Username</label>
               <div style={{ position: "relative" }}>
                 <MdPerson
@@ -518,7 +576,9 @@ const CustomerHomepage = () => {
                 />
               </div>
               {signUpErrors.username && (
-                <p className={styles["error-homepage"]}>{signUpErrors.username}</p>
+                <p className={styles["error-homepage"]}>
+                  {signUpErrors.username}
+                </p>
               )}
 
               <label htmlFor="phoneNumber">Phone Number</label>
@@ -561,7 +621,9 @@ const CustomerHomepage = () => {
                 />
               </div>
               {signUpErrors.phoneNumber && (
-                <p className={styles["error-homepage"]}>{signUpErrors.phoneNumber}</p>
+                <p className={styles["error-homepage"]}>
+                  {signUpErrors.phoneNumber}
+                </p>
               )}
 
               <label htmlFor="password">Password</label>
@@ -577,7 +639,7 @@ const CustomerHomepage = () => {
                   }}
                 />
                 <input
-                  type={showSignUpPassword ? 'text' : 'password'}
+                  type={showSignUpPassword ? "text" : "password"}
                   id="password"
                   value={signUpPassword}
                   placeholder="Enter your password"
@@ -605,23 +667,27 @@ const CustomerHomepage = () => {
                 <span
                   onClick={() => setShowSignUpPassword((prev) => !prev)}
                   style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: '10px',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    color: '#1a1a1a',
-                    fontSize: '1.2rem'
+                    position: "absolute",
+                    top: "50%",
+                    right: "10px",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    color: "#1a1a1a",
+                    fontSize: "1.2rem",
                   }}
                   tabIndex={0}
                   role="button"
-                  aria-label={showSignUpPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showSignUpPassword ? "Hide password" : "Show password"
+                  }
                 >
                   {showSignUpPassword ? <MdVisibilityOff /> : <MdVisibility />}
                 </span>
               </div>
               {signUpErrors.password && (
-                <p className={styles["error-homepage"]}>{signUpErrors.password}</p>
+                <p className={styles["error-homepage"]}>
+                  {signUpErrors.password}
+                </p>
               )}
 
               <label htmlFor="confirmPassword">Confirm Password</label>
@@ -637,7 +703,7 @@ const CustomerHomepage = () => {
                   }}
                 />
                 <input
-                  type={showSignUpConfirmPassword ? 'text' : 'password'}
+                  type={showSignUpConfirmPassword ? "text" : "password"}
                   id="confirmPassword"
                   value={signUpConfirmPassword}
                   placeholder="Confirm your password"
@@ -665,25 +731,34 @@ const CustomerHomepage = () => {
                 <span
                   onClick={() => setShowSignUpConfirmPassword((prev) => !prev)}
                   style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: '10px',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    color: '#1a1a1a',
-                    fontSize: '1.2rem'
+                    position: "absolute",
+                    top: "50%",
+                    right: "10px",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    color: "#1a1a1a",
+                    fontSize: "1.2rem",
                   }}
                   tabIndex={0}
                   role="button"
-                  aria-label={showSignUpConfirmPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showSignUpConfirmPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
                 >
-                  {showSignUpConfirmPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                  {showSignUpConfirmPassword ? (
+                    <MdVisibilityOff />
+                  ) : (
+                    <MdVisibility />
+                  )}
                 </span>
               </div>
               {signUpErrors.confirmPassword && (
-                <p className={styles["error-homepage"]}>{signUpErrors.confirmPassword}</p>
+                <p className={styles["error-homepage"]}>
+                  {signUpErrors.confirmPassword}
+                </p>
               )}
-
 
               <button
                 type="submit"

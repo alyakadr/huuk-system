@@ -12,6 +12,7 @@ const webhookRoutes = require("./routes/webhook");
 const staffRoutes = require("./routes/staffRoutes");
 const { startCronJobs } = require("./utils/cron");
 const paymentPollingService = require("./services/paymentPollingService");
+const { getStripeClient } = require("./utils/stripeClient");
 const path = require("path");
 const jwt = require("jsonwebtoken");
 const http = require("http");
@@ -32,8 +33,8 @@ const io = new Server(server, {
         o === undefined
           ? !origin
           : o.endsWith("*")
-          ? origin.startsWith(o.slice(0, -1))
-          : o === origin
+            ? origin.startsWith(o.slice(0, -1))
+            : o === origin,
       );
       if (isAllowed) {
         callback(null, true);
@@ -46,7 +47,7 @@ const io = new Server(server, {
 });
 const port = process.env.PORT || 5000;
 
-const pool = require("./config/db");
+const mongoose = require("./config/db");
 
 app.set("socketio", io);
 
@@ -91,7 +92,7 @@ const authenticateManager = async (req, res, next) => {
 app.use(
   "/api/stripe/webhook",
   express.raw({ type: "application/json" }),
-  webhookRoutes
+  webhookRoutes,
 );
 
 // Debug route to confirm webhook endpoint
@@ -105,7 +106,7 @@ app.post(
       timestamp: new Date().toISOString(),
     });
     res.json({ message: "Test webhook received" });
-  }
+  },
 );
 
 // Apply CORS for other routes
@@ -122,8 +123,8 @@ app.use((req, res, next) => {
         o === undefined
           ? !origin
           : o.endsWith("*")
-          ? origin.startsWith(o.slice(0, -1))
-          : o === origin
+            ? origin.startsWith(o.slice(0, -1))
+            : o === origin,
       );
       if (isAllowed) {
         callback(null, true);
@@ -142,48 +143,48 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Health check endpoint for Railway (without database dependency)
 app.get("/", (req, res) => {
-  res.json({ 
-    status: "ok", 
+  res.json({
+    status: "ok",
     message: "HUUK System API is running",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
-    port: process.env.PORT || 5000
+    port: process.env.PORT || 5000,
   });
 });
 
 app.get("/health", (req, res) => {
-  res.json({ 
-    status: "healthy", 
+  res.json({
+    status: "healthy",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     memory: process.memoryUsage(),
-    version: "1.0.0"
+    version: "1.0.0",
   });
 });
 
-// Database health check (separate endpoint)
 app.get("/health/db", async (req, res) => {
   try {
-    const connection = await pool.getConnection();
-    await connection.ping();
-    connection.release();
-    res.json({ 
-      status: "healthy", 
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error("Mongoose not connected");
+    }
+    await mongoose.connection.db.admin().command({ ping: 1 });
+    res.json({
+      status: "healthy",
       database: "connected",
-      host: process.env.DB_HOST 
+      name: mongoose.connection.name,
     });
   } catch (error) {
-    res.status(500).json({ 
-      status: "unhealthy", 
+    res.status(500).json({
+      status: "unhealthy",
       database: "disconnected",
-      error: error.message 
+      error: error.message,
     });
   }
 });
 
 app.use(
   "/Uploads",
-  express.static(path.join(__dirname, "Uploads"), { fallthrough: true })
+  express.static(path.join(__dirname, "Uploads"), { fallthrough: true }),
 );
 
 app.use((req, res, next) => {
@@ -228,11 +229,11 @@ app.use((req, res) => {
 
 startCronJobs();
 
-if (process.env.STRIPE_SECRET_KEY) {
+if (getStripeClient().stripe) {
   paymentPollingService.start();
-  console.log('💳 Payment polling service started');
+  console.log("💳 Payment polling service started");
 } else {
-  console.warn('⚠️ STRIPE_SECRET_KEY not found, payment polling disabled');
+  console.warn("⚠️ Stripe key invalid or missing, payment polling disabled");
 }
 
 server.listen(port, () => {
