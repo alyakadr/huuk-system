@@ -1,53 +1,62 @@
 # Dependencies
 node_modules/
+**/node_modules/
+
+# Package manager logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Environment variables
+# Environment files (keep templates)
 .env
 .env.*
 !.env.example
+!env.example
 !server/.env.example
 !client/.env.example
+client/env.production
 
 # Build outputs
-client/build/
-server/public/
-dist/
 build/
+**/build/
+dist/
+**/dist/
+server/public/
 
-# Database
-*.db
-*.sqlite
-
-# Uploads and generated files
-server/uploads/
-server/receipts/
-uploads/
-receipts/
-
-# Logs
+# Runtime/generated files
 logs/
 *.log
-
-# Runtime data
+coverage/
+**/coverage/
+tmp/
+temp/
 pids/
 *.pid
 *.seed
 *.pid.lock
+uploads/
+**/uploads/
+receipts/
+**/receipts/
 
-# Coverage directory used by tools like istanbul
-coverage/
+# Tool caches
+.cache/
+.eslintcache
+*.tsbuildinfo
 
-# IDE files
+# Local databases
+*.db
+*.sqlite
+
+# IDE/editor files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# OS files
 .DS_Store
 .DS_Store?
 ._*
@@ -55,32 +64,8 @@ coverage/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Temporary files
-tmp/
-temp/
-
-# Production environment files (keep template)
-production-env-template.txt
-
-# Windows artifacts
 desktop.ini
 
-# Backup / live copies
+# Local backup copies
 huuk-system-live/
-
-# Nested repo copies
 client/huuk-system/
-
-# Production env files
-client/env.production
-
-# Debug/temp scripts and docs
-client/test_*.js
-client/BOOKING_FIXES_SUMMARY.md
-client/FIXES_APPLIED.md
-client/TimeSlotTestingInstructions.md
-client/main.js
-client/styles/
-server/scripts/
-server/test_scripts/
