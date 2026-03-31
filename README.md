@@ -127,7 +127,7 @@ huuk-system/
 
 ## Deployment
 
-See [deployment-guide.md](deployment-guide.md) for full deployment instructions covering Railway, VPS, and Docker.
+Use Docker with `Dockerfile` and `docker-compose.yml` for production-style deployment.
 
 ## Environment Variables
 
