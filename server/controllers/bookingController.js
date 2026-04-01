@@ -82,6 +82,21 @@ const SLOT_RESERVATION_MINUTES = 5;
 const buildReservationExpiry = () =>
   new Date(Date.now() + SLOT_RESERVATION_MINUTES * 60 * 1000);
 
+async function buildServiceDurationMap(items) {
+  const ids = [
+    ...new Set(
+      items.filter((b) => b.service_id).map((b) => b.service_id.toString()),
+    ),
+  ];
+  if (!ids.length) return {};
+  const services = await Service.find({ _id: { $in: ids } }, "duration").lean();
+  const map = {};
+  services.forEach((s) => {
+    map[s._id.toString()] = s.duration || 30;
+  });
+  return map;
+}
+
 const reserveDraftBookingSlot = async ({
   bookingId,
   userId,
@@ -266,23 +281,7 @@ exports.getAvailableSlots = async (req, res) => {
 
     const occupiedSlots = [...bookings, ...reservations];
 
-    const bookingServiceIds = [
-      ...new Set(
-        occupiedSlots
-          .filter((b) => b.service_id)
-          .map((b) => b.service_id.toString()),
-      ),
-    ];
-    const bookingServices = bookingServiceIds.length
-      ? await Service.find(
-          { _id: { $in: bookingServiceIds } },
-          "duration",
-        ).lean()
-      : [];
-    const serviceDurationMap = {};
-    bookingServices.forEach((s) => {
-      serviceDurationMap[s._id.toString()] = s.duration || 30;
-    });
+    const serviceDurationMap = await buildServiceDurationMap(occupiedSlots);
 
     const slots = [];
     let current = new Date(`${date}T10:00:00Z`);
@@ -597,19 +596,7 @@ exports.getAvailableStaff = async (req, res) => {
       ).lean(),
     ]);
 
-    const bookingServiceIds = [
-      ...new Set(bookings.map((b) => b.service_id.toString())),
-    ];
-    const bookingServices = bookingServiceIds.length
-      ? await Service.find(
-          { _id: { $in: bookingServiceIds } },
-          "duration",
-        ).lean()
-      : [];
-    const sdMap = {};
-    bookingServices.forEach((s) => {
-      sdMap[s._id.toString()] = s.duration || 30;
-    });
+    const sdMap = await buildServiceDurationMap(bookings);
 
     let availableStaff = staff;
     if (time && service_id) {
@@ -689,19 +676,7 @@ exports.getStaffByTime = async (req, res) => {
         "staff_id time service_id",
       ).lean(),
     ]);
-    const bookingServiceIds = [
-      ...new Set(bookings.map((b) => b.service_id.toString())),
-    ];
-    const bookingServices = bookingServiceIds.length
-      ? await Service.find(
-          { _id: { $in: bookingServiceIds } },
-          "duration",
-        ).lean()
-      : [];
-    const sdMap = {};
-    bookingServices.forEach((s) => {
-      sdMap[s._id.toString()] = s.duration || 30;
-    });
+    const sdMap = await buildServiceDurationMap(bookings);
 
     const slotStart = new Date(`${date}T${time}Z`);
     const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
@@ -821,7 +796,6 @@ exports.getStaffBookings = async (req, res) => {
 // List user bookings
 exports.getUserBookings = async (req, res) => {
   try {
-    await new Promise((r) => setTimeout(r, 50));
     const bookings = await Booking.find(
       buildVisibleBookingMatch({ user_id: req.userObjectId }),
     )
@@ -1156,13 +1130,8 @@ exports.rescheduleStaffAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
 
     const slotStart = new Date(`${date}T${time}Z`);
-    if (
-      slotStart < new Date(`${date}T10:00:00Z`) ||
-      slotStart > new Date(`${date}T21:00:00Z`)
-    ) {
-      return res.status(400).json({
-        message: "Slot outside operating hours (10:00 AM - 9:00 PM UTC)",
-      });
+    if (isOutsideOperatingHours(date, slotStart)) {
+      return res.status(400).json({ message: OUTSIDE_OPERATING_HOURS_MESSAGE });
     }
 
     const svc = await Service.findById(
@@ -1410,7 +1379,7 @@ exports.sendBookingReceipt = async (req, res) => {
 
 // Set payment method to Pay at Outlet and send receipt
 exports.setPayAtOutlet = async (req, res) => {
-  const { booking_id, email, user_id, debug } = req.body;
+  const { booking_id, email, user_id } = req.body;
   if (!booking_id || !email) {
     return res.status(400).json({ message: "Booking ID and email required" });
   }
@@ -1435,7 +1404,7 @@ exports.setPayAtOutlet = async (req, res) => {
     const actualUserId = booking.user_id
       ? booking.user_id._id.toString()
       : null;
-    if (actualUserId && actualUserId !== String(userId) && !debug) {
+    if (actualUserId && actualUserId !== String(userId)) {
       if (!["staff", "manager", "admin"].includes(req.role)) {
         return res.status(403).json({
           message: "You don't have permission to modify this booking",
@@ -1498,7 +1467,7 @@ exports.setPayAtOutlet = async (req, res) => {
 
 // Set payment method to Pay at Outlet for multiple bookings
 exports.setMultiplePayAtOutlet = async (req, res) => {
-  const { booking_ids, email, user_id, debug } = req.body;
+  const { booking_ids, email, user_id } = req.body;
   if (!booking_ids || !Array.isArray(booking_ids) || booking_ids.length === 0) {
     return res
       .status(400)
@@ -1535,7 +1504,7 @@ exports.setMultiplePayAtOutlet = async (req, res) => {
         const actualUserId = booking.user_id
           ? booking.user_id._id.toString()
           : null;
-        if (actualUserId && actualUserId !== String(userId) && !debug) {
+        if (actualUserId && actualUserId !== String(userId)) {
           if (!["staff", "manager", "admin"].includes(req.role)) {
             failedBookings.push({ id: bookingId, error: "Permission denied" });
             continue;
@@ -2053,7 +2022,6 @@ exports.getStaffAppointments = async (req, res) => {
 // Get booking details by ID
 exports.getBookingDetails = async (req, res) => {
   const { id } = req.params;
-  const debug = req.query.debug === "true";
   if (!id) return res.status(400).json({ message: "Booking ID required" });
   try {
     let booking;
@@ -2071,14 +2039,6 @@ exports.getBookingDetails = async (req, res) => {
         .populate("user_id", "phone_number")
         .populate("staff_id", "username fullname")
         .lean();
-      if (!booking && debug) {
-        booking = await Booking.findById(id)
-          .populate("service_id", "name price duration")
-          .populate("outlet_id", "name shortform")
-          .populate("user_id", "phone_number")
-          .populate("staff_id", "username fullname")
-          .lean();
-      }
     }
     if (!booking)
       return res

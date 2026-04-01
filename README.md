@@ -14,13 +14,13 @@ A full-stack appointment and staff management system for barber shops, built wit
 
 ## Tech Stack
 
-| Layer | Technologies |
-|-------|-------------|
-| Frontend | React 18, Material-UI 5, FullCalendar 6, Recharts, Socket.IO |
-| Backend | Node.js, Express 5, MongoDB (Mongoose), JWT, Socket.IO |
-| Payments | Stripe, FPX |
-| Notifications | Twilio (SMS), Nodemailer (Email) |
-| Deployment | Docker, Nginx |
+| Layer         | Technologies                                                 |
+| ------------- | ------------------------------------------------------------ |
+| Frontend      | React 18, Material-UI 5, FullCalendar 6, Recharts, Socket.IO |
+| Backend       | Node.js, Express 5, MongoDB (Mongoose), JWT, Socket.IO       |
+| Payments      | Stripe, FPX                                                  |
+| Notifications | Twilio (SMS), Nodemailer (Email)                             |
+| Deployment    | Docker, Nginx                                                |
 
 ## Getting Started
 
@@ -133,14 +133,14 @@ Use Docker with `Dockerfile` and `docker-compose.yml` for production-style deplo
 
 Copy `env.example` to `server/.env` and fill in the required values:
 
-| Variable | Description |
-|----------|-------------|
-| `MONGODB_URI` | MongoDB connection string |
-| `JWT_SECRET` | Secret key for JWT tokens |
-| `STRIPE_SECRET_KEY` | Stripe API secret key |
-| `TWILIO_ACCOUNT_SID` | Twilio account SID |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token |
-| `TWILIO_PHONE_NUMBER` | Twilio phone number |
-| `GMAIL_USER` | Gmail address for notifications |
-| `GMAIL_PASS` | Gmail app password |
-| `ALLOWED_ORIGINS` | Comma-separated allowed CORS origins |
+| Variable              | Description                          |
+| --------------------- | ------------------------------------ |
+| `MONGODB_URI`         | MongoDB connection string            |
+| `JWT_SECRET`          | Secret key for JWT tokens            |
+| `STRIPE_SECRET_KEY`   | Stripe API secret key                |
+| `TWILIO_ACCOUNT_SID`  | Twilio account SID                   |
+| `TWILIO_AUTH_TOKEN`   | Twilio auth token                    |
+| `TWILIO_PHONE_NUMBER` | Twilio phone number                  |
+| `GMAIL_USER`          | Gmail address for notifications      |
+| `GMAIL_PASS`          | Gmail app password                   |
+| `ALLOWED_ORIGINS`     | Comma-separated allowed CORS origins |
