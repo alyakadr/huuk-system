@@ -10,7 +10,7 @@ const config = {
 
 export const API_URL = config[process.env.NODE_ENV || 'development'].apiUrl;
 
-// Export default axios configuration
+// Export default API configuration
 export const apiConfig = {
   baseURL: API_URL,
   timeout: 10000,
@@ -18,5 +18,3 @@ export const apiConfig = {
     'Content-Type': 'application/json',
   },
 };
-
-console.log(`API URL: ${API_URL} (Environment: ${process.env.NODE_ENV || 'development'})`);

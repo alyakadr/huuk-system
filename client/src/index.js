@@ -9,6 +9,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
-// Add this to confirm JS runs:
-console.log("✅ React mounted to #root");

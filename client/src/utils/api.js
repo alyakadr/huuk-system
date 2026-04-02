@@ -1,4 +1,5 @@
 import http from "./httpClient";
+import { normalizeApiError } from "./normalizeApiError";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
@@ -69,16 +70,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const normalizedError = normalizeApiError(error, "API request failed");
 
-    console.error("API error:", {
-      url: error.config?.url,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-    });
+    console.error("API error:", normalizedError);
 
     // Handle 401 errors (unauthorized/token expired)
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (normalizedError.isUnauthorized && !originalRequest._retry) {
       originalRequest._retry = true;
 
       // Determine which token to use based on the URL

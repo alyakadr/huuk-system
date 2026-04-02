@@ -1,3 +1,5 @@
+import { recordRequestMetric } from "./requestMetrics";
+
 const isAbsoluteUrl = (url = "") => /^https?:\/\//i.test(url);
 
 const trimSlashes = (value = "") => value.replace(/^\/+|\/+$/g, "");
@@ -149,6 +151,7 @@ const createInstance = (defaults = {}) => {
     }
 
     try {
+      const startedAt = Date.now();
       const rawResponse = await fetch(finalUrl, requestInit);
 
       if (timeoutId) clearTimeout(timeoutId);
@@ -172,6 +175,13 @@ const createInstance = (defaults = {}) => {
       };
 
       if (!rawResponse.ok) {
+        recordRequestMetric({
+          url: finalUrl,
+          method,
+          status: rawResponse.status,
+          durationMs: Date.now() - startedAt,
+          success: false,
+        });
         throw makeHttpError({
           message: `Request failed with status code ${rawResponse.status}`,
           config: mergedConfig,
@@ -179,6 +189,14 @@ const createInstance = (defaults = {}) => {
           code: "ERR_BAD_RESPONSE",
         });
       }
+
+      recordRequestMetric({
+        url: finalUrl,
+        method,
+        status: rawResponse.status,
+        durationMs: Date.now() - startedAt,
+        success: true,
+      });
 
       return response;
     } catch (error) {
@@ -189,6 +207,13 @@ const createInstance = (defaults = {}) => {
       }
 
       const isAbort = error.name === "AbortError";
+      recordRequestMetric({
+        url: finalUrl,
+        method,
+        status: error?.response?.status || null,
+        durationMs: null,
+        success: false,
+      });
       throw makeHttpError({
         message: isAbort
           ? "timeout of request exceeded"

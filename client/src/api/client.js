@@ -2,6 +2,7 @@ import http from "../utils/httpClient";
 import api from "../utils/api";
 import { getAuthToken } from "../utils/tokenUtils";
 import { withRetry } from "../utils/retry";
+import { normalizeApiError } from "../utils/normalizeApiError";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
@@ -70,19 +71,12 @@ client.interceptors.request.use(
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    const errorDetails = {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-      code: error.code,
-    };
+    const errorDetails = normalizeApiError(error, "API request failed");
     console.error("API error:", errorDetails);
-    if (error.message.includes("timeout")) {
+    if (errorDetails.isTimeout) {
       error.message =
         "Request timed out. Please check your connection or try again.";
-    } else if (error.code === "ERR_NETWORK") {
+    } else if (errorDetails.isNetworkError) {
       error.message = "Network error. Please check your internet connection.";
     }
     return Promise.reject(error);
@@ -226,30 +220,30 @@ export const fetchWithRetry = async (
       },
     );
   } catch (error) {
-    if (error?.response?.status === 404) {
+    const normalizedError = normalizeApiError(error, "Request failed after retries");
+
+    if (normalizedError.status === 404) {
       throw new Error(
-        error.response?.data?.message ||
-          error.message ||
+        normalizedError.message ||
           "Request failed due to missing endpoint",
       );
     }
 
-    if (String(error?.message || "").includes("timeout")) {
+    if (normalizedError.isTimeout) {
       try {
         const extendedClient = createApiClientWithTimeout(90000);
         return await fn(extendedClient);
       } catch (extendedError) {
+        const normalizedExtended = normalizeApiError(extendedError, "Request failed after retries");
         throw new Error(
-          extendedError.response?.data?.message ||
-            extendedError.message ||
+          normalizedExtended.message ||
             "Request failed after retries",
         );
       }
     }
 
     throw new Error(
-      error.response?.data?.message ||
-        error.message ||
+      normalizedError.message ||
         "Request failed after retries",
     );
   }

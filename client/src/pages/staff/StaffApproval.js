@@ -47,7 +47,6 @@ const StaffApproval = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        console.log("API response:", res.data); // Debug response
         setAllApprovals(res.data);
         setIsLoading(false);
       })
