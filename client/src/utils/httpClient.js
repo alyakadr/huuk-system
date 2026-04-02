@@ -97,8 +97,14 @@ const createInstance = (defaults = {}) => {
     };
 
     const body = mergedConfig.data;
-    if (body !== undefined && body !== null && method !== "GET" && method !== "HEAD") {
-      const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+    if (
+      body !== undefined &&
+      body !== null &&
+      method !== "GET" &&
+      method !== "HEAD"
+    ) {
+      const isFormData =
+        typeof FormData !== "undefined" && body instanceof FormData;
       const isBlob = typeof Blob !== "undefined" && body instanceof Blob;
       const isArrayBuffer = body instanceof ArrayBuffer;
       const isString = typeof body === "string";
@@ -107,7 +113,9 @@ const createInstance = (defaults = {}) => {
         requestInit.body = body;
       } else {
         requestInit.body = JSON.stringify(body);
-        if (!Object.keys(headers).some((h) => h.toLowerCase() === "content-type")) {
+        if (
+          !Object.keys(headers).some((h) => h.toLowerCase() === "content-type")
+        ) {
           requestInit.headers = {
             ...requestInit.headers,
             "Content-Type": "application/json",
@@ -124,9 +132,13 @@ const createInstance = (defaults = {}) => {
       requestInit.signal = timeoutController.signal;
 
       if (mergedConfig.signal) {
-        mergedConfig.signal.addEventListener("abort", () => timeoutController.abort(), {
-          once: true,
-        });
+        mergedConfig.signal.addEventListener(
+          "abort",
+          () => timeoutController.abort(),
+          {
+            once: true,
+          },
+        );
       }
 
       timeoutId = setTimeout(() => {
@@ -178,7 +190,9 @@ const createInstance = (defaults = {}) => {
 
       const isAbort = error.name === "AbortError";
       throw makeHttpError({
-        message: isAbort ? "timeout of request exceeded" : error.message || "Network Error",
+        message: isAbort
+          ? "timeout of request exceeded"
+          : error.message || "Network Error",
         config: mergedConfig,
         response: undefined,
         code: isAbort ? "ECONNABORTED" : "ERR_NETWORK",
@@ -215,13 +229,20 @@ const createInstance = (defaults = {}) => {
   instance.interceptors = interceptors;
 
   instance.request = (config) => request(config);
-  instance.get = (url, config = {}) => request({ ...config, url, method: "get" });
-  instance.delete = (url, config = {}) => request({ ...config, url, method: "delete" });
-  instance.head = (url, config = {}) => request({ ...config, url, method: "head" });
-  instance.options = (url, config = {}) => request({ ...config, url, method: "options" });
-  instance.post = (url, data, config = {}) => request({ ...config, url, data, method: "post" });
-  instance.put = (url, data, config = {}) => request({ ...config, url, data, method: "put" });
-  instance.patch = (url, data, config = {}) => request({ ...config, url, data, method: "patch" });
+  instance.get = (url, config = {}) =>
+    request({ ...config, url, method: "get" });
+  instance.delete = (url, config = {}) =>
+    request({ ...config, url, method: "delete" });
+  instance.head = (url, config = {}) =>
+    request({ ...config, url, method: "head" });
+  instance.options = (url, config = {}) =>
+    request({ ...config, url, method: "options" });
+  instance.post = (url, data, config = {}) =>
+    request({ ...config, url, data, method: "post" });
+  instance.put = (url, data, config = {}) =>
+    request({ ...config, url, data, method: "put" });
+  instance.patch = (url, data, config = {}) =>
+    request({ ...config, url, data, method: "patch" });
 
   return instance;
 };

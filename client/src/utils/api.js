@@ -1,6 +1,8 @@
 import http from "./httpClient";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : "http://localhost:5000/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL
+  ? `${process.env.REACT_APP_API_URL}/api`
+  : "http://localhost:5000/api";
 
 const api = http.create({
   baseURL: API_BASE_URL,
@@ -13,28 +15,35 @@ api.interceptors.request.use(
     const staffToken = localStorage.getItem("staff_token");
     const legacyToken = localStorage.getItem("token");
     const customerToken = localStorage.getItem("customer_token");
-    
+
     // Check current interface based on window location
     const currentPath = window.location.pathname;
-    const isStaffInterface = currentPath.includes('/staff') || currentPath.includes('/manager');
-    
+    const isStaffInterface =
+      currentPath.includes("/staff") || currentPath.includes("/manager");
+
     // Use appropriate token based on endpoint
     let token = null;
-    
+
     // For manager dashboard endpoints, always use staff token
-    if (config.url && (
-        config.url.includes('/bookings/appointments/all') ||
-        config.url.includes('/payments/total-revenue') ||
-        config.url.includes('/bookings/appointments/total') ||
-        config.url.includes('/bookings/daily-transactions') ||
-        config.url.includes('/bookings/customer-satisfaction')
-      )) {
+    if (
+      config.url &&
+      (config.url.includes("/bookings/appointments/all") ||
+        config.url.includes("/payments/total-revenue") ||
+        config.url.includes("/bookings/appointments/total") ||
+        config.url.includes("/bookings/daily-transactions") ||
+        config.url.includes("/bookings/customer-satisfaction"))
+    ) {
       token = staffToken || legacyToken;
-    } else if (config.url && config.url.includes('/auth/customer/')) {
+    } else if (config.url && config.url.includes("/auth/customer/")) {
       token = customerToken;
-    } else if (config.url && (config.url.includes('/auth/staff/') || config.url.includes('/users/') || config.url.includes('/customers/'))) {
+    } else if (
+      config.url &&
+      (config.url.includes("/auth/staff/") ||
+        config.url.includes("/users/") ||
+        config.url.includes("/customers/"))
+    ) {
       token = staffToken || legacyToken;
-    } else if (config.url && config.url.includes('/bookings/')) {
+    } else if (config.url && config.url.includes("/bookings/")) {
       // For booking endpoints, check interface context
       if (isStaffInterface) {
         token = staffToken || legacyToken;
@@ -45,15 +54,15 @@ api.interceptors.request.use(
       // Default: try staff token first, then legacy token, then customer token
       token = staffToken || legacyToken || customerToken;
     }
-    
+
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
     } else {
-      console.warn('[API] No token available for request to:', config.url);
+      console.warn("[API] No token available for request to:", config.url);
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 api.interceptors.response.use(
@@ -67,25 +76,32 @@ api.interceptors.response.use(
       data: error.response?.data,
       message: error.message,
     });
-    
+
     // Handle 401 errors (unauthorized/token expired)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       // Determine which token to use based on the URL
-      const isCustomerEndpoint = originalRequest.url && originalRequest.url.includes('/auth/customer/');
+      const isCustomerEndpoint =
+        originalRequest.url && originalRequest.url.includes("/auth/customer/");
       const tokenKey = isCustomerEndpoint ? "customer_token" : "staff_token";
-      const userKey = isCustomerEndpoint ? "customer_loggedInUser" : "staff_loggedInUser";
+      const userKey = isCustomerEndpoint
+        ? "customer_loggedInUser"
+        : "staff_loggedInUser";
       const userIdKey = isCustomerEndpoint ? "customer_userId" : "staff_userId";
-      
+
       const token = localStorage.getItem(tokenKey);
       if (token) {
         try {
           // Try to refresh the token
-          const refreshResponse = await http.post(`${API_BASE_URL}/auth/refresh`, {}, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
+          const refreshResponse = await http.post(
+            `${API_BASE_URL}/auth/refresh`,
+            {},
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+
           if (refreshResponse.data.token) {
             localStorage.setItem(tokenKey, refreshResponse.data.token);
             originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.token}`;
@@ -97,34 +113,38 @@ api.interceptors.response.use(
           localStorage.removeItem(userKey);
           localStorage.removeItem(tokenKey);
           localStorage.removeItem(userIdKey);
-          window.location.href = isCustomerEndpoint ? "/" : "/staff-login?sessionExpired=true";
+          window.location.href = isCustomerEndpoint
+            ? "/"
+            : "/staff-login?sessionExpired=true";
         }
       } else {
         // No token available, redirect to clean login interface
         localStorage.removeItem(userKey);
         localStorage.removeItem(tokenKey);
         localStorage.removeItem(userIdKey);
-        window.location.href = isCustomerEndpoint ? "/" : "/staff-login?sessionExpired=true";
+        window.location.href = isCustomerEndpoint
+          ? "/"
+          : "/staff-login?sessionExpired=true";
       }
     }
-    
+
     return Promise.reject(error);
-  }
+  },
 );
 
 // Booking-related API functions
 export const fetchBookingsByPhone = async (phoneNumber) => {
   try {
-    const response = await api.get(`/bookings/by-phone/${encodeURIComponent(phoneNumber)}`);
+    const response = await api.get(
+      `/bookings/by-phone/${encodeURIComponent(phoneNumber)}`,
+    );
     return {
-      bookings: response.data || []
+      bookings: response.data || [],
     };
   } catch (error) {
-    console.error('Error fetching bookings by phone:', error);
+    console.error("Error fetching bookings by phone:", error);
     throw error;
   }
 };
 
 export default api;
-
-

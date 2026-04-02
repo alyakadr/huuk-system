@@ -302,6 +302,3 @@ const StaffProfiles = () => {
 };
 
 export default StaffProfiles;
-
-
-

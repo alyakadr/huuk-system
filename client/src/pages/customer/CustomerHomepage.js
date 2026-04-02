@@ -213,15 +213,12 @@ const CustomerHomepage = () => {
         url: `${API_BASE_URL}/auth/customer/signup`,
       });
 
-      const response = await http.post(
-        `${API_BASE_URL}/auth/customer/signup`,
-        {
-          phone_number: signUpPhoneNumber,
-          password: signUpPassword,
-          username: signUpUsername,
-          email: signUpEmail,
-        },
-      );
+      const response = await http.post(`${API_BASE_URL}/auth/customer/signup`, {
+        phone_number: signUpPhoneNumber,
+        password: signUpPassword,
+        username: signUpUsername,
+        email: signUpEmail,
+      });
       if (response.data.message) {
         alert(response.data.message);
         setSignUpOpen(false);
@@ -784,6 +781,3 @@ const CustomerHomepage = () => {
 };
 
 export default CustomerHomepage;
-
-
-

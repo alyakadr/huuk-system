@@ -2625,6 +2625,3 @@ export const fetchOutlets = (setLoading, setOutlets, setErrors) => {
       setLoading((prev) => ({ ...prev, outlets: false }));
     });
 };
-
-
-

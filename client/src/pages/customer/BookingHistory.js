@@ -114,7 +114,7 @@ const BookingHistory = () => {
 
     window.addEventListener(
       "refreshBookingHistory",
-      handleRefreshBookingHistory
+      handleRefreshBookingHistory,
     );
 
     // Also listen for focus events to refresh when user returns to page
@@ -129,7 +129,7 @@ const BookingHistory = () => {
       socket.disconnect();
       window.removeEventListener(
         "refreshBookingHistory",
-        handleRefreshBookingHistory
+        handleRefreshBookingHistory,
       );
       window.removeEventListener("focus", handleFocus);
     };
@@ -155,11 +155,11 @@ const BookingHistory = () => {
   const fetchBookings = async () => {
     setLoading(true);
     setError(""); // Clear previous errors
-    
+
     try {
       // Get customer-specific token first
       const customerToken = localStorage.getItem("customer_token");
-      
+
       if (!customerToken) {
         console.error("No valid customer authentication found");
         throw new Error("Please sign in to view your bookings");
@@ -168,10 +168,10 @@ const BookingHistory = () => {
       // Direct API call with explicit headers
       const response = await http.get(`${API_BASE_URL}/bookings`, {
         headers: {
-          "Authorization": `Bearer ${customerToken}`,
+          Authorization: `Bearer ${customerToken}`,
           "Cache-Control": "no-cache",
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.data && Array.isArray(response.data)) {
@@ -192,7 +192,7 @@ const BookingHistory = () => {
         // Clear auth tokens
         localStorage.removeItem("customer_token");
         localStorage.removeItem("customer_loggedInUser");
-        
+
         // Redirect after a short delay
         setTimeout(() => {
           navigate("/homepage?loginRequired=true");
@@ -257,7 +257,7 @@ const BookingHistory = () => {
 
       // Then update the bookings array
       setBookings(
-        bookings.map((b) => (b.id === selectedBooking.id ? updatedBooking : b))
+        bookings.map((b) => (b.id === selectedBooking.id ? updatedBooking : b)),
       );
 
       setSuccess("Feedback submitted successfully!");
@@ -295,7 +295,7 @@ const BookingHistory = () => {
   // Extract unique booking dates for enabling/disabling calendar dates
   const bookingDates = [
     ...new Set(
-      bookings.map((booking) => formatDate(booking.date)).filter(Boolean) // Remove invalid or empty dates
+      bookings.map((booking) => formatDate(booking.date)).filter(Boolean), // Remove invalid or empty dates
     ),
   ];
   console.log("Booking dates:", bookingDates); // Debug booking dates
@@ -303,7 +303,7 @@ const BookingHistory = () => {
   // Filter bookings based on selected date
   const filteredBookings = selectedDate
     ? bookings.filter(
-        (booking) => formatDate(booking.date) === formatDate(selectedDate)
+        (booking) => formatDate(booking.date) === formatDate(selectedDate),
       )
     : bookings;
 
@@ -333,14 +333,14 @@ const BookingHistory = () => {
       dateA.setHours(
         parseInt(timeA[0]),
         parseInt(timeA[1]),
-        parseInt(timeA[2] || 0)
+        parseInt(timeA[2] || 0),
       );
 
       dateB = new Date(dateObjB);
       dateB.setHours(
         parseInt(timeB[0]),
         parseInt(timeB[1]),
-        parseInt(timeB[2] || 0)
+        parseInt(timeB[2] || 0),
       );
     } catch (error) {
       console.warn("Date parsing error:", error, { a, b });
@@ -355,10 +355,10 @@ const BookingHistory = () => {
 
     // Determine if bookings are active (Pending or Confirmed status) - be very explicit
     const isActiveA = ["pending", "confirmed"].includes(
-      String(a.status).toLowerCase()
+      String(a.status).toLowerCase(),
     );
     const isActiveB = ["pending", "confirmed"].includes(
-      String(b.status).toLowerCase()
+      String(b.status).toLowerCase(),
     );
 
     // CRITICAL: Active bookings MUST come before non-active bookings
@@ -383,12 +383,12 @@ const BookingHistory = () => {
   console.log("=== FINAL SORTED ORDER ===");
   sortedBookings.forEach((booking, index) => {
     const isActive = ["pending", "confirmed"].includes(
-      String(booking.status).toLowerCase()
+      String(booking.status).toLowerCase(),
     );
     console.log(
       `${index + 1}. ID: ${booking.id}, Status: ${
         booking.status
-      }, Active: ${isActive}, Date: ${booking.date} ${booking.time}`
+      }, Active: ${isActive}, Date: ${booking.date} ${booking.time}`,
     );
   });
   console.log("=== END SORTED ORDER ===");
@@ -396,11 +396,11 @@ const BookingHistory = () => {
   const bookingsPerPage = 7;
   const totalPages = Math.min(
     Math.ceil(filteredBookings.length / bookingsPerPage),
-    10
+    10,
   );
   const currentBookings = sortedBookings.slice(
     (currentPage - 1) * bookingsPerPage,
-    currentPage * bookingsPerPage
+    currentPage * bookingsPerPage,
   );
 
   // Reset currentPage when selectedDate changes
@@ -423,7 +423,7 @@ const BookingHistory = () => {
       "Checking date:",
       formattedDate,
       "in bookingDates:",
-      bookingDates
+      bookingDates,
     ); // Debug log to verify function
     return !bookingDates.includes(formattedDate);
   };
@@ -453,13 +453,15 @@ const BookingHistory = () => {
     try {
       setLoading(true);
       // Format date in Malaysia timezone (UTC+8)
-      const formattedDate = date.toLocaleDateString('en-CA', { 
-        timeZone: 'Asia/Kuala_Lumpur',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).replace(/\//g, '-'); // YYYY-MM-DD for API
-      
+      const formattedDate = date
+        .toLocaleDateString("en-CA", {
+          timeZone: "Asia/Kuala_Lumpur",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        })
+        .replace(/\//g, "-"); // YYYY-MM-DD for API
+
       // Include the current booking ID to exclude it from conflicts
       const response = await client.get("/bookings/available-slots", {
         params: {
@@ -467,27 +469,29 @@ const BookingHistory = () => {
           outlet_id: selectedBooking.outlet_id,
           service_id: selectedBooking.service_id,
           currentBookingId: selectedBooking.id, // Add current booking ID
-          currentBookingTime: selectedBooking.time // Add current booking time
+          currentBookingTime: selectedBooking.time, // Add current booking time
         },
       });
-      
+
       console.log("Available slots response:", {
         date: formattedDate,
         slots: response.data,
         params: {
           outlet_id: selectedBooking.outlet_id,
           service_id: selectedBooking.service_id,
-          currentBookingId: selectedBooking.id
-        }
+          currentBookingId: selectedBooking.id,
+        },
       });
-      
+
       // Filter out any special values like 'CLOSED'
-      const validSlots = Array.isArray(response.data) 
-        ? response.data.filter(slot => typeof slot === 'string' && slot !== 'CLOSED')
+      const validSlots = Array.isArray(response.data)
+        ? response.data.filter(
+            (slot) => typeof slot === "string" && slot !== "CLOSED",
+          )
         : [];
-        
+
       setAvailableSlots(validSlots);
-      
+
       if (validSlots.length === 0) {
         console.log("No available slots found for date:", formattedDate);
       }
@@ -505,13 +509,15 @@ const BookingHistory = () => {
     try {
       setLoading(true);
       // Format date in Malaysia timezone (UTC+8)
-      const formattedDate = date.toLocaleDateString('en-CA', { 
-        timeZone: 'Asia/Kuala_Lumpur',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).replace(/\//g, '-'); // YYYY-MM-DD for API
-      
+      const formattedDate = date
+        .toLocaleDateString("en-CA", {
+          timeZone: "Asia/Kuala_Lumpur",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        })
+        .replace(/\//g, "-"); // YYYY-MM-DD for API
+
       const response = await client.get("/bookings/available-staff", {
         params: {
           outlet_id: selectedBooking.outlet_id,
@@ -519,10 +525,10 @@ const BookingHistory = () => {
           time,
           service_id: selectedBooking.service_id,
           currentBookingId: selectedBooking.id, // Add current booking ID
-          currentBookingTime: selectedBooking.time // Add current booking time
+          currentBookingTime: selectedBooking.time, // Add current booking time
         },
       });
-      
+
       console.log("Available staff response:", {
         date: formattedDate,
         time: time,
@@ -530,40 +536,48 @@ const BookingHistory = () => {
         params: {
           outlet_id: selectedBooking.outlet_id,
           service_id: selectedBooking.service_id,
-          currentBookingId: selectedBooking.id
-        }
+          currentBookingId: selectedBooking.id,
+        },
       });
-      
+
       // Ensure we have a valid array of staff
       const validStaff = Array.isArray(response.data) ? response.data : [];
-      
+
       // If the current staff is not in the list, add them
       const currentStaffId = selectedBooking.staff_id;
-      if (currentStaffId && !validStaff.some(staff => staff.id === currentStaffId)) {
+      if (
+        currentStaffId &&
+        !validStaff.some((staff) => staff.id === currentStaffId)
+      ) {
         // Try to get staff name from the booking
         const staffName = selectedBooking.staff_name || "Current Staff";
-        
+
         console.log("Adding current staff to available staff list:", {
           id: currentStaffId,
-          name: staffName
+          name: staffName,
         });
-        
+
         validStaff.push({
           id: currentStaffId,
           username: staffName,
-          name: staffName
+          name: staffName,
         });
       }
-      
+
       setAvailableStaff(validStaff);
-      
+
       // If we have staff but none are selected yet, default to current staff
       if (validStaff.length > 0 && !rescheduleStaffId && currentStaffId) {
         setRescheduleStaffId(currentStaffId);
       }
-      
+
       if (validStaff.length === 0) {
-        console.log("No available staff found for date:", formattedDate, "and time:", time);
+        console.log(
+          "No available staff found for date:",
+          formattedDate,
+          "and time:",
+          time,
+        );
       }
     } catch (err) {
       console.error("Error fetching available staff:", err);
@@ -592,7 +606,7 @@ const BookingHistory = () => {
       const malaysiaDate = new Date(newDate);
       // No need to adjust hours since we only care about the date part
     }
-    
+
     setRescheduleDate(newDate);
     setRescheduleTime("");
     setRescheduleStaffId("");
@@ -618,21 +632,23 @@ const BookingHistory = () => {
       setError("Please select date, time, and staff");
       return;
     }
-    
+
     try {
       setIsRescheduling(true);
-      
+
       // Format date in Malaysia timezone (UTC+8)
       // Create a new date object to avoid modifying the original
       const malaysiaDate = new Date(rescheduleDate);
       // Format as YYYY-MM-DD for API
-      const formattedDate = malaysiaDate.toLocaleDateString('en-CA', { 
-        timeZone: 'Asia/Kuala_Lumpur',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).replace(/\//g, '-');
-      
+      const formattedDate = malaysiaDate
+        .toLocaleDateString("en-CA", {
+          timeZone: "Asia/Kuala_Lumpur",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        })
+        .replace(/\//g, "-");
+
       // Get token and ensure we have authentication
       const customerToken = localStorage.getItem("customer_token");
       if (!customerToken) {
@@ -640,44 +656,47 @@ const BookingHistory = () => {
         setTimeout(() => navigate("/homepage?loginRequired=true"), 2000);
         return;
       }
-      
+
       // Check if anything actually changed
-      const isSameDate = formattedDate === selectedBooking.date.split('T')[0];
+      const isSameDate = formattedDate === selectedBooking.date.split("T")[0];
       const isSameTime = rescheduleTime === selectedBooking.time;
-      const isSameStaff = parseInt(rescheduleStaffId) === parseInt(selectedBooking.staff_id);
-      
+      const isSameStaff =
+        parseInt(rescheduleStaffId) === parseInt(selectedBooking.staff_id);
+
       if (isSameDate && isSameTime && isSameStaff) {
-        setError("No changes detected. Please select a different date, time, or staff.");
+        setError(
+          "No changes detected. Please select a different date, time, or staff.",
+        );
         setIsRescheduling(false);
         return;
       }
-      
+
       // Direct API call with explicit headers
       const response = await http.post(
         `${API_BASE_URL}/bookings/reschedule`,
         {
-          booking_id: selectedBooking.id,  // Use booking_id as expected by the backend
+          booking_id: selectedBooking.id, // Use booking_id as expected by the backend
           date: formattedDate,
           time: rescheduleTime,
           staff_id: rescheduleStaffId,
         },
         {
           headers: {
-            "Authorization": `Bearer ${customerToken}`,
+            Authorization: `Bearer ${customerToken}`,
             "Content-Type": "application/json",
-            "Cache-Control": "no-cache"
-          }
-        }
+            "Cache-Control": "no-cache",
+          },
+        },
       );
-      
+
       console.log("Reschedule response:", response.data);
-      
+
       await fetchBookings(); // Refresh bookings
       setSuccess("Booking rescheduled successfully!");
       setRescheduleDialogOpen(false);
     } catch (err) {
       console.error("Reschedule error:", err);
-      
+
       // Simple error handling
       if (err.response?.data?.message) {
         setError(err.response.data.message);
@@ -701,10 +720,10 @@ const BookingHistory = () => {
   // Handle cancel booking
   const handleCancelBooking = async () => {
     if (!selectedBooking) return;
-    
+
     try {
       setIsCancelling(true);
-      
+
       // Get token and ensure we have authentication
       const customerToken = localStorage.getItem("customer_token");
       if (!customerToken) {
@@ -712,27 +731,27 @@ const BookingHistory = () => {
         setTimeout(() => navigate("/homepage?loginRequired=true"), 2000);
         return;
       }
-      
+
       // Direct API call with explicit headers
       const response = await http.post(
         `${API_BASE_URL}/bookings/cancel`,
-        { booking_id: selectedBooking.id },  // Use booking_id as expected by the backend
-        { 
-          headers: { 
-            "Authorization": `Bearer ${customerToken}`,
-            "Content-Type": "application/json"
-          }
-        }
+        { booking_id: selectedBooking.id }, // Use booking_id as expected by the backend
+        {
+          headers: {
+            Authorization: `Bearer ${customerToken}`,
+            "Content-Type": "application/json",
+          },
+        },
       );
-      
+
       console.log("Cancel response:", response.data);
-      
+
       await fetchBookings(); // Refresh bookings
       setSuccess("Booking cancelled successfully!");
       setConfirmCancelDialogOpen(false);
     } catch (err) {
       console.error("Cancel error:", err);
-      
+
       // Simple error handling
       if (err.response?.data?.message) {
         setError(err.response.data.message);
@@ -889,7 +908,14 @@ const BookingHistory = () => {
               }`}
               sx={{ marginBottom: "20px" }}
             >
-                <CardContent className="cust-booking-row" sx={{ display: 'flex', alignItems: 'center', padding: '10px !important' }}>
+              <CardContent
+                className="cust-booking-row"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "10px !important",
+                }}
+              >
                 <Box className="cust-booking-id-date">
                   <Typography
                     variant="h6"
@@ -898,7 +924,7 @@ const BookingHistory = () => {
                       width: "270px",
                       margin: 0,
                       display: "flex",
-                      alignItems: "center"
+                      alignItems: "center",
                     }}
                   >
                     ID: #{String(booking.id).padStart(7, "0")} | Booked:{" "}
@@ -911,10 +937,10 @@ const BookingHistory = () => {
                     console.log(
                       `Booking ${booking.id} status: "${
                         booking.status
-                      }" (type: ${typeof booking.status})`
+                      }" (type: ${typeof booking.status})`,
                     );
                     const isActive = ["pending", "confirmed"].includes(
-                      String(booking.status).toLowerCase()
+                      String(booking.status).toLowerCase(),
                     );
                     console.log(`Is active: ${isActive}`);
                     return isActive;
@@ -1074,7 +1100,7 @@ const BookingHistory = () => {
                   #{String(selectedBooking.id).padStart(7, "0")} | Booked:{" "}
                   {formatDate(selectedBooking.date)}
                   {["Pending", "Confirmed"].includes(
-                    selectedBooking.status
+                    selectedBooking.status,
                   ) && (
                     <>
                       <span
@@ -1159,10 +1185,10 @@ const BookingHistory = () => {
                         }}
                       >
                         {"★ ".repeat(
-                          Math.min(selectedBooking.review.rating, 5)
+                          Math.min(selectedBooking.review.rating, 5),
                         ) +
                           "☆ ".repeat(
-                            Math.max(0, 5 - selectedBooking.review.rating)
+                            Math.max(0, 5 - selectedBooking.review.rating),
                           )}
                       </Typography>
                       {selectedBooking.review.comment ? (
@@ -1196,7 +1222,7 @@ const BookingHistory = () => {
                   )}
                 <Box className="cust-actions">
                   {["Pending", "Confirmed"].includes(
-                    selectedBooking.status
+                    selectedBooking.status,
                   ) && (
                     <>
                       <Tooltip
@@ -1210,7 +1236,9 @@ const BookingHistory = () => {
                         <span>
                           <Button
                             variant="contained"
-                            onClick={() => handleOpenRescheduleDialog(selectedBooking)}
+                            onClick={() =>
+                              handleOpenRescheduleDialog(selectedBooking)
+                            }
                             className="cust-reschedule-btn"
                             disabled={rescheduleDisabled}
                           >
@@ -1229,7 +1257,9 @@ const BookingHistory = () => {
                         <span>
                           <Button
                             variant="contained"
-                            onClick={() => handleOpenCancelDialog(selectedBooking)}
+                            onClick={() =>
+                              handleOpenCancelDialog(selectedBooking)
+                            }
                             className="cust-cancel-btn"
                             disabled={cancelDisabled}
                           >
@@ -1358,264 +1388,334 @@ const BookingHistory = () => {
           {error}
         </Alert>
       </Snackbar>
-            {/* Reschedule Dialog */}
-      <Dialog 
-        open={rescheduleDialogOpen} 
+      {/* Reschedule Dialog */}
+      <Dialog
+        open={rescheduleDialogOpen}
         onClose={() => !isRescheduling && setRescheduleDialogOpen(false)}
         className="reschedule-dialog"
         maxWidth="xs"
         PaperProps={{
           sx: {
-            width: '350px',
-            maxWidth: '90vw'
-          }
+            width: "350px",
+            maxWidth: "90vw",
+          },
         }}
       >
-        <DialogTitle sx={{ 
-          borderBottom: '1px solid #333',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          py: 1.5,
-          px: 2
-        }}>
-          <Box sx={{ 
-            width: '28px', 
-            height: '28px', 
-            borderRadius: '50%', 
-            backgroundColor: 'rgba(0, 123, 255, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Typography sx={{ color: '#007bff', fontSize: '16px' }}>↻</Typography>
+        <DialogTitle
+          sx={{
+            borderBottom: "1px solid #333",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            py: 1.5,
+            px: 2,
+          }}
+        >
+          <Box
+            sx={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              backgroundColor: "rgba(0, 123, 255, 0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Typography sx={{ color: "#007bff", fontSize: "16px" }}>
+              ↻
+            </Typography>
           </Box>
-          <Typography sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
-            Reschedule Booking #{selectedBooking?.id ? String(selectedBooking.id).padStart(7, "0") : ""}
+          <Typography sx={{ fontWeight: "bold", fontSize: "0.95rem" }}>
+            Reschedule Booking #
+            {selectedBooking?.id
+              ? String(selectedBooking.id).padStart(7, "0")
+              : ""}
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ pt: 2, px: 2 }}>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" sx={{ mb: 2, fontWeight: 'medium', fontSize: '0.9rem' }}>
+            <Typography
+              variant="body2"
+              sx={{ mb: 2, fontWeight: "medium", fontSize: "0.9rem" }}
+            >
               Please select a new date, time, and staff for your booking.
             </Typography>
-            
+
             {selectedBooking && (
-              <Box sx={{ 
-                p: 1.5, 
-                mb: 2,
-                bgcolor: 'rgba(255,255,255,0.05)', 
-                borderRadius: 1,
-                border: '1px solid rgba(255,255,255,0.1)',
-                fontSize: '0.85rem'
-              }}>
-                <Typography variant="body2" sx={{ mb: 0.5, fontSize: '0.85rem' }}>
-                  <strong>Current:</strong> {formatDate(selectedBooking.date)}, {selectedBooking.time}
+              <Box
+                sx={{
+                  p: 1.5,
+                  mb: 2,
+                  bgcolor: "rgba(255,255,255,0.05)",
+                  borderRadius: 1,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  fontSize: "0.85rem",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 0.5, fontSize: "0.85rem" }}
+                >
+                  <strong>Current:</strong> {formatDate(selectedBooking.date)},{" "}
+                  {selectedBooking.time}
                 </Typography>
-                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                <Typography variant="body2" sx={{ fontSize: "0.85rem" }}>
                   <strong>Service:</strong> {selectedBooking.service_name}
                 </Typography>
               </Box>
             )}
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Select New Date"
                   value={rescheduleDate}
                   onChange={handleRescheduleDateChange}
-                  minDate={new Date(new Date().setDate(new Date().getDate() + 3))} // Enforce >2 days
+                  minDate={
+                    new Date(new Date().setDate(new Date().getDate() + 3))
+                  } // Enforce >2 days
                   format="dd/MM/yyyy" // Use dd/MM/yyyy in DatePicker
                   disabled={isRescheduling}
                   timezone="Asia/Kuala_Lumpur" // Set Malaysia timezone
                   sx={{
-                    width: '220px',
-                    '& .MuiInputBase-input': { color: '#fff', fontSize: '0.9rem', py: 1 },
-                    '& .MuiInputLabel-root': { color: '#fff', fontSize: '0.9rem' },
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#666' },
-                    '& .MuiSvgIcon-root': { color: '#fff', fontSize: '1.2rem' }
+                    width: "220px",
+                    "& .MuiInputBase-input": {
+                      color: "#fff",
+                      fontSize: "0.9rem",
+                      py: 1,
+                    },
+                    "& .MuiInputLabel-root": {
+                      color: "#fff",
+                      fontSize: "0.9rem",
+                    },
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#666",
+                    },
+                    "& .MuiSvgIcon-root": { color: "#fff", fontSize: "1.2rem" },
                   }}
                   slotProps={{
                     textField: {
                       margin: "normal",
                       helperText: "Min. 3 days from today (Malaysia Time)",
                       InputProps: {
-                        style: { color: '#fff' }
+                        style: { color: "#fff" },
                       },
                       InputLabelProps: {
-                        style: { color: '#fff' }
+                        style: { color: "#fff" },
                       },
                       FormHelperTextProps: {
-                        style: { color: '#999', fontSize: '0.75rem' }
-                      }
-                    }
+                        style: { color: "#999", fontSize: "0.75rem" },
+                      },
+                    },
                   }}
                 />
               </LocalizationProvider>
-              
-              <FormControl 
-                margin="normal" 
+
+              <FormControl
+                margin="normal"
                 disabled={!rescheduleDate || isRescheduling}
-                sx={{ width: '220px', display: 'block', my: 1 }}
+                sx={{ width: "220px", display: "block", my: 1 }}
               >
-                <InputLabel sx={{ fontSize: '0.9rem' }}>Available Time Slots</InputLabel>
+                <InputLabel sx={{ fontSize: "0.9rem" }}>
+                  Available Time Slots
+                </InputLabel>
                 <Select
                   value={rescheduleTime}
                   onChange={handleRescheduleTimeChange}
                   label="Available Time Slots"
                   size="small"
-                  sx={{ fontSize: '0.9rem' }}
+                  sx={{ fontSize: "0.9rem" }}
                   MenuProps={{
                     PaperProps: {
                       style: {
                         maxHeight: 250,
-                        backgroundColor: '#1a1a1a',
-                        color: '#fff'
-                      }
-                    }
+                        backgroundColor: "#1a1a1a",
+                        color: "#fff",
+                      },
+                    },
                   }}
                 >
                   {availableSlots.length > 0 ? (
                     availableSlots.map((slot) => (
-                      <MenuItem key={slot} value={slot} sx={{ fontSize: '0.9rem' }}>
+                      <MenuItem
+                        key={slot}
+                        value={slot}
+                        sx={{ fontSize: "0.9rem" }}
+                      >
                         {slot}
                       </MenuItem>
                     ))
                   ) : (
-                    <MenuItem disabled value="" sx={{ fontSize: '0.9rem' }}>
-                      {rescheduleDate ? "No available slots for this date" : "Select a date first"}
+                    <MenuItem disabled value="" sx={{ fontSize: "0.9rem" }}>
+                      {rescheduleDate
+                        ? "No available slots for this date"
+                        : "Select a date first"}
                     </MenuItem>
                   )}
                 </Select>
-                <FormHelperText sx={{ fontSize: '0.75rem' }}>
-                  {rescheduleDate && availableSlots.length === 0 
-                    ? "No available slots for this date." 
+                <FormHelperText sx={{ fontSize: "0.75rem" }}>
+                  {rescheduleDate && availableSlots.length === 0
+                    ? "No available slots for this date."
                     : "Only available slots are shown"}
                 </FormHelperText>
               </FormControl>
-              
-              <FormControl 
-                margin="normal" 
+
+              <FormControl
+                margin="normal"
                 disabled={!rescheduleTime || isRescheduling}
-                sx={{ width: '220px', display: 'block', my: 1 }}
+                sx={{ width: "220px", display: "block", my: 1 }}
               >
-                <InputLabel sx={{ fontSize: '0.9rem' }}>Staff</InputLabel>
+                <InputLabel sx={{ fontSize: "0.9rem" }}>Staff</InputLabel>
                 <Select
                   value={rescheduleStaffId}
                   onChange={(e) => setRescheduleStaffId(e.target.value)}
                   label="Staff"
                   size="small"
-                  sx={{ fontSize: '0.9rem' }}
+                  sx={{ fontSize: "0.9rem" }}
                   MenuProps={{
                     PaperProps: {
                       style: {
                         maxHeight: 250,
-                        backgroundColor: '#1a1a1a',
-                        color: '#fff'
-                      }
-                    }
+                        backgroundColor: "#1a1a1a",
+                        color: "#fff",
+                      },
+                    },
                   }}
                 >
                   {availableStaff.length > 0 ? (
                     availableStaff.map((staff) => (
-                      <MenuItem key={staff.id} value={staff.id} sx={{ fontSize: '0.9rem' }}>
+                      <MenuItem
+                        key={staff.id}
+                        value={staff.id}
+                        sx={{ fontSize: "0.9rem" }}
+                      >
                         {staff.username}
                       </MenuItem>
                     ))
                   ) : (
-                    <MenuItem disabled value="" sx={{ fontSize: '0.9rem' }}>
-                      {rescheduleTime ? "No available staff for this time" : "Select a time first"}
+                    <MenuItem disabled value="" sx={{ fontSize: "0.9rem" }}>
+                      {rescheduleTime
+                        ? "No available staff for this time"
+                        : "Select a time first"}
                     </MenuItem>
                   )}
                 </Select>
-                <FormHelperText sx={{ fontSize: '0.75rem' }}>
-                  {rescheduleTime && availableStaff.length === 0 
-                    ? "No staff available for this time." 
+                <FormHelperText sx={{ fontSize: "0.75rem" }}>
+                  {rescheduleTime && availableStaff.length === 0
+                    ? "No staff available for this time."
                     : "Select your preferred staff"}
                 </FormHelperText>
               </FormControl>
             </Box>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ borderTop: '1px solid #333', p: 1.5, px: 2 }}>
-          <Button 
-            onClick={() => setRescheduleDialogOpen(false)} 
+        <DialogActions sx={{ borderTop: "1px solid #333", p: 1.5, px: 2 }}>
+          <Button
+            onClick={() => setRescheduleDialogOpen(false)}
             className="reschedule-cancel-btn"
             disabled={isRescheduling}
             sx={{
-              fontFamily: 'Quicksand, sans-serif',
-              textTransform: 'none',
-              fontWeight: 'bold',
-              fontSize: '0.85rem',
-              minWidth: '90px'
+              fontFamily: "Quicksand, sans-serif",
+              textTransform: "none",
+              fontWeight: "bold",
+              fontSize: "0.85rem",
+              minWidth: "90px",
             }}
           >
             Cancel
           </Button>
           <Button
             onClick={handleRescheduleBooking}
-            disabled={!rescheduleDate || !rescheduleTime || !rescheduleStaffId || isRescheduling}
+            disabled={
+              !rescheduleDate ||
+              !rescheduleTime ||
+              !rescheduleStaffId ||
+              isRescheduling
+            }
             className="reschedule-confirm-btn"
             sx={{
-              fontFamily: 'Quicksand, sans-serif',
-              textTransform: 'none',
-              fontWeight: 'bold',
-              fontSize: '0.85rem',
-              minWidth: '130px'
+              fontFamily: "Quicksand, sans-serif",
+              textTransform: "none",
+              fontWeight: "bold",
+              fontSize: "0.85rem",
+              minWidth: "130px",
             }}
           >
             {isRescheduling ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <CircularProgress size={14} color="inherit" />
                 <span>Rescheduling...</span>
               </Box>
-            ) : "Confirm Reschedule"}
+            ) : (
+              "Confirm Reschedule"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Cancel Confirmation Dialog */}
-      <Dialog 
-        open={confirmCancelDialogOpen} 
+      <Dialog
+        open={confirmCancelDialogOpen}
         onClose={() => !isCancelling && setConfirmCancelDialogOpen(false)}
         className="reschedule-dialog"
         maxWidth="sm"
       >
-        <DialogTitle sx={{ 
-          borderBottom: '1px solid #333',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px'
-        }}>
-          <Box sx={{ 
-            width: '36px', 
-            height: '36px', 
-            borderRadius: '50%', 
-            backgroundColor: 'rgba(236, 31, 35, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Typography sx={{ color: '#ec1f23', fontSize: '20px' }}>!</Typography>
+        <DialogTitle
+          sx={{
+            borderBottom: "1px solid #333",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          <Box
+            sx={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              backgroundColor: "rgba(236, 31, 35, 0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Typography sx={{ color: "#ec1f23", fontSize: "20px" }}>
+              !
+            </Typography>
           </Box>
-          <Typography sx={{ fontWeight: 'bold' }}>Confirm Cancellation</Typography>
+          <Typography sx={{ fontWeight: "bold" }}>
+            Confirm Cancellation
+          </Typography>
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
-          <Typography variant="body1" sx={{ mb: 2, fontWeight: 'medium' }}>
+          <Typography variant="body1" sx={{ mb: 2, fontWeight: "medium" }}>
             Are you sure you want to cancel this booking?
           </Typography>
-          <Typography variant="body2" sx={{ mb: 3, color: '#ff6b4a', fontStyle: 'italic' }}>
+          <Typography
+            variant="body2"
+            sx={{ mb: 3, color: "#ff6b4a", fontStyle: "italic" }}
+          >
             This action cannot be undone.
           </Typography>
           {selectedBooking && (
-            <Box sx={{ 
-              p: 2, 
-              bgcolor: 'rgba(255,255,255,0.05)', 
-              borderRadius: 1,
-              border: '1px solid rgba(255,255,255,0.1)'
-            }}>
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: "rgba(255,255,255,0.05)",
+                borderRadius: 1,
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}
+            >
               <Typography variant="body2" sx={{ mb: 1 }}>
-                <strong>Booking ID:</strong> #{String(selectedBooking.id).padStart(7, "0")}
+                <strong>Booking ID:</strong> #
+                {String(selectedBooking.id).padStart(7, "0")}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
                 <strong>Service:</strong> {selectedBooking.service_name}
@@ -1632,16 +1732,16 @@ const BookingHistory = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ borderTop: '1px solid #333', p: 2 }}>
-          <Button 
-            onClick={() => setConfirmCancelDialogOpen(false)} 
+        <DialogActions sx={{ borderTop: "1px solid #333", p: 2 }}>
+          <Button
+            onClick={() => setConfirmCancelDialogOpen(false)}
             className="reschedule-cancel-btn"
             disabled={isCancelling}
             sx={{
-              fontFamily: 'Quicksand, sans-serif',
-              textTransform: 'none',
-              fontWeight: 'bold',
-              minWidth: '120px'
+              fontFamily: "Quicksand, sans-serif",
+              textTransform: "none",
+              fontWeight: "bold",
+              minWidth: "120px",
             }}
           >
             Keep Booking
@@ -1649,22 +1749,24 @@ const BookingHistory = () => {
           <Button
             onClick={handleCancelBooking}
             className="reschedule-confirm-btn"
-            sx={{ 
-              bgcolor: '#ec1f23 !important', 
-              '&:hover': { bgcolor: '#d81b1f !important' },
-              fontFamily: 'Quicksand, sans-serif',
-              textTransform: 'none',
-              fontWeight: 'bold',
-              minWidth: '160px'
+            sx={{
+              bgcolor: "#ec1f23 !important",
+              "&:hover": { bgcolor: "#d81b1f !important" },
+              fontFamily: "Quicksand, sans-serif",
+              textTransform: "none",
+              fontWeight: "bold",
+              minWidth: "160px",
             }}
             disabled={isCancelling}
           >
             {isCancelling ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <CircularProgress size={16} color="inherit" />
                 <span>Cancelling...</span>
               </Box>
-            ) : "Yes, Cancel Booking"}
+            ) : (
+              "Yes, Cancel Booking"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1673,6 +1775,3 @@ const BookingHistory = () => {
 };
 
 export default BookingHistory;
-
-
-

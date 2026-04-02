@@ -1,9 +1,11 @@
 import http from "../utils/httpClient";
 import api from "../utils/api";
-import { getAuthToken } from '../utils/tokenUtils';
+import { getAuthToken } from "../utils/tokenUtils";
 import { withRetry } from "../utils/retry";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : "http://localhost:5000/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL
+  ? `${process.env.REACT_APP_API_URL}/api`
+  : "http://localhost:5000/api";
 
 const client = http.create({
   baseURL: API_BASE_URL,
@@ -16,48 +18,53 @@ client.interceptors.request.use(
     const token = localStorage.getItem("token");
     const staffToken = localStorage.getItem("staff_token");
     const customerToken = localStorage.getItem("customer_token");
-    
+
     let selectedToken = null;
-    
+
     // Check current interface based on window location
     const currentPath = window.location.pathname;
-    const isStaffInterface = currentPath.includes('/staff') || currentPath.includes('/manager');
-    
+    const isStaffInterface =
+      currentPath.includes("/staff") || currentPath.includes("/manager");
+
     // For manager dashboard endpoints, always use staff token
-    if (config.url && (
-        config.url.includes('/bookings/appointments/all') ||
-        config.url.includes('/payments/total-revenue') ||
-        config.url.includes('/bookings/appointments/total') ||
-        config.url.includes('/bookings/daily-transactions') ||
-        config.url.includes('/bookings/customer-satisfaction')
-      )) {
+    if (
+      config.url &&
+      (config.url.includes("/bookings/appointments/all") ||
+        config.url.includes("/payments/total-revenue") ||
+        config.url.includes("/bookings/appointments/total") ||
+        config.url.includes("/bookings/daily-transactions") ||
+        config.url.includes("/bookings/customer-satisfaction"))
+    ) {
       selectedToken = staffToken || token;
-    } else if (config.url && (config.url.includes('/customer/') || 
-        (config.url.includes('/bookings') && !isStaffInterface))) {
+    } else if (
+      config.url &&
+      (config.url.includes("/customer/") ||
+        (config.url.includes("/bookings") && !isStaffInterface))
+    ) {
       // For customer endpoints and customer booking endpoints
       selectedToken = customerToken || token;
     } else {
       // For staff endpoints, staff bookings, and other protected endpoints
       selectedToken = staffToken || token;
     }
-    
+
     // IMPORTANT: For booking endpoints, check interface context
-    if (config.url && config.url.includes('/bookings')) {
+    if (config.url && config.url.includes("/bookings")) {
       if (isStaffInterface) {
         selectedToken = staffToken || token;
       } else {
         selectedToken = customerToken || token;
       }
     }
-    
+
     if (selectedToken) {
       config.headers.Authorization = `Bearer ${selectedToken}`;
     } else {
-      console.warn('[API] No token available for request to:', config.url);
+      console.warn("[API] No token available for request to:", config.url);
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 client.interceptors.response.use(
@@ -79,7 +86,7 @@ client.interceptors.response.use(
       error.message = "Network error. Please check your internet connection.";
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // Create a client instance with automatic token refresh
@@ -88,61 +95,85 @@ const createApiClientWithTimeout = (timeout) => {
     baseURL: API_BASE_URL,
     timeout,
   });
-  
+
   // Add request interceptor
   clientInstance.interceptors.request.use(
     (config) => {
       // Use the getAuthToken utility for more consistent token retrieval
       const token = getAuthToken();
-      
+
       if (token) {
         config.headers["Authorization"] = `Bearer ${token}`;
       }
       return config;
     },
-    (error) => Promise.reject(error)
+    (error) => Promise.reject(error),
   );
-  
+
   // Add response interceptor with token refresh
   clientInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
-      
+
       // Handle 401 errors (unauthorized/token expired)
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
-        
+
         // Determine which token to use based on the URL
-        const isCustomerEndpoint = originalRequest.url && (originalRequest.url.includes('/auth/customer/') || originalRequest.url.includes('/customer/') || originalRequest.url.includes('/bookings'));
+        const isCustomerEndpoint =
+          originalRequest.url &&
+          (originalRequest.url.includes("/auth/customer/") ||
+            originalRequest.url.includes("/customer/") ||
+            originalRequest.url.includes("/bookings"));
         const tokenKey = isCustomerEndpoint ? "customer_token" : "staff_token";
         const legacyTokenKey = "token";
-        const userKey = isCustomerEndpoint ? "customer_loggedInUser" : "staff_loggedInUser";
+        const userKey = isCustomerEndpoint
+          ? "customer_loggedInUser"
+          : "staff_loggedInUser";
         const legacyUserKey = "loggedInUser";
-        const userIdKey = isCustomerEndpoint ? "customer_userId" : "staff_userId";
+        const userIdKey = isCustomerEndpoint
+          ? "customer_userId"
+          : "staff_userId";
         const legacyUserIdKey = "userId";
-        
-        const token = localStorage.getItem(tokenKey) || localStorage.getItem(legacyTokenKey);
+
+        const token =
+          localStorage.getItem(tokenKey) ||
+          localStorage.getItem(legacyTokenKey);
         if (token) {
           try {
             // Try to refresh the token
-            const refreshResponse = await http.post(`${API_BASE_URL}/auth/refresh`, {}, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            
+            const refreshResponse = await http.post(
+              `${API_BASE_URL}/auth/refresh`,
+              {},
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              },
+            );
+
             if (refreshResponse.data.token) {
               // Update both token keys for compatibility
               localStorage.setItem(tokenKey, refreshResponse.data.token);
               localStorage.setItem(legacyTokenKey, refreshResponse.data.token);
-              
+
               // Update user data if provided
               if (refreshResponse.data.user) {
-                const currentUser = JSON.parse(localStorage.getItem(userKey) || localStorage.getItem(legacyUserKey) || '{}');
-                const updatedUser = { ...currentUser, ...refreshResponse.data.user };
+                const currentUser = JSON.parse(
+                  localStorage.getItem(userKey) ||
+                    localStorage.getItem(legacyUserKey) ||
+                    "{}",
+                );
+                const updatedUser = {
+                  ...currentUser,
+                  ...refreshResponse.data.user,
+                };
                 localStorage.setItem(userKey, JSON.stringify(updatedUser));
-                localStorage.setItem(legacyUserKey, JSON.stringify(updatedUser));
+                localStorage.setItem(
+                  legacyUserKey,
+                  JSON.stringify(updatedUser),
+                );
               }
-              
+
               originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.token}`;
               return clientInstance(originalRequest);
             }
@@ -168,11 +199,11 @@ const createApiClientWithTimeout = (timeout) => {
           window.location.href = isCustomerEndpoint ? "/" : "/staff-login";
         }
       }
-      
+
       return Promise.reject(error);
-    }
+    },
   );
-  
+
   return clientInstance;
 };
 
@@ -180,7 +211,7 @@ export const fetchWithRetry = async (
   fn,
   retries = 5,
   delayBase = 2000,
-  timeout = 60000
+  timeout = 60000,
 ) => {
   try {
     return await withRetry(
@@ -192,14 +223,14 @@ export const fetchWithRetry = async (
         retries,
         delayBase,
         shouldRetry: (error) => error?.response?.status !== 404,
-      }
+      },
     );
   } catch (error) {
     if (error?.response?.status === 404) {
       throw new Error(
         error.response?.data?.message ||
           error.message ||
-          "Request failed due to missing endpoint"
+          "Request failed due to missing endpoint",
       );
     }
 
@@ -211,7 +242,7 @@ export const fetchWithRetry = async (
         throw new Error(
           extendedError.response?.data?.message ||
             extendedError.message ||
-            "Request failed after retries"
+            "Request failed after retries",
         );
       }
     }
@@ -219,7 +250,7 @@ export const fetchWithRetry = async (
     throw new Error(
       error.response?.data?.message ||
         error.message ||
-        "Request failed after retries"
+        "Request failed after retries",
     );
   }
 };
@@ -231,11 +262,11 @@ export const setPayAtOutlet = (bookingId, email, userId) =>
         booking_id: bookingId,
         email,
         user_id: userId, // Add the userId to the request
-        debug: true // Add debug flag to help diagnose verification issues
+        debug: true, // Add debug flag to help diagnose verification issues
       }),
     5,
     2000,
-    60000
+    60000,
   );
 
 // New function to set Pay at Outlet for multiple bookings
@@ -246,11 +277,11 @@ export const setMultiplePayAtOutlet = (bookingIds, email, userId) =>
         booking_ids: bookingIds,
         email,
         user_id: userId,
-        debug: true
+        debug: true,
       }),
     5,
     2000,
-    60000
+    60000,
   );
 
 export const updatePaymentStatus = (bookingId, status) =>
@@ -262,7 +293,7 @@ export const updatePaymentStatus = (bookingId, status) =>
       }),
     5,
     2000,
-    60000
+    60000,
   );
 
 // New function to update payment status for multiple bookings
@@ -275,7 +306,7 @@ export const updateMultipleBookingsPaymentStatus = (bookingIds, status) =>
       }),
     5,
     2000,
-    60000
+    60000,
   );
 
 export const checkPaymentStatusBySession = (sessionId) =>
@@ -284,21 +315,22 @@ export const checkPaymentStatusBySession = (sessionId) =>
       clientInstance.get(`/bookings/payments/status/${sessionId}`),
     5,
     2000,
-    60000
+    60000,
   );
 
 export const getUsersList = () => client.get("/users/list");
-export const getPendingApprovals = () =>
-  client.get("/users/pending-approval");
+export const getPendingApprovals = () => client.get("/users/pending-approval");
 export const getAttendance = (staff_id, date, page = 1) =>
   client.get("/users/attendance", { params: { staff_id, date, page } });
 export const getAllAttendance = (date) =>
   fetchWithRetry(
     (clientInstance) =>
-      clientInstance.get("/users/attendance", { params: { date, all: 'true' } }),
+      clientInstance.get("/users/attendance", {
+        params: { date, all: "true" },
+      }),
     5,
     2000,
-    60000
+    60000,
   );
 
 export const getTotalCustomersAll = () => api.get("/customers/total-all");
@@ -307,11 +339,10 @@ export const getTotalCustomersUpToYesterday = () =>
 
 export const getAllAppointments = () =>
   fetchWithRetry(
-    (clientInstance) =>
-      clientInstance.get("/bookings/appointments/all"),
+    (clientInstance) => clientInstance.get("/bookings/appointments/all"),
     5,
     2000,
-    60000
+    60000,
   );
 export const getTotalAppointmentsToday = () =>
   fetchWithRetry(
@@ -319,7 +350,7 @@ export const getTotalAppointmentsToday = () =>
       clientInstance.get("/bookings/appointments/total-today"),
     5,
     2000,
-    60000
+    60000,
   );
 export const getTotalAppointmentsYesterday = () =>
   fetchWithRetry(
@@ -327,58 +358,50 @@ export const getTotalAppointmentsYesterday = () =>
       clientInstance.get("/bookings/appointments/total-yesterday"),
     5,
     2000,
-    60000
+    60000,
   );
 export const deleteBooking = (bookingId) =>
   client.delete(`/bookings/${bookingId}`);
 
 export const getTotalRevenueToday = () =>
   fetchWithRetry(
-    (clientInstance) =>
-      clientInstance.get("/payments/total-revenue-today"),
+    (clientInstance) => clientInstance.get("/payments/total-revenue-today"),
     5,
     2000,
-    60000
+    60000,
   );
 export const getTotalRevenueYesterday = () =>
   fetchWithRetry(
-    (clientInstance) =>
-      clientInstance.get("/payments/total-revenue-yesterday"),
+    (clientInstance) => clientInstance.get("/payments/total-revenue-yesterday"),
     5,
     2000,
-    60000
+    60000,
   );
 
 // Transaction data for manager dashboard
 export const getTodayTransactionsByOutlet = () =>
   fetchWithRetry(
-    (clientInstance) =>
-      clientInstance.get("/bookings/daily-transactions"),
+    (clientInstance) => clientInstance.get("/bookings/daily-transactions"),
     5,
     2000,
-    60000
+    60000,
   );
 
 // Customer satisfaction ratings for manager dashboard
 export const getCustomerSatisfactionRatings = () =>
   fetchWithRetry(
-    (clientInstance) =>
-      clientInstance.get("/bookings/customer-satisfaction"),
+    (clientInstance) => clientInstance.get("/bookings/customer-satisfaction"),
     5,
     2000,
-    60000
+    60000,
   );
 
 export const approveStaff = (staffId) =>
   fetchWithRetry(
-    (clientInstance) =>
-      clientInstance.post(`/users/approve/${staffId}`),
+    (clientInstance) => clientInstance.post(`/users/approve/${staffId}`),
     3,
     1000,
-    30000
+    30000,
   );
 
 export default client;
-
-
-

@@ -2,12 +2,7 @@ export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const withRetry = async (
   operation,
-  {
-    retries = 5,
-    delayBase = 2000,
-    shouldRetry = () => true,
-    onRetry,
-  } = {}
+  { retries = 5, delayBase = 2000, shouldRetry = () => true, onRetry } = {},
 ) => {
   let lastError;
 

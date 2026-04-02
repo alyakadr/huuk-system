@@ -1,6 +1,8 @@
 import http from "./httpClient";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : "http://localhost:5000/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL
+  ? `${process.env.REACT_APP_API_URL}/api`
+  : "http://localhost:5000/api";
 
 export async function getTotalCustomersAll() {
   try {
@@ -10,7 +12,7 @@ export async function getTotalCustomersAll() {
     }
     console.log(
       "Fetching /customers/total-all with token:",
-      token.slice(0, 20) + "..."
+      token.slice(0, 20) + "...",
     );
     const response = await http.get(`${API_BASE_URL}/customers/total-all`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -34,13 +36,13 @@ export async function getTotalCustomersUpToYesterday() {
     }
     console.log(
       "Fetching /customers/total-up-to-yesterday with token:",
-      token.slice(0, 20) + "..."
+      token.slice(0, 20) + "...",
     );
     const response = await http.get(
       `${API_BASE_URL}/customers/total-up-to-yesterday`,
       {
         headers: { Authorization: `Bearer ${token}` },
-      }
+      },
     );
     return response.data.count;
   } catch (error) {
@@ -52,6 +54,3 @@ export async function getTotalCustomersUpToYesterday() {
     throw error;
   }
 }
-
-
-

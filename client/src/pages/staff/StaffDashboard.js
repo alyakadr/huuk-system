@@ -42,19 +42,21 @@ ChartJS.register(
   BarElement,
   CategoryScale,
   LinearScale,
-  ChartDataLabels
+  ChartDataLabels,
 );
 
 const PaymentManagementTable = ({ loadingPayment, paymentData }) => {
   return (
     <div className="staff-dashboard-payment-management">
       <div className="staff-dashboard-payment-header">
-        <h3 className="staff-dashboard-payment-title">
-          Payment Management
-        </h3>
+        <h3 className="staff-dashboard-payment-title">Payment Management</h3>
         <button
           className="staff-dashboard-button-view-all-button-sales"
-          onClick={() => alert("This feature is currently under maintenance. Please check back later.")}
+          onClick={() =>
+            alert(
+              "This feature is currently under maintenance. Please check back later.",
+            )
+          }
         >
           View all
         </button>
@@ -70,18 +72,31 @@ const PaymentManagementTable = ({ loadingPayment, paymentData }) => {
         <tbody>
           {loadingPayment ? (
             <tr>
-              <td colSpan="3" style={{ textAlign: "center", color: "white" }}>Loading payment data...</td>
+              <td colSpan="3" style={{ textAlign: "center", color: "white" }}>
+                Loading payment data...
+              </td>
             </tr>
           ) : paymentData.length === 0 ? (
             <tr>
-              <td colSpan="3" style={{ textAlign: "center", color: "white" }}>No payment data available</td>
+              <td colSpan="3" style={{ textAlign: "center", color: "white" }}>
+                No payment data available
+              </td>
             </tr>
           ) : (
             paymentData.slice(0, 3).map((payment, index) => (
-              <tr key={payment.id || index} className="staff-dashboard-table-row">
-                <td className="staff-dashboard-table-cell">{payment.customer_name}</td>
-                <td className="staff-dashboard-table-cell">{payment.payment_method}</td>
-                <td className={`staff-dashboard-table-cell staff-dashboard-status ${payment.payment_status === "Paid" ? "staff-dashboard-status-paid" : "staff-dashboard-status-unpaid"}`}>
+              <tr
+                key={payment.id || index}
+                className="staff-dashboard-table-row"
+              >
+                <td className="staff-dashboard-table-cell">
+                  {payment.customer_name}
+                </td>
+                <td className="staff-dashboard-table-cell">
+                  {payment.payment_method}
+                </td>
+                <td
+                  className={`staff-dashboard-table-cell staff-dashboard-status ${payment.payment_status === "Paid" ? "staff-dashboard-status-paid" : "staff-dashboard-status-unpaid"}`}
+                >
                   {payment.payment_status}
                 </td>
               </tr>
@@ -102,7 +117,7 @@ const StaffDashboard = () => {
     pending: 0,
     cancelled: 0,
     rescheduled: 0,
-    absent: 0
+    absent: 0,
   });
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [scheduleData, setScheduleData] = useState([]);
@@ -133,22 +148,25 @@ const StaffDashboard = () => {
       }
 
       // Fetch all three in parallel
-      const [summaryResponse, scheduleResponse, barChartResponse] = await Promise.all([
-        api.get("/bookings/summary", { headers }),
-        api.get("/bookings/staff/schedule", { headers }),
-        api.get("/bookings/todays-appointments-by-staff", {
-          headers,
-          params: outletParam ? { outlet: outletParam } : {},
-        }),
-      ]);
+      const [summaryResponse, scheduleResponse, barChartResponse] =
+        await Promise.all([
+          api.get("/bookings/summary", { headers }),
+          api.get("/bookings/staff/schedule", { headers }),
+          api.get("/bookings/todays-appointments-by-staff", {
+            headers,
+            params: outletParam ? { outlet: outletParam } : {},
+          }),
+        ]);
 
-      setSummaryData(summaryResponse.data || {
-        done: 0,
-        pending: 0,
-        cancelled: 0,
-        rescheduled: 0,
-        absent: 0
-      });
+      setSummaryData(
+        summaryResponse.data || {
+          done: 0,
+          pending: 0,
+          cancelled: 0,
+          rescheduled: 0,
+          absent: 0,
+        },
+      );
 
       const sortedSchedule = (scheduleResponse.data || []).sort((a, b) => {
         if (a.start_time === "-" && b.start_time === "-") return 0;
@@ -159,7 +177,6 @@ const StaffDashboard = () => {
       setScheduleData(sortedSchedule);
 
       setBarChartData(barChartResponse.data || { labels: [], data: [] });
-
     } catch (error) {
       console.error("❌ Error fetching data:", error);
       // Set default values on error
@@ -168,7 +185,7 @@ const StaffDashboard = () => {
         pending: 0,
         cancelled: 0,
         rescheduled: 0,
-        absent: 0
+        absent: 0,
       });
       setScheduleData([]);
       setBarChartData({ labels: [], data: [] });
@@ -179,32 +196,41 @@ const StaffDashboard = () => {
     }
   };
 
-
   const fetchPaymentData = async () => {
     setLoadingPayment(true);
     try {
       const response = await api.get("/payments/payment-management", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("staff_token") || localStorage.getItem("token")}` },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("staff_token") || localStorage.getItem("token")}`,
+        },
         params: {
           limit: 10,
-          sort_by: 'created_at',
-          sort_order: 'desc',
+          sort_by: "created_at",
+          sort_order: "desc",
           include_all_types: true,
           include_pay_at_outlet: true,
           include_online_payment: true,
         },
       });
-      
-      const processedPayments = Array.isArray(response.data) ? response.data.map(payment => ({
-        ...payment,
-        payment_method: payment.payment_method === PAYMENT_METHODS.PAY_AT_OUTLET ? "Pay at Outlet" : 
-                       payment.payment_method === PAYMENT_METHODS.ONLINE ? "Online Payment" : 
-                       payment.payment_method || "Unknown",
-        payment_status: payment.payment_status === PAYMENT_STATUSES.PAID ? "Paid" :
-                       payment.payment_status === PAYMENT_STATUSES.PENDING ? "Pending" :
-                       payment.payment_status || "Unknown"
-      })) : [];
-      
+
+      const processedPayments = Array.isArray(response.data)
+        ? response.data.map((payment) => ({
+            ...payment,
+            payment_method:
+              payment.payment_method === PAYMENT_METHODS.PAY_AT_OUTLET
+                ? "Pay at Outlet"
+                : payment.payment_method === PAYMENT_METHODS.ONLINE
+                  ? "Online Payment"
+                  : payment.payment_method || "Unknown",
+            payment_status:
+              payment.payment_status === PAYMENT_STATUSES.PAID
+                ? "Paid"
+                : payment.payment_status === PAYMENT_STATUSES.PENDING
+                  ? "Pending"
+                  : payment.payment_status || "Unknown",
+          }))
+        : [];
+
       setPaymentData(processedPayments);
     } catch (error) {
       console.error("Error fetching payment data:", error);
@@ -229,14 +255,14 @@ const StaffDashboard = () => {
           record.staff_id === userId &&
           moment(record.created_date).format("YYYY-MM-DD") ===
             moment().format("YYYY-MM-DD") &&
-          record.time_in
+          record.time_in,
       );
       if (todayRecord) {
         setIsTimeInConfirmed(true);
         localStorage.setItem("isTimeInConfirmed", "true");
         localStorage.setItem(
           "timeIn",
-          moment(todayRecord.time_in).format("HH:mm")
+          moment(todayRecord.time_in).format("HH:mm"),
         );
       } else {
         setIsTimeInConfirmed(false);
@@ -268,10 +294,10 @@ const StaffDashboard = () => {
     } else {
       navigate("/");
     }
-    
+
     // Cleanup function
     return () => {};
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   // Simple polling for data updates
@@ -295,31 +321,32 @@ const StaffDashboard = () => {
     return () => {
       socket.disconnect();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkPaymentConfirmation = async (bookingId) => {
     try {
-      const token = localStorage.getItem("staff_token") || localStorage.getItem("token");
-      
+      const token =
+        localStorage.getItem("staff_token") || localStorage.getItem("token");
+
       if (!token) {
-        alert('Authentication required. Please log in again.');
+        alert("Authentication required. Please log in again.");
         return;
       }
-      
+
       const response = await api.get(`/bookings/booking-details/${bookingId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (response.status === 200) {
         const bookingData = response.data;
         const shouldShowPaymentConfirmation =
           (bookingData.paymentMethod === "Pay at Outlet" ||
-           bookingData.paymentMethod === PAYMENT_METHODS.PAY_AT_OUTLET ||
-           bookingData.isWalkIn === true ||
-           bookingData.paymentStatus === "Pending") &&
+            bookingData.paymentMethod === PAYMENT_METHODS.PAY_AT_OUTLET ||
+            bookingData.isWalkIn === true ||
+            bookingData.paymentStatus === "Pending") &&
           bookingData.paymentStatus !== "Paid";
-        
+
         if (shouldShowPaymentConfirmation) {
           const confirmationData = {
             bookingId: bookingId,
@@ -328,7 +355,7 @@ const StaffDashboard = () => {
             serviceName: bookingData.serviceName || "Service",
             totalAmount: bookingData.totalAmount || "0.00",
             paymentStatus: bookingData.paymentStatus || "Pending",
-            isWalkIn: bookingData.isWalkIn || false
+            isWalkIn: bookingData.isWalkIn || false,
           };
           setPaymentConfirmationData(confirmationData);
           setShowPaymentConfirmation(true);
@@ -337,7 +364,7 @@ const StaffDashboard = () => {
         }
       }
     } catch (error) {
-      console.error('Error checking payment confirmation:', error);
+      console.error("Error checking payment confirmation:", error);
       await markBookingAsDone(bookingId);
     }
   };
@@ -345,15 +372,22 @@ const StaffDashboard = () => {
   // Separate function to actually mark booking as done
   const markBookingAsDone = async (bookingId) => {
     try {
-      const response = await api.post("/bookings/staff/mark-done", 
+      const response = await api.post(
+        "/bookings/staff/mark-done",
         { booking_id: bookingId },
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem("staff_token")}` },
-        }
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("staff_token")}`,
+          },
+        },
       );
-      
+
       if (response.status === 200) {
-        await Promise.all([fetchAllData(), fetchPaymentData(), fetchBlockedSlots()]);
+        await Promise.all([
+          fetchAllData(),
+          fetchPaymentData(),
+          fetchBlockedSlots(),
+        ]);
       }
     } catch (error) {
       console.error("❌ Error marking booking as done:", error);
@@ -366,25 +400,35 @@ const StaffDashboard = () => {
   const handlePaymentPaid = async (payment) => {
     try {
       // Mark as paid
-      const response = await api.post("/payments/update-payment-status", {
-        booking_id: payment.bookingId,
-        payment_status: "Paid"
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("staff_token") || localStorage.getItem("token")}` },
-      });
+      const response = await api.post(
+        "/payments/update-payment-status",
+        {
+          booking_id: payment.bookingId,
+          payment_status: "Paid",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("staff_token") || localStorage.getItem("token")}`,
+          },
+        },
+      );
       if (response.status === 200) {
         // Close the payment confirmation popup
         setShowPaymentConfirmation(false);
         setPaymentConfirmationData(null);
-        
+
         // Mark the booking as done after payment is confirmed
         await markBookingAsDone(payment.bookingId);
-        
+
         alert("Payment marked as Paid successfully!");
       }
     } catch (error) {
       let msg = "Failed to update payment status. Please try again.";
-      if (error.response && error.response.data && error.response.data.message) {
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
         msg = error.response.data.message;
       }
       alert(msg);
@@ -395,25 +439,37 @@ const StaffDashboard = () => {
   const handlePaymentUnpaid = async (payment) => {
     try {
       // Mark as unpaid
-      const response = await api.post("/payments/update-payment-status", {
-        booking_id: payment.bookingId,
-        payment_status: "Pending"
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("staff_token") || localStorage.getItem("token")}` },
-      });
+      const response = await api.post(
+        "/payments/update-payment-status",
+        {
+          booking_id: payment.bookingId,
+          payment_status: "Pending",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("staff_token") || localStorage.getItem("token")}`,
+          },
+        },
+      );
       if (response.status === 200) {
         // Close the payment confirmation popup
         setShowPaymentConfirmation(false);
         setPaymentConfirmationData(null);
-        
+
         // Mark the booking as done after payment status is updated
         await markBookingAsDone(payment.bookingId);
-        
-        alert("Booking marked as completed. Payment status kept as Pending. Please collect payment when customer is ready.");
+
+        alert(
+          "Booking marked as completed. Payment status kept as Pending. Please collect payment when customer is ready.",
+        );
       }
     } catch (error) {
       let msg = "Failed to update payment status. Please try again.";
-      if (error.response && error.response.data && error.response.data.message) {
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
         msg = error.response.data.message;
       }
       alert(msg);
@@ -426,7 +482,7 @@ const StaffDashboard = () => {
     maintainAspectRatio: false,
     interaction: {
       intersect: false,
-      mode: 'index',
+      mode: "index",
     },
     scales: {
       y: {
@@ -435,7 +491,7 @@ const StaffDashboard = () => {
           display: true,
           text: "Number of Services",
           color: "white",
-          font: { family: "Quicksand, sans-serif", size: 11, weight: 'normal' },
+          font: { family: "Quicksand, sans-serif", size: 11, weight: "normal" },
         },
         ticks: {
           color: "white",
@@ -452,7 +508,7 @@ const StaffDashboard = () => {
           display: true,
           text: "Staff Members",
           color: "white",
-          font: { family: "Quicksand, sans-serif", size: 11, weight: 'normal' },
+          font: { family: "Quicksand, sans-serif", size: 11, weight: "normal" },
         },
         ticks: {
           color: "white",
@@ -479,18 +535,18 @@ const StaffDashboard = () => {
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: false,
-        titleFont: { family: "Quicksand, sans-serif", size: 12, weight: '600' },
+        titleFont: { family: "Quicksand, sans-serif", size: 12, weight: "600" },
         bodyFont: { family: "Quicksand, sans-serif", size: 11 },
         padding: 12,
         callbacks: {
-          title: function(context) {
+          title: function (context) {
             return context[0].label;
           },
-          label: function(context) {
+          label: function (context) {
             const value = context.parsed.y;
-            return `${value} appointment${value !== 1 ? 's' : ''} today`;
-          }
-        }
+            return `${value} appointment${value !== 1 ? "s" : ""} today`;
+          },
+        },
       },
       datalabels: {
         anchor: "center",
@@ -498,12 +554,12 @@ const StaffDashboard = () => {
         color: "white",
         backgroundColor: "transparent",
         borderRadius: 0,
-        font: { size: 12, family: "Quicksand, sans-serif", weight: '600' },
-        formatter: (value) => value > 0 ? value : '',
+        font: { size: 12, family: "Quicksand, sans-serif", weight: "600" },
+        formatter: (value) => (value > 0 ? value : ""),
         padding: 0,
-        display: function(context) {
+        display: function (context) {
           return context && context.parsed && context.parsed.y > 0;
-        }
+        },
       },
     },
     elements: {
@@ -519,28 +575,32 @@ const StaffDashboard = () => {
     },
     animation: {
       duration: 1000,
-      easing: 'easeInOutQuart',
+      easing: "easeInOutQuart",
     },
     onHover: (event, elements) => {
-      event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+      event.native.target.style.cursor =
+        elements.length > 0 ? "pointer" : "default";
     },
   };
-
 
   // Fetch blocked slots from API
   const fetchBlockedSlots = async () => {
     if (!user?.id) return;
     try {
       const response = await api.get(`/staff/blocked-slots`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("staff_token")}` },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("staff_token")}`,
+        },
         params: {
           staff_id: user.id,
-          date: moment().format("YYYY-MM-DD")
-        }
+          date: moment().format("YYYY-MM-DD"),
+        },
       });
-      
+
       const rawBlockedSlots = response.data.blocked_slots || [];
-      const processedBlockedSlots = rawBlockedSlots.map(slot => typeof slot === 'object' ? slot.time : slot);
+      const processedBlockedSlots = rawBlockedSlots.map((slot) =>
+        typeof slot === "object" ? slot.time : slot,
+      );
       setBlockedSlots(processedBlockedSlots);
     } catch (error) {
       console.error("❌ Error fetching blocked slots:", error);
@@ -553,56 +613,63 @@ const StaffDashboard = () => {
     if (user?.id) {
       fetchBlockedSlots();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // Toggle slot blocking via API
   const toggleSlotBlocking = async (time) => {
     if (!user?.id) return;
-    
+
     const isCurrentlyBlocked = blockedSlots.includes(time);
-    
+
     // Prevent unblocking of already blocked slots
     if (isCurrentlyBlocked) {
-      alert('This time slot is already blocked and cannot be unblocked.');
+      alert("This time slot is already blocked and cannot be unblocked.");
       return;
     }
-    
-    const action = 'block';
-    
+
+    const action = "block";
+
     try {
       // Optimistically update UI first
-      setBlockedSlots(prev => [...prev, time]);
-      
-      const response = await api.post(`/staff/toggle-slot-blocking`, {
-        staff_id: user.id,
-        date: moment().format("YYYY-MM-DD"),
-        time: time,
-        action: action
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("staff_token")}` }
-      });
-      
+      setBlockedSlots((prev) => [...prev, time]);
+
+      const response = await api.post(
+        `/staff/toggle-slot-blocking`,
+        {
+          staff_id: user.id,
+          date: moment().format("YYYY-MM-DD"),
+          time: time,
+          action: action,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("staff_token")}`,
+          },
+        },
+      );
+
       // Confirm the block was successful
       if (response.status === 200) {
         alert(`Time slot ${time} blocked successfully.`);
         // Refresh blocked slots from server to ensure accurate state
         await fetchBlockedSlots();
       }
-      
     } catch (error) {
       console.error(`❌ Error ${action}ing slot:`, error);
-      
+
       // Revert optimistic update on error
-      setBlockedSlots(prev => prev.filter(t => t !== time));
-      
+      setBlockedSlots((prev) => prev.filter((t) => t !== time));
+
       // Handle specific error cases
       if (error.response?.data?.message) {
         const errorMessage = error.response.data.message;
-        if (errorMessage.includes('already blocked') && action === 'block') {
-          alert('This time slot is already blocked.');
+        if (errorMessage.includes("already blocked") && action === "block") {
+          alert("This time slot is already blocked.");
           // Ensure the slot shows as blocked
-          setBlockedSlots(prev => prev.includes(time) ? prev : [...prev, time]);
+          setBlockedSlots((prev) =>
+            prev.includes(time) ? prev : [...prev, time],
+          );
         } else {
           alert(`Failed to ${action} time slot: ${errorMessage}`);
         }
@@ -619,13 +686,13 @@ const StaffDashboard = () => {
       // Close modal
       setShowAddBookingModal(false);
       setSelectedSlotForBooking(null);
-      
+
       // Refresh data
       await fetchAllData();
       await fetchBlockedSlots(); // Refresh blocked slots to ensure UI sync
     } catch (error) {
-      console.error('Error submitting booking:', error);
-      alert('Failed to submit booking. Please try again.');
+      console.error("Error submitting booking:", error);
+      alert("Failed to submit booking. Please try again.");
     }
   };
 
@@ -633,35 +700,41 @@ const StaffDashboard = () => {
   const generateTimeSlots = () => {
     const slots = [];
     const now = moment();
-    
+
     // Round current time to current or next 30-minute interval
     const currentMinutes = now.minutes();
     let startTime;
-    
+
     if (currentMinutes <= 30) {
       // If we're at or before 30 minutes, start from current hour:30
       startTime = moment().minutes(30).seconds(0);
     } else {
       // If we're after 30 minutes, start from next hour:00
-      startTime = moment().add(1, 'hour').minutes(0).seconds(0);
+      startTime = moment().add(1, "hour").minutes(0).seconds(0);
     }
-    
+
     // Generate exactly 7 slots starting from the calculated start time
     const slotTime = startTime.clone();
     for (let i = 0; i < 7; i++) {
       slots.push(slotTime.format("HH:mm"));
-      slotTime.add(30, 'minutes');
+      slotTime.add(30, "minutes");
     }
-    
+
     return slots;
   };
 
   // Helper function to check if a time slot is within operational hours
   const isWithinOperationalHours = (time) => {
-    const operationalStart = moment().hour(OPERATIONAL_HOURS.start.h).minute(OPERATIONAL_HOURS.start.m).second(0);
-    const operationalEnd = moment().hour(OPERATIONAL_HOURS.end.h).minute(OPERATIONAL_HOURS.end.m).second(59);
+    const operationalStart = moment()
+      .hour(OPERATIONAL_HOURS.start.h)
+      .minute(OPERATIONAL_HOURS.start.m)
+      .second(0);
+    const operationalEnd = moment()
+      .hour(OPERATIONAL_HOURS.end.h)
+      .minute(OPERATIONAL_HOURS.end.m)
+      .second(59);
     const slotTime = moment(time, "HH:mm");
-    return slotTime.isBetween(operationalStart, operationalEnd, null, '[)');
+    return slotTime.isBetween(operationalStart, operationalEnd, null, "[)");
   };
 
   const availableSlots = generateTimeSlots();
@@ -684,16 +757,21 @@ const StaffDashboard = () => {
   };
 
   const statusColorMap = {
-    [BOOKING_STATUSES.COMPLETED]: '#90d14f',
-    [BOOKING_STATUSES.CANCELLED]: '#ec1f23',
-    [BOOKING_STATUSES.RESCHEDULED]: '#ffbf05',
+    [BOOKING_STATUSES.COMPLETED]: "#90d14f",
+    [BOOKING_STATUSES.CANCELLED]: "#ec1f23",
+    [BOOKING_STATUSES.RESCHEDULED]: "#ffbf05",
   };
 
   if (!user) {
     return <div className="staff-dashboard-loading">Loading user data...</div>;
   }
 
-  const completedStatuses = [BOOKING_STATUSES.COMPLETED, BOOKING_STATUSES.CANCELLED, BOOKING_STATUSES.RESCHEDULED, BOOKING_STATUSES.ABSENT];
+  const completedStatuses = [
+    BOOKING_STATUSES.COMPLETED,
+    BOOKING_STATUSES.CANCELLED,
+    BOOKING_STATUSES.RESCHEDULED,
+    BOOKING_STATUSES.ABSENT,
+  ];
   const sortedSchedule = [...scheduleData].sort((a, b) => {
     const aIsActive = !completedStatuses.includes(a.status);
     const bIsActive = !completedStatuses.includes(b.status);
@@ -701,7 +779,7 @@ const StaffDashboard = () => {
       return aIsActive ? -1 : 1; // Active bookings first
     }
     // Both are the same type (active or completed), sort by start_time ascending
-    return (a.start_time || '').localeCompare(b.start_time || '');
+    return (a.start_time || "").localeCompare(b.start_time || "");
   });
   const limitedSchedule = sortedSchedule.slice(0, 5);
 
@@ -714,10 +792,32 @@ const StaffDashboard = () => {
             <div className="staff-dashboard-header-content">
               <div className="staff-dashboard-summary-cards-container">
                 {[
-                  { img: summ1, label: "Done", value: loadingSummary ? "..." : summaryData.done.toString() },
-                  { img: summ3, label: "Pending", value: loadingSummary ? "..." : summaryData.pending.toString() },
-                  { img: summ4, label: "Cancelled", value: loadingSummary ? "..." : summaryData.cancelled.toString() },
-                  { img: summ2, label: "Reschedule", value: loadingSummary ? "..." : summaryData.rescheduled.toString() },
+                  {
+                    img: summ1,
+                    label: "Done",
+                    value: loadingSummary ? "..." : summaryData.done.toString(),
+                  },
+                  {
+                    img: summ3,
+                    label: "Pending",
+                    value: loadingSummary
+                      ? "..."
+                      : summaryData.pending.toString(),
+                  },
+                  {
+                    img: summ4,
+                    label: "Cancelled",
+                    value: loadingSummary
+                      ? "..."
+                      : summaryData.cancelled.toString(),
+                  },
+                  {
+                    img: summ2,
+                    label: "Reschedule",
+                    value: loadingSummary
+                      ? "..."
+                      : summaryData.rescheduled.toString(),
+                  },
                 ].map(({ img, label, value }) => (
                   <div key={label} className="staff-dashboard-summary-card">
                     <img
@@ -732,7 +832,7 @@ const StaffDashboard = () => {
                   </div>
                 ))}
               </div>
-              
+
               {/* Attendance reminder in header */}
               <div className="staff-dashboard-attendance-reminder-container">
                 <div className="staff-dashboard-attendance-reminder">
@@ -769,7 +869,11 @@ const StaffDashboard = () => {
                     <div className="staff-dashboard-attendance-reminder-button-container">
                       <button
                         className="staff-dashboard-attendance-button"
-                        onClick={() => alert("This feature is currently under maintenance. Please check back later.")}
+                        onClick={() =>
+                          alert(
+                            "This feature is currently under maintenance. Please check back later.",
+                          )
+                        }
                       >
                         Update
                       </button>
@@ -789,25 +893,25 @@ const StaffDashboard = () => {
                   <h3 className="staff-dashboard-schedule-title">
                     My Schedule
                     <>
-                      <span 
+                      <span
                         style={{
-                          display: 'inline-block',
-                          width: '8px',
-                          height: '8px',
-                          backgroundColor: '#00ff00',
-                          borderRadius: '50%',
-                          marginLeft: '8px',
-                          animation: 'pulse 2s infinite'
+                          display: "inline-block",
+                          width: "8px",
+                          height: "8px",
+                          backgroundColor: "#00ff00",
+                          borderRadius: "50%",
+                          marginLeft: "8px",
+                          animation: "pulse 2s infinite",
                         }}
                         title="Real-time updates enabled"
                       />
-                      <span 
+                      <span
                         style={{
-                          marginLeft: '8px',
-                          color: '#A0B2B8', // Glacial Indifference color
-                          fontStyle: 'italic',
-                          fontSize: '14px',
-                          fontWeight: 'normal'
+                          marginLeft: "8px",
+                          color: "#A0B2B8", // Glacial Indifference color
+                          fontStyle: "italic",
+                          fontSize: "14px",
+                          fontWeight: "normal",
                         }}
                       >
                         Active Booking
@@ -829,61 +933,98 @@ const StaffDashboard = () => {
                         <th className="staff-dashboard-th">PHONE NUMBER</th>
                         <th className="staff-dashboard-th">SERVICE</th>
                         <th className="staff-dashboard-th">TIME</th>
-                        <th className="staff-dashboard-th" style={{ textAlign: 'center' }}>ACTION</th>
+                        <th
+                          className="staff-dashboard-th"
+                          style={{ textAlign: "center" }}
+                        >
+                          ACTION
+                        </th>
                       </tr>
                     </thead>
 
                     <tbody>
                       {loadingSchedule ? (
                         <tr>
-                          <td colSpan="5" style={{ textAlign: "center", color: "white" }}>Loading...</td>
+                          <td
+                            colSpan="5"
+                            style={{ textAlign: "center", color: "white" }}
+                          >
+                            Loading...
+                          </td>
                         </tr>
                       ) : (
                         limitedSchedule.map((booking, index) => {
                           return (
-                            <tr key={booking.id || index} className="flex-table-row">
-                              <td className="staff-dashboard-table-cell" style={{ color: "white" }}>
+                            <tr
+                              key={booking.id || index}
+                              className="flex-table-row"
+                            >
+                              <td
+                                className="staff-dashboard-table-cell"
+                                style={{ color: "white" }}
+                              >
                                 {booking.customer_name}
                               </td>
-                              <td className="staff-dashboard-table-cell" style={{ color: "white" }}>
+                              <td
+                                className="staff-dashboard-table-cell"
+                                style={{ color: "white" }}
+                              >
                                 {booking.phone_number}
                               </td>
-                              <td className="staff-dashboard-table-cell" style={{ color: "white" }}>
+                              <td
+                                className="staff-dashboard-table-cell"
+                                style={{ color: "white" }}
+                              >
                                 {booking.service_name}
                               </td>
-                              <td className="staff-dashboard-table-cell" style={{ color: "white" }}>
-                                {booking.start_time !== "-" && booking.end_time !== "-" 
-                                  ? `${booking.start_time} - ${booking.end_time}` 
-                                  : "-"
-                                }
+                              <td
+                                className="staff-dashboard-table-cell"
+                                style={{ color: "white" }}
+                              >
+                                {booking.start_time !== "-" &&
+                                booking.end_time !== "-"
+                                  ? `${booking.start_time} - ${booking.end_time}`
+                                  : "-"}
                               </td>
-                              <td className="staff-dashboard-table-cell" style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                              <td
+                                className="staff-dashboard-table-cell"
+                                style={{
+                                  textAlign: "center",
+                                  verticalAlign: "middle",
+                                }}
+                              >
                                 {(() => {
                                   let displayStatus = booking.status;
-                                  let color = statusColorMap[displayStatus] || '#f44336';
-                                  if (displayStatus === BOOKING_STATUSES.CONFIRMED) {
+                                  let color =
+                                    statusColorMap[displayStatus] || "#f44336";
+                                  if (
+                                    displayStatus === BOOKING_STATUSES.CONFIRMED
+                                  ) {
                                     return (
                                       <button
                                         className="done-btn"
                                         style={{
-                                          backgroundColor: '#1976d2',
-                                          color: 'white',
-                                          border: 'none',
-                                          borderRadius: '4px',
-                                          padding: '6px 0',
-                                          minWidth: '90px',
-                                          maxWidth: '120px',
-                                          fontWeight: 'bold',
-                                          fontSize: '14px',
-                                          fontFamily: 'Quicksand, sans-serif',
-                                          cursor: 'pointer',
-                                          boxShadow: '0 2px 8px rgba(25, 118, 210, 0.08)',
-                                          letterSpacing: '0.5px',
-                                          transition: 'background 0.2s',
-                                          margin: '0 auto',
-                                          display: 'block',
+                                          backgroundColor: "#1976d2",
+                                          color: "white",
+                                          border: "none",
+                                          borderRadius: "4px",
+                                          padding: "6px 0",
+                                          minWidth: "90px",
+                                          maxWidth: "120px",
+                                          fontWeight: "bold",
+                                          fontSize: "14px",
+                                          fontFamily: "Quicksand, sans-serif",
+                                          cursor: "pointer",
+                                          boxShadow:
+                                            "0 2px 8px rgba(25, 118, 210, 0.08)",
+                                          letterSpacing: "0.5px",
+                                          transition: "background 0.2s",
+                                          margin: "0 auto",
+                                          display: "block",
                                         }}
-                                        onClick={() => checkPaymentConfirmation(booking.id)}
+                                        onClick={() =>
+                                          checkPaymentConfirmation(booking.id)
+                                        }
                                       >
                                         Done
                                       </button>
@@ -893,13 +1034,13 @@ const StaffDashboard = () => {
                                     <span
                                       className={`status-text ${displayStatus.toLowerCase()}`}
                                       style={{
-                                        fontFamily: 'Quicksand, sans-serif',
-                                        fontWeight: 'bold',
-                                        fontSize: '16px',
+                                        fontFamily: "Quicksand, sans-serif",
+                                        fontWeight: "bold",
+                                        fontSize: "16px",
                                         color,
-                                        display: 'block',
-                                        textAlign: 'center',
-                                        textTransform: 'none', // Ensure original casing
+                                        display: "block",
+                                        textAlign: "center",
+                                        textTransform: "none", // Ensure original casing
                                       }}
                                     >
                                       {displayStatus}
@@ -915,10 +1056,16 @@ const StaffDashboard = () => {
                   </table>
                 </div>
               </div>
-              
+
               {/* Payment Management and Sales Report */}
-              <div className="staff-dashboard-charts-container" style={{ marginTop: '20px' }}>
-                <PaymentManagementTable loadingPayment={loadingPayment} paymentData={paymentData} />
+              <div
+                className="staff-dashboard-charts-container"
+                style={{ marginTop: "20px" }}
+              >
+                <PaymentManagementTable
+                  loadingPayment={loadingPayment}
+                  paymentData={paymentData}
+                />
 
                 <div className="staff-dashboard-sales-report-container">
                   <BarberSalesReport />
@@ -927,7 +1074,10 @@ const StaffDashboard = () => {
             </div>
 
             {/* Right side - Booking Time Slot */}
-            <div className="staff-dashboard-booking-slot-section" style={{ marginTop: '20px' }}>
+            <div
+              className="staff-dashboard-booking-slot-section"
+              style={{ marginTop: "20px" }}
+            >
               <div className="staff-dashboard-appointment-management-container">
                 <h3 className="staff-dashboard-timeslots-title">
                   Appointment Management
@@ -937,7 +1087,7 @@ const StaffDashboard = () => {
                 </p>
                 <div className="staff-dashboard-timeslots-grid">
                   {availableSlots.map((time) => {
-                    const isBooked = scheduleData.some(booking => {
+                    const isBooked = scheduleData.some((booking) => {
                       if (
                         booking.status === "Cancelled" ||
                         booking.status === "Rescheduled" ||
@@ -950,22 +1100,27 @@ const StaffDashboard = () => {
                       const slotMoment = moment(time, "HH:mm");
                       const startTime = moment(booking.start_time, "HH:mm");
                       const endTime = moment(booking.end_time, "HH:mm");
-                      if (!startTime.isValid() || !endTime.isValid()) return false;
+                      if (!startTime.isValid() || !endTime.isValid())
+                        return false;
                       // Block slot if slotMoment >= startTime and slotMoment < endTime
-                      return slotMoment.isSameOrAfter(startTime) && slotMoment.isBefore(endTime);
+                      return (
+                        slotMoment.isSameOrAfter(startTime) &&
+                        slotMoment.isBefore(endTime)
+                      );
                     });
                     const isBlocked = blockedSlots.includes(time);
                     const isWithinHours = isWithinOperationalHours(time);
-                    
+
                     const getButtonClass = () => {
-                      if (isBooked) return 'staff-dashboard-booked';
-                      if (!isWithinHours) return 'staff-dashboard-unavailable'; // Out of operational hours
-                      if (isBlocked) return 'staff-dashboard-blocked';
-                      return '';
+                      if (isBooked) return "staff-dashboard-booked";
+                      if (!isWithinHours) return "staff-dashboard-unavailable"; // Out of operational hours
+                      if (isBlocked) return "staff-dashboard-blocked";
+                      return "";
                     };
-                    
-                    const isClickable = !isBooked && isWithinHours && !isBlocked;
-                    
+
+                    const isClickable =
+                      !isBooked && isWithinHours && !isBlocked;
+
                     return (
                       <button
                         key={time}
@@ -977,12 +1132,22 @@ const StaffDashboard = () => {
                         className={`staff-dashboard-timeslot-button ${getButtonClass()}`}
                         disabled={!isClickable}
                         style={{
-                          cursor: isClickable ? 'pointer' : 'not-allowed',
+                          cursor: isClickable ? "pointer" : "not-allowed",
                           opacity: isBooked ? 0.6 : 1,
-                          backgroundColor: !isWithinHours ? '#6c757d' : undefined, // Grey for out of hours
-                          color: !isWithinHours ? 'white' : undefined
+                          backgroundColor: !isWithinHours
+                            ? "#6c757d"
+                            : undefined, // Grey for out of hours
+                          color: !isWithinHours ? "white" : undefined,
                         }}
-                        title={!isWithinHours ? 'Outside operational hours' : isBooked ? 'Already booked' : isBlocked ? 'Blocked slot' : 'Double-click to block this slot'}
+                        title={
+                          !isWithinHours
+                            ? "Outside operational hours"
+                            : isBooked
+                              ? "Already booked"
+                              : isBlocked
+                                ? "Blocked slot"
+                                : "Double-click to block this slot"
+                        }
                       >
                         {time}
                       </button>
@@ -993,17 +1158,23 @@ const StaffDashboard = () => {
                     onClick={() => {
                       navigate("/staff/appointments");
                     }}
-                    style={{ marginTop: '10px' }}
+                    style={{ marginTop: "10px" }}
                   >
                     View all
                   </button>
                 </div>
               </div>
-              
+
               {/* Today's Appointments by All Staff under Appointment Management */}
-              <div className="staff-dashboard-todays-appointment-container" style={{ marginTop: '-10px', marginLeft: '0' }}>
+              <div
+                className="staff-dashboard-todays-appointment-container"
+                style={{ marginTop: "-10px", marginLeft: "0" }}
+              >
                 <div className="staff-dashboard-chart-header">
-                  <h3 className="staff-dashboard-chart-title" style={{ whiteSpace: 'nowrap' }}>
+                  <h3
+                    className="staff-dashboard-chart-title"
+                    style={{ whiteSpace: "nowrap" }}
+                  >
                     Today's Appointments by All Staff
                   </h3>
                 </div>
@@ -1038,7 +1209,6 @@ const StaffDashboard = () => {
             </div>
           </div>
 
-
           {user?.role === "manager" && (
             <SwitchModeButton
               modeText="Switch to Manager Mode"
@@ -1060,35 +1230,44 @@ const StaffDashboard = () => {
         currentUser={user}
         timeSlots={TIME_SLOTS}
         bookings={scheduleData}
-        blockedSlots={blockedSlots.map(time => ({ time, date: moment().format('YYYY-MM-DD') }))}
+        blockedSlots={blockedSlots.map((time) => ({
+          time,
+          date: moment().format("YYYY-MM-DD"),
+        }))}
       />
 
       {/* Minimal Payment Confirmation Popup */}
       {showPaymentConfirmation && (
-        <div className="payment-popup-overlay" style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 9999
-        }}>
-          <div className="payment-popup-container-minimal" style={{
-            backgroundColor: '#fff',
-            borderRadius: '8px',
-            padding: '20px',
-            width: '90%',
-            maxWidth: '400px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
-            position: 'relative',
-            zIndex: 10000
-          }}>
+        <div
+          className="payment-popup-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            className="payment-popup-container-minimal"
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: "8px",
+              padding: "20px",
+              width: "90%",
+              maxWidth: "400px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
+              position: "relative",
+              zIndex: 10000,
+            }}
+          >
             {/* Close button */}
-            <button 
+            <button
               className="payment-popup-close-minimal"
               onClick={() => {
                 // Close popup without marking booking as done
@@ -1099,108 +1278,140 @@ const StaffDashboard = () => {
               aria-label="Close popup without completing booking"
               title="Close without completing booking"
               style={{
-                position: 'absolute',
-                top: '10px',
-                right: '10px',
-                background: 'none',
-                border: 'none',
-                fontSize: '20px',
-                cursor: 'pointer'
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                background: "none",
+                border: "none",
+                fontSize: "20px",
+                cursor: "pointer",
               }}
             >
               <i className="bi bi-x"></i>
             </button>
-            
+
             {/* Header */}
-            <div className="payment-popup-header-minimal" style={{
-              textAlign: 'center',
-              marginBottom: '20px'
-            }}>
-              <i className="bi bi-credit-card payment-popup-icon-minimal" style={{
-                fontSize: '32px',
-                color: '#3b82f6',
-                marginBottom: '10px'
-              }}></i>
-              <h3 className="payment-popup-title-minimal" style={{
-                margin: '0',
-                color: '#1a1a1a',
-                fontSize: '18px'
-              }}>Payment Confirmation</h3>
+            <div
+              className="payment-popup-header-minimal"
+              style={{
+                textAlign: "center",
+                marginBottom: "20px",
+              }}
+            >
+              <i
+                className="bi bi-credit-card payment-popup-icon-minimal"
+                style={{
+                  fontSize: "32px",
+                  color: "#3b82f6",
+                  marginBottom: "10px",
+                }}
+              ></i>
+              <h3
+                className="payment-popup-title-minimal"
+                style={{
+                  margin: "0",
+                  color: "#1a1a1a",
+                  fontSize: "18px",
+                }}
+              >
+                Payment Confirmation
+              </h3>
             </div>
-            
+
             {/* Content */}
-            <div className="payment-popup-content-minimal" style={{
-              marginBottom: '20px'
-            }}>
-              <div className="payment-popup-info-minimal" style={{
-                textAlign: 'center'
-              }}>
-                <p className="payment-popup-customer-minimal" style={{
-                  fontSize: '16px',
-                  margin: '0 0 5px 0'
-                }}>
-                  <strong>{paymentConfirmationData?.customerName || "Walk-in Customer"}</strong>
+            <div
+              className="payment-popup-content-minimal"
+              style={{
+                marginBottom: "20px",
+              }}
+            >
+              <div
+                className="payment-popup-info-minimal"
+                style={{
+                  textAlign: "center",
+                }}
+              >
+                <p
+                  className="payment-popup-customer-minimal"
+                  style={{
+                    fontSize: "16px",
+                    margin: "0 0 5px 0",
+                  }}
+                >
+                  <strong>
+                    {paymentConfirmationData?.customerName ||
+                      "Walk-in Customer"}
+                  </strong>
                 </p>
-                <p className="payment-popup-service-minimal" style={{
-                  fontSize: '14px',
-                  color: '#666',
-                  margin: '0 0 15px 0'
-                }}>
+                <p
+                  className="payment-popup-service-minimal"
+                  style={{
+                    fontSize: "14px",
+                    color: "#666",
+                    margin: "0 0 15px 0",
+                  }}
+                >
                   {paymentConfirmationData?.serviceName || "Service"}
                 </p>
-                <p className="payment-popup-question-minimal" style={{
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  margin: '15px 0 0 0'
-                }}>
+                <p
+                  className="payment-popup-question-minimal"
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    margin: "15px 0 0 0",
+                  }}
+                >
                   Has the customer paid?
                 </p>
               </div>
             </div>
-            
+
             {/* Action Buttons */}
-            <div className="payment-popup-actions-minimal" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: '10px'
-            }}>
-              <button 
+            <div
+              className="payment-popup-actions-minimal"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "10px",
+              }}
+            >
+              <button
                 className="payment-popup-btn-minimal payment-popup-paid-btn-minimal"
                 onClick={() => handlePaymentPaid(paymentConfirmationData)}
                 style={{
-                  flex: '1',
-                  padding: '12px',
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '5px'
+                  flex: "1",
+                  padding: "12px",
+                  backgroundColor: "#10b981",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "5px",
                 }}
               >
                 <i className="bi bi-check-lg"></i> Yes, Paid
               </button>
-              
-              <button 
+
+              <button
                 className="payment-popup-btn-minimal payment-popup-pending-btn-minimal"
                 onClick={() => handlePaymentUnpaid(paymentConfirmationData)}
                 style={{
-                  flex: '1',
-                  padding: '12px',
-                  backgroundColor: '#f59e0b',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '5px'
+                  flex: "1",
+                  padding: "12px",
+                  backgroundColor: "#f59e0b",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "5px",
                 }}
               >
                 <i className="bi bi-clock"></i> Not Yet

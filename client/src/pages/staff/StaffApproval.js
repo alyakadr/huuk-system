@@ -251,6 +251,3 @@ const StaffApproval = () => {
   );
 };
 export default StaffApproval;
-
-
-

@@ -1,90 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import http from "../../utils/httpClient";
-import '../../styles/changePasswordModal.css';
+import "../../styles/changePasswordModal.css";
 
 const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
   const [passwords, setPasswords] = useState({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setPasswords(prev => ({
+    setPasswords((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!passwords.oldPassword) {
-      newErrors.oldPassword = 'Current password is required';
+      newErrors.oldPassword = "Current password is required";
     }
-    
+
     if (!passwords.newPassword) {
-      newErrors.newPassword = 'New password is required';
+      newErrors.newPassword = "New password is required";
     } else if (passwords.newPassword.length < 6) {
-      newErrors.newPassword = 'Password must be at least 6 characters long';
+      newErrors.newPassword = "Password must be at least 6 characters long";
     }
-    
+
     if (!passwords.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your new password';
+      newErrors.confirmPassword = "Please confirm your new password";
     } else if (passwords.newPassword !== passwords.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = "Passwords do not match";
     }
-    
+
     if (passwords.oldPassword === passwords.newPassword) {
-      newErrors.newPassword = 'New password must be different from current password';
+      newErrors.newPassword =
+        "New password must be different from current password";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       await http.post(
         `http://localhost:5000/api/users/change-password/${userId}`,
         {
           oldPassword: passwords.oldPassword,
-          newPassword: passwords.newPassword
+          newPassword: passwords.newPassword,
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
-      
-      alert('Password changed successfully!');
+
+      alert("Password changed successfully!");
       handleClose();
     } catch (error) {
-      console.error('Error changing password:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to change password';
-      
-      if (errorMessage.includes('Old password incorrect')) {
-        setErrors({ oldPassword: 'Current password is incorrect' });
+      console.error("Error changing password:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to change password";
+
+      if (errorMessage.includes("Old password incorrect")) {
+        setErrors({ oldPassword: "Current password is incorrect" });
       } else {
         alert(errorMessage);
       }
@@ -95,9 +97,9 @@ const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
 
   const handleClose = () => {
     setPasswords({
-      oldPassword: '',
-      newPassword: '',
-      confirmPassword: ''
+      oldPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     });
     setErrors({});
     onClose();
@@ -114,7 +116,7 @@ const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
             <span className="material-icons">close</span>
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="password-form">
           <div className="form-group">
             <label htmlFor="oldPassword">Current Password</label>
@@ -124,10 +126,12 @@ const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
               name="oldPassword"
               value={passwords.oldPassword}
               onChange={handleChange}
-              className={`form-input ${errors.oldPassword ? 'error' : ''}`}
+              className={`form-input ${errors.oldPassword ? "error" : ""}`}
               placeholder="Enter current password"
             />
-            {errors.oldPassword && <span className="error-message">{errors.oldPassword}</span>}
+            {errors.oldPassword && (
+              <span className="error-message">{errors.oldPassword}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -138,10 +142,12 @@ const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
               name="newPassword"
               value={passwords.newPassword}
               onChange={handleChange}
-              className={`form-input ${errors.newPassword ? 'error' : ''}`}
+              className={`form-input ${errors.newPassword ? "error" : ""}`}
               placeholder="Enter new password"
             />
-            {errors.newPassword && <span className="error-message">{errors.newPassword}</span>}
+            {errors.newPassword && (
+              <span className="error-message">{errors.newPassword}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -152,10 +158,12 @@ const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
               name="confirmPassword"
               value={passwords.confirmPassword}
               onChange={handleChange}
-              className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
+              className={`form-input ${errors.confirmPassword ? "error" : ""}`}
               placeholder="Confirm new password"
             />
-            {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+            {errors.confirmPassword && (
+              <span className="error-message">{errors.confirmPassword}</span>
+            )}
           </div>
 
           <div className="form-actions">
@@ -163,7 +171,7 @@ const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
               Cancel
             </button>
             <button type="submit" className="submit-btn" disabled={isLoading}>
-              {isLoading ? 'Changing...' : 'Change Password'}
+              {isLoading ? "Changing..." : "Change Password"}
             </button>
           </div>
         </form>
@@ -173,6 +181,3 @@ const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
 };
 
 export default ChangePasswordModal;
-
-
-

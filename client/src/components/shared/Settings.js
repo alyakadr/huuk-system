@@ -130,7 +130,7 @@ const SettingsPage = () => {
     formData.append("address", profile.address || globalProfile.address || "");
     formData.append(
       "phone_number",
-      profile.phone_number || globalProfile.phone_number || ""
+      profile.phone_number || globalProfile.phone_number || "",
     );
 
     if (selectedImage) {
@@ -149,7 +149,7 @@ const SettingsPage = () => {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
       updateProfile(response.data);
       alert("Profile updated successfully");
@@ -165,7 +165,7 @@ const SettingsPage = () => {
       console.error("Error updating profile:", err);
       alert(
         "Failed to update profile: " +
-          (err.response?.data?.message || err.message)
+          (err.response?.data?.message || err.message),
       );
     }
   };
@@ -236,7 +236,7 @@ const SettingsPage = () => {
               ref={imgRef}
               src={
                 selectedImage ||
-                `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${profile.profile_picture}`
+                `${process.env.REACT_APP_API_URL || "http://localhost:5000"}${profile.profile_picture}`
               }
               alt="Profile Preview"
               style={{ display: "none" }}
@@ -269,6 +269,3 @@ const SettingsPage = () => {
 };
 
 export default SettingsPage;
-
-
-
