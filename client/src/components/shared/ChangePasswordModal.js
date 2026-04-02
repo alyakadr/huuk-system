@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import http from "../../utils/httpClient";
 import '../../styles/changePasswordModal.css';
 
 const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
@@ -64,7 +64,7 @@ const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.post(
+      await http.post(
         `http://localhost:5000/api/users/change-password/${userId}`,
         {
           oldPassword: passwords.oldPassword,
@@ -173,3 +173,6 @@ const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
 };
 
 export default ChangePasswordModal;
+
+
+

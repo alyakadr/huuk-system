@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Modal from "react-modal";
 import { useSpring, animated } from "@react-spring/web";
-import axios from "axios";
+import http from "../../utils/httpClient";
 import {
   MdPhone,
   MdLock,
@@ -213,7 +213,7 @@ const CustomerHomepage = () => {
         url: `${API_BASE_URL}/auth/customer/signup`,
       });
 
-      const response = await axios.post(
+      const response = await http.post(
         `${API_BASE_URL}/auth/customer/signup`,
         {
           phone_number: signUpPhoneNumber,
@@ -784,3 +784,6 @@ const CustomerHomepage = () => {
 };
 
 export default CustomerHomepage;
+
+
+

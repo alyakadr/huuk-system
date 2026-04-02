@@ -1,4 +1,4 @@
-import axios from "axios";
+import http from "./httpClient";
 import client, {
   deleteBooking,
   setPayAtOutlet,
@@ -314,7 +314,7 @@ export const handleSignIn = async (
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     console.log("[SIGN IN] Making authentication request to server");
-    const response = await axios.post(
+    const response = await http.post(
       `${API_BASE_URL}/auth/customer/signin`,
       {
         phone_number: signInPhoneNumber,
@@ -2625,3 +2625,6 @@ export const fetchOutlets = (setLoading, setOutlets, setErrors) => {
       setLoading((prev) => ({ ...prev, outlets: false }));
     });
 };
+
+
+

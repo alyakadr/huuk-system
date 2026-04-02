@@ -36,7 +36,7 @@ import {
   Label,
 } from "recharts";
 import moment from "moment";
-import axios from "axios";
+import http from "../../utils/httpClient";
 import { ensureStaffToken } from "../../utils/tokenUtils";
 
 const outlets = OUTLET_NAMES_UPPER;
@@ -350,13 +350,13 @@ const ManagerDashboard = () => {
       const staffToken = ensureStaffToken();
 
       const [totalResponse, yesterdayResponse] = await Promise.all([
-        axios.get(
+        http.get(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/customers/total-all`,
           {
             headers: { Authorization: `Bearer ${staffToken}` },
           },
         ),
-        axios.get(
+        http.get(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/customers/total-up-to-yesterday`,
           {
             headers: { Authorization: `Bearer ${staffToken}` },
@@ -386,7 +386,7 @@ const ManagerDashboard = () => {
       const staffToken = ensureStaffToken();
       const today = moment().format("YYYY-MM-DD");
 
-      const response = await axios.get(
+      const response = await http.get(
         `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/attendance`,
         {
           params: { date: today, all: "true" },
@@ -446,43 +446,43 @@ const ManagerDashboard = () => {
         appointmentsTodayResponse,
         appointmentsYesterdayResponse,
       ] = await Promise.all([
-        axios.get(
+        http.get(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/pending-approval`,
           {
             headers: { Authorization: `Bearer ${staffToken}` },
           },
         ),
-        axios.get(
+        http.get(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/list`,
           {
             headers: { Authorization: `Bearer ${staffToken}` },
           },
         ),
-        axios.get(
+        http.get(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/appointments/all`,
           {
             headers: { Authorization: `Bearer ${staffToken}` },
           },
         ),
-        axios.get(
+        http.get(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/payments/total-revenue-today`,
           {
             headers: { Authorization: `Bearer ${staffToken}` },
           },
         ),
-        axios.get(
+        http.get(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/payments/total-revenue-yesterday`,
           {
             headers: { Authorization: `Bearer ${staffToken}` },
           },
         ),
-        axios.get(
+        http.get(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/appointments/total-today`,
           {
             headers: { Authorization: `Bearer ${staffToken}` },
           },
         ),
-        axios.get(
+        http.get(
           `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/appointments/total-yesterday`,
           {
             headers: { Authorization: `Bearer ${staffToken}` },
@@ -535,7 +535,7 @@ const ManagerDashboard = () => {
         );
       }
 
-      const response = await axios.get(
+      const response = await http.get(
         `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/daily-transactions`,
         {
           headers: {
@@ -625,7 +625,7 @@ const ManagerDashboard = () => {
         );
       }
 
-      const response = await axios.get(
+      const response = await http.get(
         `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/bookings/customer-satisfaction`,
         {
           headers: {
@@ -686,7 +686,7 @@ const ManagerDashboard = () => {
 
         // Verify authentication
         try {
-          const response = await axios.get(
+          const response = await http.get(
             `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/profile`,
             {
               headers: {
@@ -1376,3 +1376,6 @@ const ManagerDashboard = () => {
 };
 
 export default ManagerDashboard;
+
+
+

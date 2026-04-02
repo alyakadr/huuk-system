@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../../styles/ManagerAppointmentManagement.css';
-import axios from 'axios';
+import http from "../../utils/httpClient";
 import moment from 'moment';
 import { API_BASE_URL } from '../../utils/constants';
 import api from '../../utils/api';
@@ -101,7 +101,7 @@ const [loading, setLoading] = useState(true);
       const token = localStorage.getItem("staff_token") || localStorage.getItem("token");
       console.log('Using token:', token ? 'Token exists' : 'No token found');
       
-      const response = await axios.put(`${API_BASE_URL}/bookings/staff/appointment/${rescheduleData.id}/reschedule`, {
+      const response = await http.put(`${API_BASE_URL}/bookings/staff/appointment/${rescheduleData.id}/reschedule`, {
         booking_date: rescheduleData.newDate,
         start_time: rescheduleData.newTime,
         date: rescheduleData.newDate,
@@ -183,7 +183,7 @@ const [loading, setLoading] = useState(true);
       }
       
       console.log('Fetching all appointments dynamically...');
-      const response = await axios.get(`${API_BASE_URL}/bookings/appointments/all`, {
+      const response = await http.get(`${API_BASE_URL}/bookings/appointments/all`, {
         headers: {
           'Authorization': `Bearer ${finalToken}`
         }
@@ -401,7 +401,7 @@ const handleReschedule = (appointmentId) => {
     if (!appointmentToCancel) return;
     
     try {
-      const response = await axios.put(`${API_BASE_URL}/bookings/staff/appointment/${appointmentToCancel.id}/status`, {
+      const response = await http.put(`${API_BASE_URL}/bookings/staff/appointment/${appointmentToCancel.id}/status`, {
         status: "cancelled"
       }, {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
@@ -869,3 +869,5 @@ const handleReschedule = (appointmentId) => {
 };
 
 export default ManagerAppointmentManagement;
+
+

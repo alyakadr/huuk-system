@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Modal from 'react-modal';
-import axios from 'axios';
+import http from "../../utils/httpClient";
 
 const SimpleSignUpModal = ({ isOpen, onRequestClose, onRegister }) => {
   const [formData, setFormData] = useState({
@@ -28,7 +28,7 @@ const SimpleSignUpModal = ({ isOpen, onRequestClose, onRegister }) => {
     }
 
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/register', {
+      const response = await http.post('http://localhost:8080/api/auth/register', {
         name: formData.name,
         phone: formData.phone,
         password: formData.password
@@ -192,3 +192,6 @@ const SimpleSignUpModal = ({ isOpen, onRequestClose, onRegister }) => {
 };
 
 export default SimpleSignUpModal;
+
+
+

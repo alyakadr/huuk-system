@@ -29,7 +29,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../ProfileContext";
 import client from "../../api/client";
-import axios from "axios"; // Add axios import
+import http from "../../utils/httpClient";
 import io from "socket.io-client";
 import { jsPDF } from "jspdf";
 import "../../styles/bookingHistory.css";
@@ -166,7 +166,7 @@ const BookingHistory = () => {
       }
 
       // Direct API call with explicit headers
-      const response = await axios.get(`${API_BASE_URL}/bookings`, {
+      const response = await http.get(`${API_BASE_URL}/bookings`, {
         headers: {
           "Authorization": `Bearer ${customerToken}`,
           "Cache-Control": "no-cache",
@@ -653,7 +653,7 @@ const BookingHistory = () => {
       }
       
       // Direct API call with explicit headers
-      const response = await axios.post(
+      const response = await http.post(
         `${API_BASE_URL}/bookings/reschedule`,
         {
           booking_id: selectedBooking.id,  // Use booking_id as expected by the backend
@@ -714,7 +714,7 @@ const BookingHistory = () => {
       }
       
       // Direct API call with explicit headers
-      const response = await axios.post(
+      const response = await http.post(
         `${API_BASE_URL}/bookings/cancel`,
         { booking_id: selectedBooking.id },  // Use booking_id as expected by the backend
         { 
@@ -1673,3 +1673,6 @@ const BookingHistory = () => {
 };
 
 export default BookingHistory;
+
+
+

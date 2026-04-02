@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Modal from 'react-modal';
-import axios from 'axios';
+import http from "../../utils/httpClient";
 
 const SimpleSignInModal = ({ isOpen, onRequestClose, onLogin }) => {
   const [formData, setFormData] = useState({
@@ -20,7 +20,7 @@ const SimpleSignInModal = ({ isOpen, onRequestClose, onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/login', formData);
+      const response = await http.post('http://localhost:8080/api/auth/login', formData);
       if (response.data.success) {
         onLogin(response.data.user);
         onRequestClose();
@@ -143,3 +143,6 @@ const SimpleSignInModal = ({ isOpen, onRequestClose, onLogin }) => {
 };
 
 export default SimpleSignInModal;
+
+
+

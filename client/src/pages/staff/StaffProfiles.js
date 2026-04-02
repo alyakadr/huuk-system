@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../ProfileContext";
-import axios from "axios";
+import http from "../../utils/httpClient";
 import styles from "../../styles/StaffProfiles.css";
 import { FaEnvelope, FaPhoneAlt } from "react-icons/fa"; // Import the icons
 import { OUTLET_NAMES_TITLE } from "../../constants/outlets";
@@ -46,7 +46,7 @@ const StaffProfiles = () => {
           timeout: 5000,
         };
         console.log("Request config:", config);
-        const response = await axios.get(
+        const response = await http.get(
           "http://localhost:5000/api/users/staffs",
           config,
         );
@@ -302,3 +302,6 @@ const StaffProfiles = () => {
 };
 
 export default StaffProfiles;
+
+
+

@@ -10,7 +10,7 @@ import banner3 from "../../assets/banner3.png";
 import banner4 from "../../assets/banner4.png";
 import banner5 from "../../assets/banner5.png";
 import Cookies from "js-cookie";
-import axios from "axios";
+import http from "../../utils/httpClient";
 import {
   MdEmail,
   MdLock,
@@ -188,7 +188,7 @@ const Homepage = () => {
     setSignInErrors({ email: "", password: "" });
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const response = await axios.post(`${API_BASE_URL}/auth/staff/signin`, {
+      const response = await http.post(`${API_BASE_URL}/auth/staff/signin`, {
         email: normalizedEmail,
         password,
       });
@@ -253,7 +253,7 @@ const Homepage = () => {
       newErrors.username = usernameError;
     } else {
       try {
-        const response = await axios.post(
+        const response = await http.post(
           `${API_BASE_URL}/users/checkUsername`,
           {
             username,
@@ -274,7 +274,7 @@ const Homepage = () => {
       newErrors.email = "Invalid email address.";
     } else {
       try {
-        const response = await axios.post(`${API_BASE_URL}/users/checkEmail`, {
+        const response = await http.post(`${API_BASE_URL}/users/checkEmail`, {
           email: signUpEmail,
         });
         if (response.data.exists) {
@@ -302,7 +302,7 @@ const Homepage = () => {
     }
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/signup`, {
+      const response = await http.post(`${API_BASE_URL}/auth/signup`, {
         email: signUpEmail,
         password: signUpPassword,
         userType,
@@ -364,7 +364,7 @@ const Homepage = () => {
   useEffect(() => {
     if (isSignUpOpen) {
       // Fetch outlets when signup modal is opened
-      axios
+      http
         .get(`${API_BASE_URL}/bookings/outlets`)
         .then((response) => {
           if (Array.isArray(response.data)) {
@@ -1117,3 +1117,6 @@ const Homepage = () => {
 };
 
 export default Homepage;
+
+
+

@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import axios from "axios";
+import http from "./utils/httpClient";
 import Modal from "react-modal";
 import { MdPhone, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md';
 import { useSpring, animated } from "@react-spring/web";
@@ -51,7 +51,7 @@ export const ProfileProvider = ({ children }) => {
     setLoadingSignIn(true);
     setSignInErrors({ phoneNumber: "", password: "" });
     try {
-      const response = await axios.post(
+      const response = await http.post(
         `${API_BASE_URL}/auth/customer/signin`,
         {
           phone_number: signInPhoneNumber,
@@ -179,7 +179,7 @@ export const ProfileProvider = ({ children }) => {
               if (token) {
                 // Reduce validation logging frequency
                 if (Math.random() < 0.1) console.log("Validating token for user:", parsedProfile.id);
-                axios
+                http
                   .get(`${API_BASE_URL}/auth/validate`, {
                     headers: { Authorization: `Bearer ${token}` },
                   })
@@ -639,3 +639,6 @@ export const ProfileProvider = ({ children }) => {
 export const useProfile = () => {
   return useContext(ProfileContext);
 };
+
+
+

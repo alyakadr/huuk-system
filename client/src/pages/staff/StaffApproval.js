@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import http from "../../utils/httpClient";
 import "../../styles/staffApproval.css";
 import { OUTLET_SHORTCUTS_TITLE } from "../../constants/outlets";
 
@@ -42,7 +42,7 @@ const StaffApproval = () => {
       return;
     }
 
-    axios
+    http
       .get("http://localhost:5000/api/users/all-approvals", {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -81,7 +81,7 @@ const StaffApproval = () => {
     // Close dropdown after selection
     setOpenDropdown(null);
 
-    axios
+    http
       .post(
         `http://localhost:5000/api/users/update-status/${staffId}`,
         { status: newStatus },
@@ -251,3 +251,6 @@ const StaffApproval = () => {
   );
 };
 export default StaffApproval;
+
+
+

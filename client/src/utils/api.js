@@ -1,8 +1,8 @@
-import axios from "axios";
+import http from "./httpClient";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : "http://localhost:5000/api";
 
-const api = axios.create({
+const api = http.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
 });
@@ -13,21 +13,6 @@ api.interceptors.request.use(
     const staffToken = localStorage.getItem("staff_token");
     const legacyToken = localStorage.getItem("token");
     const customerToken = localStorage.getItem("customer_token");
-    
-    // Enhanced logging for booking operations
-    if (config.url && config.url.includes('/bookings')) {
-      console.log("[API] Booking request interceptor:", {
-        url: config.url,
-        method: config.method,
-        hasStaffToken: !!staffToken,
-        hasLegacyToken: !!legacyToken,
-        hasCustomerToken: !!customerToken,
-        staffTokenLength: staffToken ? staffToken.length : 0,
-        legacyTokenLength: legacyToken ? legacyToken.length : 0,
-        customerTokenLength: customerToken ? customerToken.length : 0,
-        timestamp: new Date().toISOString()
-      });
-    }
     
     // Check current interface based on window location
     const currentPath = window.location.pathname;
@@ -45,7 +30,6 @@ api.interceptors.request.use(
         config.url.includes('/bookings/customer-satisfaction')
       )) {
       token = staffToken || legacyToken;
-      console.log('[API] Using staff token for manager dashboard endpoint:', config.url);
     } else if (config.url && config.url.includes('/auth/customer/')) {
       token = customerToken;
     } else if (config.url && (config.url.includes('/auth/staff/') || config.url.includes('/users/') || config.url.includes('/customers/'))) {
@@ -62,19 +46,6 @@ api.interceptors.request.use(
       token = staffToken || legacyToken || customerToken;
     }
     
-    // Enhanced token selection logging for booking operations
-    if (config.url && config.url.includes('/bookings')) {
-      console.log("[API] Token selection for booking:", {
-        selectedTokenType: token === staffToken ? 'staff' : 
-                          token === legacyToken ? 'legacy' : 
-                          token === customerToken ? 'customer' : 'none',
-        tokenExists: !!token,
-        tokenLength: token ? token.length : 0,
-        authHeaderWillBeSet: !!token,
-        isStaffInterface
-      });
-    }
-    
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
     } else {
@@ -86,50 +57,10 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => {
-    // Enhanced logging for booking operations responses
-    if (response.config?.url && response.config.url.includes('/bookings')) {
-      console.log("[API] Booking response interceptor (SUCCESS):", {
-        url: response.config.url,
-        method: response.config.method,
-        status: response.status,
-        responseDataKeys: response.data ? Object.keys(response.data) : [],
-        hasData: !!response.data,
-        timestamp: new Date().toISOString()
-      });
-    }
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
-    // Enhanced logging for booking-related errors
-    if (error.config?.url && error.config.url.includes('/bookings')) {
-      console.error("[API] Booking response interceptor (ERROR):", {
-        url: error.config?.url,
-        method: error.config?.method,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-        requestHeaders: error.config?.headers,
-        requestData: error.config?.data,
-        timestamp: new Date().toISOString(),
-        errorType: error.response ? 'HTTP_ERROR' : 'NETWORK_ERROR'
-      });
-      
-      // Special handling for 400 Bad Request
-      if (error.response?.status === 400) {
-        console.error("[API] 400 Bad Request Details:", {
-          validationErrors: error.response?.data?.errors,
-          message: error.response?.data?.message,
-          field: error.response?.data?.field,
-          details: error.response?.data?.details,
-          fullResponseData: error.response?.data
-        });
-      }
-    }
-    
+
     console.error("API error:", {
       url: error.config?.url,
       status: error.response?.status,
@@ -151,7 +82,7 @@ api.interceptors.response.use(
       if (token) {
         try {
           // Try to refresh the token
-          const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
+          const refreshResponse = await http.post(`${API_BASE_URL}/auth/refresh`, {}, {
             headers: { Authorization: `Bearer ${token}` }
           });
           
@@ -195,3 +126,5 @@ export const fetchBookingsByPhone = async (phoneNumber) => {
 };
 
 export default api;
+
+

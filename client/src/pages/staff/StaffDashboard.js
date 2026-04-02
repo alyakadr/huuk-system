@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Pie, Bar } from "react-chartjs-2";
+import React, { useState, useEffect } from "react";
+import { Bar } from "react-chartjs-2";
+import BarberSalesReport from "../../components/staff/BarberSalesReport";
 import { useNavigate } from "react-router-dom";
 import summ1 from "../../assets/summ1.png";
 import summ2 from "../../assets/summ2.png";
@@ -17,7 +18,6 @@ import AddBookingModal from "../../components/AddBookingModal";
 import { TIME_SLOTS } from "../../utils/timeSlotUtils";
 import {
   Chart as ChartJS,
-  ArcElement,
   Tooltip,
   Legend,
   BarElement,
@@ -27,11 +27,16 @@ import {
 
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { io } from "socket.io-client";
-import { API_BASE_URL } from "../../utils/constants";
+import {
+  API_BASE_URL,
+  OPERATIONAL_HOURS,
+  BOOKING_STATUSES,
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES,
+} from "../../utils/constants";
 
 ChartJS.defaults.font.family = "Quicksand, sans-serif";
 ChartJS.register(
-  ArcElement,
   Tooltip,
   Legend,
   BarElement,
@@ -40,33 +45,58 @@ ChartJS.register(
   ChartDataLabels
 );
 
-const notifications = [
-  { id: 1, text: "New Appointment!", type: "new", time: "11:11" },
-  { id: 2, text: "New Appointment!", type: "new", time: "11:10" },
-  {
-    id: 3,
-    text: "Notice: Kamal Adli has cancelled the booking at 11:30 AM",
-    type: "cancel",
-    time: "11:00",
-  },
-  {
-    id: 4,
-    text: "Reminder: Customer booking in 15 minutes at 11:15 AM",
-    type: "reminder",
-    time: "10:45",
-  },
-];
-
-const unreadCount = notifications.length;
+const PaymentManagementTable = ({ loadingPayment, paymentData }) => {
+  return (
+    <div className="staff-dashboard-payment-management">
+      <div className="staff-dashboard-payment-header">
+        <h3 className="staff-dashboard-payment-title">
+          Payment Management
+        </h3>
+        <button
+          className="staff-dashboard-button-view-all-button-sales"
+          onClick={() => alert("This feature is currently under maintenance. Please check back later.")}
+        >
+          View all
+        </button>
+      </div>
+      <table className="staff-dashboard-payment-table">
+        <thead>
+          <tr className="staff-dashboard-table-header">
+            <th className="staff-dashboard-th">CUSTOMER NAME</th>
+            <th className="staff-dashboard-th">PAYMENT METHOD</th>
+            <th className="staff-dashboard-th">STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loadingPayment ? (
+            <tr>
+              <td colSpan="3" style={{ textAlign: "center", color: "white" }}>Loading payment data...</td>
+            </tr>
+          ) : paymentData.length === 0 ? (
+            <tr>
+              <td colSpan="3" style={{ textAlign: "center", color: "white" }}>No payment data available</td>
+            </tr>
+          ) : (
+            paymentData.slice(0, 3).map((payment, index) => (
+              <tr key={payment.id || index} className="staff-dashboard-table-row">
+                <td className="staff-dashboard-table-cell">{payment.customer_name}</td>
+                <td className="staff-dashboard-table-cell">{payment.payment_method}</td>
+                <td className={`staff-dashboard-table-cell staff-dashboard-status ${payment.payment_status === "Paid" ? "staff-dashboard-status-paid" : "staff-dashboard-status-unpaid"}`}>
+                  {payment.payment_status}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [searchText, setSearchText] = useState("");
-  const [isNotiOpen, setIsNotiOpen] = useState(false);
   const [isTimeInConfirmed, setIsTimeInConfirmed] = useState(false);
-  const [selectedOutlet, setSelectedOutlet] = useState("");
-  
   const [summaryData, setSummaryData] = useState({
     done: 0,
     pending: 0,
@@ -79,45 +109,39 @@ const StaffDashboard = () => {
   const [loadingSchedule, setLoadingSchedule] = useState(true);
   const [barChartData, setBarChartData] = useState({ labels: [], data: [] });
   const [loadingBarChart, setLoadingBarChart] = useState(true);
-  const [processingBookings, setProcessingBookings] = useState(new Set());
   const [paymentData, setPaymentData] = useState([]);
   const [loadingPayment, setLoadingPayment] = useState(true);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [paymentConfirmationData, setPaymentConfirmationData] = useState(null);
   const [blockedSlots, setBlockedSlots] = useState([]);
-  const [loadingBlockedSlots, setLoadingBlockedSlots] = useState(false);
-  
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log('DEBUG: showPaymentConfirmation state changed to:', showPaymentConfirmation);
-  }, [showPaymentConfirmation]);
-  
-  useEffect(() => {
-    console.log('DEBUG: paymentConfirmationData state changed to:', paymentConfirmationData);
-  }, [paymentConfirmationData]);
-  
-  // Debug logging for blocked slots state changes
-  useEffect(() => {
-    console.log('🚑 [BLOCKED SLOTS DEBUG] Blocked slots state changed to:', blockedSlots);
-    console.log('🚑 [BLOCKED SLOTS DEBUG] Blocked slots count:', blockedSlots.length);
-    console.log('🚑 [BLOCKED SLOTS DEBUG] Blocked slots list:', blockedSlots);
-  }, [blockedSlots]);
-  const pollingIntervalRef = useRef(null);
   const [showAddBookingModal, setShowAddBookingModal] = useState(false);
   const [selectedSlotForBooking, setSelectedSlotForBooking] = useState(null);
-  
-
 
   const fetchAllData = async () => {
     setLoadingSummary(true);
     setLoadingSchedule(true);
     setLoadingBarChart(true);
-
     try {
-      // Fetch summary data
-      const summaryResponse = await api.get("/bookings/summary", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("staff_token")}` },
-      });
+      const token = localStorage.getItem("staff_token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      let outletParam = null;
+      if (user && user.outlet) {
+        outletParam = user.outlet;
+      } else if (user && user.outlet_id) {
+        outletParam = user.outlet_id;
+      }
+
+      // Fetch all three in parallel
+      const [summaryResponse, scheduleResponse, barChartResponse] = await Promise.all([
+        api.get("/bookings/summary", { headers }),
+        api.get("/bookings/staff/schedule", { headers }),
+        api.get("/bookings/todays-appointments-by-staff", {
+          headers,
+          params: outletParam ? { outlet: outletParam } : {},
+        }),
+      ]);
+
       setSummaryData(summaryResponse.data || {
         done: 0,
         pending: 0,
@@ -126,10 +150,6 @@ const StaffDashboard = () => {
         absent: 0
       });
 
-      // Fetch schedule data
-      const scheduleResponse = await api.get("/bookings/staff/schedule", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("staff_token")}` },
-      });
       const sortedSchedule = (scheduleResponse.data || []).sort((a, b) => {
         if (a.start_time === "-" && b.start_time === "-") return 0;
         if (a.start_time === "-") return 1;
@@ -138,17 +158,6 @@ const StaffDashboard = () => {
       });
       setScheduleData(sortedSchedule);
 
-      // Fetch bar chart data filtered by user's outlet/branch
-      let outletParam = null;
-      if (user && user.outlet) {
-        outletParam = user.outlet;
-      } else if (user && user.outlet_id) {
-        outletParam = user.outlet_id;
-      }
-      const barChartResponse = await api.get("/bookings/todays-appointments-by-staff", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("staff_token")}` },
-        params: outletParam ? { outlet: outletParam } : {},
-      });
       setBarChartData(barChartResponse.data || { labels: [], data: [] });
 
     } catch (error) {
@@ -172,53 +181,40 @@ const StaffDashboard = () => {
 
 
   const fetchPaymentData = async () => {
-    console.log("Starting fetchPaymentData...");
     setLoadingPayment(true);
     try {
-      // Fetch payment data with expanded parameters to ensure all payment types are included
       const response = await api.get("/payments/payment-management", {
         headers: { Authorization: `Bearer ${localStorage.getItem("staff_token") || localStorage.getItem("token")}` },
         params: {
-          limit: 10, // Increased limit to show more payments
+          limit: 10,
           sort_by: 'created_at',
           sort_order: 'desc',
-          include_all_types: true, // Request all payment types
-          include_pay_at_outlet: true, // Explicitly request Pay at Outlet payments
-          include_online_payment: true, // Explicitly request Online payments
+          include_all_types: true,
+          include_pay_at_outlet: true,
+          include_online_payment: true,
         },
       });
       
-      console.log("Payment data response:", response.data);
-      console.log("Payment data length:", response.data ? response.data.length : 0);
-      
-      // Process payment data to ensure consistent format
       const processedPayments = Array.isArray(response.data) ? response.data.map(payment => ({
         ...payment,
-        // Normalize payment method values
-        payment_method: payment.payment_method === "pay_at_outlet" ? "Pay at Outlet" : 
-                       payment.payment_method === "online_payment" ? "Online Payment" : 
+        payment_method: payment.payment_method === PAYMENT_METHODS.PAY_AT_OUTLET ? "Pay at Outlet" : 
+                       payment.payment_method === PAYMENT_METHODS.ONLINE ? "Online Payment" : 
                        payment.payment_method || "Unknown",
-        // Ensure payment status is capitalized consistently
-        payment_status: payment.payment_status === "paid" ? "Paid" :
-                       payment.payment_status === "pending" ? "Pending" :
+        payment_status: payment.payment_status === PAYMENT_STATUSES.PAID ? "Paid" :
+                       payment.payment_status === PAYMENT_STATUSES.PENDING ? "Pending" :
                        payment.payment_status || "Unknown"
       })) : [];
       
-      console.log("Processed payment data:", processedPayments);
       setPaymentData(processedPayments);
     } catch (error) {
       console.error("Error fetching payment data:", error);
-      console.error("Payment API error response:", error.response?.data);
-      console.error("Payment API error status:", error.response?.status);
       setPaymentData([]);
     } finally {
       setLoadingPayment(false);
-      console.log("fetchPaymentData completed");
     }
   };
 
   const checkAttendance = async (userId) => {
-    console.log("Checking attendance in StaffDashboard for staff_id:", userId);
     try {
       const response = await api.get("/users/attendance", {
         params: {
@@ -228,7 +224,6 @@ const StaffDashboard = () => {
         },
       });
       const data = response.data.attendance || [];
-      console.log("StaffDashboard attendance data:", data);
       const todayRecord = data.find(
         (record) =>
           record.staff_id === userId &&
@@ -237,7 +232,6 @@ const StaffDashboard = () => {
           record.time_in
       );
       if (todayRecord) {
-        console.log("StaffDashboard found today record:", todayRecord);
         setIsTimeInConfirmed(true);
         localStorage.setItem("isTimeInConfirmed", "true");
         localStorage.setItem(
@@ -245,7 +239,6 @@ const StaffDashboard = () => {
           moment(todayRecord.time_in).format("HH:mm")
         );
       } else {
-        console.log("StaffDashboard no today record found");
         setIsTimeInConfirmed(false);
         localStorage.setItem("isTimeInConfirmed", "false");
         localStorage.removeItem("timeIn");
@@ -256,8 +249,6 @@ const StaffDashboard = () => {
   };
 
   useEffect(() => {
-    console.log("Mounting StaffDashboard");
-    
     const storedUser = localStorage.getItem("staff_loggedInUser");
     if (storedUser) {
       const userObj = JSON.parse(storedUser);
@@ -269,28 +260,18 @@ const StaffDashboard = () => {
       } else {
         setUser(userObj);
         const storedTimeInConfirmed = localStorage.getItem("isTimeInConfirmed");
-        console.log(
-          "StaffDashboard initial localStorage isTimeInConfirmed:",
-          storedTimeInConfirmed
-        );
         setIsTimeInConfirmed(storedTimeInConfirmed === "true");
         checkAttendance(userObj.id);
         fetchAllData();
         fetchPaymentData();
-        fetchBlockedSlots();
       }
     } else {
       navigate("/");
     }
     
     // Cleanup function
-    return () => {
-      // Clear polling on unmount
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
+    return () => {};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   // Simple polling for data updates
@@ -314,84 +295,14 @@ const StaffDashboard = () => {
     return () => {
       socket.disconnect();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update the payment table component to better display payment information
-  const PaymentManagementTable = () => {
-    return (
-      <div className="staff-dashboard-payment-management">
-        <div className="staff-dashboard-payment-header">
-          <h3 className="staff-dashboard-payment-title">
-            Payment Management
-          </h3>
-          <button 
-            className="staff-dashboard-button-view-all-button-sales"
-            onClick={() => alert("This feature is currently under maintenance. Please check back later.")}
-          >
-            View all
-          </button>
-        </div>
-        <table className="staff-dashboard-payment-table">
-          <thead>
-            <tr className="staff-dashboard-table-header">
-              <th className="staff-dashboard-th">CUSTOMER NAME</th>
-              <th className="staff-dashboard-th">PAYMENT METHOD</th>
-              <th className="staff-dashboard-th">STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loadingPayment ? (
-              <tr>
-                <td colSpan="3" style={{ textAlign: "center", color: "white" }}>Loading payment data...</td>
-              </tr>
-            ) : paymentData.length === 0 ? (
-              <tr>
-                <td colSpan="3" style={{ textAlign: "center", color: "white" }}>No payment data available</td>
-              </tr>
-            ) : (
-              paymentData.slice(0, 3).map((payment, index) => {
-                // Treat null/empty payment_method as 'Pay at Outlet'
-                const normalizedMethod = !payment.payment_method || payment.payment_method === "pay_at_outlet" ? "Pay at Outlet" :
-                  payment.payment_method === "Online Payment" || payment.payment_method === "online_payment" || payment.payment_method === "online" ? "Online Payment" : payment.payment_method;
-                return (
-                  <tr key={payment.id || index} className="staff-dashboard-table-row">
-                    <td className="staff-dashboard-table-cell">
-                      {payment.customer_name}
-                    </td>
-                    <td className="staff-dashboard-table-cell">
-                      {normalizedMethod}
-                    </td>
-                    <td className={`staff-dashboard-table-cell staff-dashboard-status ${payment.payment_status === "Paid" ? "staff-dashboard-status-paid" : "staff-dashboard-status-unpaid"}`}>
-                      {payment.payment_status}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-
-  const handleSearch = (value) => {
-    setSearchText(value);
-  };
-
-  const toggleNotifications = (isOpen) => {
-    setIsNotiOpen(isOpen);
-  };
-
-  // New function to check if booking needs payment confirmation
   const checkPaymentConfirmation = async (bookingId) => {
-    console.log('DEBUG: Starting payment confirmation check for booking ID:', bookingId);
     try {
-      // First, get booking details to check if payment confirmation is needed
       const token = localStorage.getItem("staff_token") || localStorage.getItem("token");
       
       if (!token) {
-        console.error('No authentication token available');
         alert('Authentication required. Please log in again.');
         return;
       }
@@ -400,38 +311,16 @@ const StaffDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      console.log('DEBUG: Booking details API response:', response.data);
-      
       if (response.status === 200) {
         const bookingData = response.data;
-        console.log('DEBUG: Booking data extracted:', {
-          paymentMethod: bookingData.paymentMethod,
-          paymentStatus: bookingData.paymentStatus,
-          isWalkIn: bookingData.isWalkIn,
-          customerName: bookingData.customerName,
-          serviceName: bookingData.serviceName,
-          totalAmount: bookingData.totalAmount
-        });
-        
-        // Force show payment confirmation for Pay at Outlet or pending payments
         const shouldShowPaymentConfirmation =
           (bookingData.paymentMethod === "Pay at Outlet" ||
-           bookingData.paymentMethod === "pay_at_outlet" ||
+           bookingData.paymentMethod === PAYMENT_METHODS.PAY_AT_OUTLET ||
            bookingData.isWalkIn === true ||
            bookingData.paymentStatus === "Pending") &&
           bookingData.paymentStatus !== "Paid";
         
-        console.log('DEBUG: Should show payment confirmation?', shouldShowPaymentConfirmation);
-        console.log('DEBUG: Condition breakdown:', {
-          'paymentMethod === Pay at Outlet': bookingData.paymentMethod === "Pay at Outlet",
-          'paymentMethod === pay_at_outlet': bookingData.paymentMethod === "pay_at_outlet",
-          'paymentStatus === Pending': bookingData.paymentStatus === "Pending",
-          'isWalkIn': bookingData.isWalkIn
-        });
-        
         if (shouldShowPaymentConfirmation) {
-          console.log('SUCCESS: Showing payment confirmation popup');
-          // Show payment confirmation popup BEFORE marking as done
           const confirmationData = {
             bookingId: bookingId,
             paymentMethod: bookingData.paymentMethod || "Pay at Outlet",
@@ -441,25 +330,14 @@ const StaffDashboard = () => {
             paymentStatus: bookingData.paymentStatus || "Pending",
             isWalkIn: bookingData.isWalkIn || false
           };
-          console.log('DEBUG: Payment confirmation data:', confirmationData);
-          
-          // Make sure to set these in the correct order
           setPaymentConfirmationData(confirmationData);
-          setTimeout(() => {
-            setShowPaymentConfirmation(true);
-            console.log('DEBUG: showPaymentConfirmation state set to true');
-          }, 50); // Small delay to ensure state updates properly
+          setShowPaymentConfirmation(true);
         } else {
-          console.log('INFO: No payment confirmation needed, marking as done directly');
-          // No payment confirmation needed, mark as done directly
           await markBookingAsDone(bookingId);
         }
       }
     } catch (error) {
-      console.error('ERROR: Error checking payment confirmation:', error);
-      console.error('ERROR: Error response:', error.response?.data);
-      console.error('ERROR: Error status:', error.response?.status);
-      // If we can't check, proceed with marking as done
+      console.error('Error checking payment confirmation:', error);
       await markBookingAsDone(bookingId);
     }
   };
@@ -475,18 +353,12 @@ const StaffDashboard = () => {
       );
       
       if (response.status === 200) {
-  // Refresh all data after marking as done
-        await fetchAllData();
-        await fetchPaymentData(); // Also refresh payment data
-        await fetchBlockedSlots(); // Also refresh blocked slots to ensure UI sync
+        await Promise.all([fetchAllData(), fetchPaymentData(), fetchBlockedSlots()]);
       }
     } catch (error) {
       console.error("❌ Error marking booking as done:", error);
       alert("Failed to mark booking as done. Please try again.");
-      
-      // Refresh data to ensure consistency
-      await fetchAllData();
-      await fetchBlockedSlots(); // Also refresh blocked slots
+      await Promise.all([fetchAllData(), fetchBlockedSlots()]);
     }
   };
 
@@ -658,8 +530,6 @@ const StaffDashboard = () => {
   // Fetch blocked slots from API
   const fetchBlockedSlots = async () => {
     if (!user?.id) return;
-    
-    setLoadingBlockedSlots(true);
     try {
       const response = await api.get(`/staff/blocked-slots`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("staff_token")}` },
@@ -675,8 +545,6 @@ const StaffDashboard = () => {
     } catch (error) {
       console.error("❌ Error fetching blocked slots:", error);
       setBlockedSlots([]);
-    } finally {
-      setLoadingBlockedSlots(false);
     }
   };
 
@@ -685,6 +553,7 @@ const StaffDashboard = () => {
     if (user?.id) {
       fetchBlockedSlots();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // Toggle slot blocking via API
@@ -744,24 +613,9 @@ const StaffDashboard = () => {
   };
 
   // Handle slot click for adding booking
-  const handleSlotClickForBooking = (time) => {
-    const today = moment();
-    const selectedDate = {
-      display: "today",
-      date: today.format('YYYY-MM-DD'),
-      full: today.toDate().toDateString(),
-    };
-
-    setSelectedSlotForBooking({ day: selectedDate, time });
-    setShowAddBookingModal(true);
-  };
-
   // Handle booking submission
   const handleBookingSubmit = async (formData) => {
     try {
-      // Submit booking logic here - similar to existing booking submission
-      console.log('Submitting booking:', formData);
-      
       // Close modal
       setShowAddBookingModal(false);
       setSelectedSlotForBooking(null);
@@ -804,22 +658,13 @@ const StaffDashboard = () => {
 
   // Helper function to check if a time slot is within operational hours
   const isWithinOperationalHours = (time) => {
-    const operationalStart = moment().hour(9).minute(30).second(0);
-    const operationalEnd = moment().hour(21).minute(59).second(59); // End before 10:00 PM
+    const operationalStart = moment().hour(OPERATIONAL_HOURS.start.h).minute(OPERATIONAL_HOURS.start.m).second(0);
+    const operationalEnd = moment().hour(OPERATIONAL_HOURS.end.h).minute(OPERATIONAL_HOURS.end.m).second(59);
     const slotTime = moment(time, "HH:mm");
-    
     return slotTime.isBetween(operationalStart, operationalEnd, null, '[)');
   };
 
   const availableSlots = generateTimeSlots();
-
-  const toggleSlot = (time) => {
-    if (blockedSlots.includes(time)) {
-      setBlockedSlots(blockedSlots.filter((t) => t !== time));
-    } else {
-      setBlockedSlots([...blockedSlots, time]);
-    }
-  };
 
   // Bar chart data from backend with enhanced styling
   const todaysAppointmentBarData = {
@@ -838,220 +683,18 @@ const StaffDashboard = () => {
     ],
   };
 
-  const BarberSalesReport = () => {
-    const [salesData, setSalesData] = useState({
-      labels: [],
-      data: [],
-      totalSales: 0
-    });
-    const [loadingSales, setLoadingSales] = useState(true);
-    const [hasFetched, setHasFetched] = useState(false);
-
-    const fetchSalesData = useCallback(async () => {
-      if (hasFetched) return; // Prevent multiple calls
-      
-      console.log("Starting fetchSalesData...");
-      const currentDate = moment().format("YYYY-MM-DD");
-      console.log("Fetching sales data for date:", currentDate);
-      setLoadingSales(true);
-      try {
-        // Fetch sales data
-        const response = await api.get("/bookings/sales-report", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("staff_token")}` },
-          params: {
-            date: currentDate
-          }
-        });
-        
-        console.log("Sales data response:", response.data);
-        const responseData = response.data || {};
-        console.log("Processed sales data:", {
-          labels: responseData.labels || [],
-          data: responseData.data || [],
-          totalSales: responseData.totalSales || 0
-        });
-        
-        setSalesData({
-          labels: responseData.labels || [],
-          data: responseData.data || [],
-          totalSales: responseData.totalSales || 0
-        });
-        setHasFetched(true);
-      } catch (error) {
-        console.error("Error fetching sales data:", error);
-        console.error("Sales API error response:", error.response?.data);
-        console.error("Sales API error status:", error.response?.status);
-        
-        setSalesData({
-          labels: [],
-          data: [],
-          totalSales: 0
-        });
-        setHasFetched(true);
-      } finally {
-        setLoadingSales(false);
-        console.log("fetchSalesData completed");
-      }
-    }, [hasFetched]);
-
-    useEffect(() => {
-      fetchSalesData();
-    }, [fetchSalesData]);
-
-    // Pastel blue color palette for the pie chart
-    const pieColors = [
-      "#A8D8EA", // Light Pastel Blue
-      "#B6E5F0", // Very Light Blue
-      "#C7E9F4", // Pale Blue
-      "#D4F1F8", // Extra Light Blue
-      "#9FD3E7", // Soft Blue
-      "#8BCBDE", // Medium Pastel Blue
-      "#7BC4D6", // Slightly Deeper Blue
-      "#6BB6CE", // Mid Blue
-      "#5BA8C6", // Deeper Pastel Blue
-      "#4B9ABE", // Blue Gray
-      "#3B8CB6", // Moderate Blue
-      "#2B7EAE", // Deep Pastel Blue
-      "#1B70A6", // Darker Blue
-      "#0B629E", // Navy Blue
-      "#005496"  // Deep Navy
-    ];
-
-    const data = {
-      labels: salesData.labels || [],
-      datasets: [
-        {
-          data: salesData.data || [],
-          backgroundColor: (salesData.labels || []).map((_, index) => 
-            pieColors[index % pieColors.length]
-          ),
-          borderWidth: 2,
-          borderColor: "#1a1a1a",
-          hoverBackgroundColor: (salesData.labels || []).map((_, index) => {
-            const color = pieColors[index % pieColors.length];
-            // Make hover color slightly darker
-            return color + "CC"; // Add transparency
-          }),
-          hoverBorderWidth: 3,
-          hoverBorderColor: "#ffffff",
-        },
-      ],
-    };
-
-    const options = {
-      plugins: {
-        legend: {
-          position: "top",
-          labels: {
-            usePointStyle: true,
-            pointStyle: "circle",
-            boxWidth: 10,
-            font: { family: '"Quicksand", sans-serif', size: 8 },
-            color: "white",
-            padding: 15,
-          },
-        },
-        tooltip: { 
-          enabled: true,
-          backgroundColor: "rgba(26, 26, 26, 0.95)",
-          titleColor: "white",
-          bodyColor: "white",
-          borderColor: "#6661ae",
-          borderWidth: 1,
-          cornerRadius: 8,
-          titleFont: { family: "Quicksand, sans-serif", size: 12, weight: '600' },
-          bodyFont: { family: "Quicksand, sans-serif", size: 11 },
-          callbacks: {
-            label: function(context) {
-              const label = context.label || '';
-              const value = context.parsed || 0;
-              const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
-              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-              return `${label}: ${value} (${percentage}%)`;
-            }
-          }
-        },
-        datalabels: { 
-          display: false
-        },
-      },
-      maintainAspectRatio: false,
-      responsive: true,
-      animation: {
-        duration: 1000,
-        easing: 'easeInOutQuart',
-      },
-      onHover: (event, elements) => {
-        event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
-      },
-    };
-
-    return (
-      <div className="staff-dashboard-barber-sales-report-container">
-        <div className="staff-dashboard-barber-sales-report-header">
-          <h2 className="staff-dashboard-barber-sales-report-title">
-            Sales Report
-          </h2>
-                  <button
-                    className="staff-dashboard-button-view-all-button-sales"
-                    onClick={() => {
-                      alert("This feature is currently under maintenance. Please check back later.");
-                    }}
-                  >
-                    View All
-                  </button>
-        </div>
-
-        <p className="staff-dashboard-sales-report-subtitle">
-          Today's Sales {salesData.totalSales > 0 && `(Total: RM${salesData.totalSales})`}
-        </p>
-
-        <div className="staff-dashboard-pie-chart">
-          {loadingSales ? (
-            <div className="staff-dashboard-chart-loading">
-              <div className="staff-dashboard-loading-spinner"></div>
-              <p className="staff-dashboard-no-appointments">
-                Loading sales data...
-              </p>
-            </div>
-          ) : !salesData.labels || salesData.labels.length === 0 ? (
-            <div className="staff-dashboard-empty-state">
-              <div className="staff-dashboard-empty-icon">📊</div>
-              <p className="staff-dashboard-no-appointments">
-                No sales data available
-              </p>
-              <p className="staff-dashboard-empty-subtext">
-                Sales data will appear here once services are completed
-              </p>
-            </div>
-          ) : (
-            <Pie data={data} options={options} />
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Add statusPriority for sorting
-  const statusPriority = {
-    'Upcoming': 1, 'Confirmed': 1, 'Scheduled': 1, 'In Progress': 2, 'Overdue': 3,
-    'Completed': 4, 'Cancelled': 4, 'Absent': 4, 'Rescheduled': 4
-  };
-
   const statusColorMap = {
-    'Completed': '#90d14f',
-    'Cancelled': '#ec1f23',
-    'Rescheduled': '#ffbf05',
+    [BOOKING_STATUSES.COMPLETED]: '#90d14f',
+    [BOOKING_STATUSES.CANCELLED]: '#ec1f23',
+    [BOOKING_STATUSES.RESCHEDULED]: '#ffbf05',
   };
 
   if (!user) {
     return <div className="staff-dashboard-loading">Loading user data...</div>;
   }
 
-  // Filter out draft bookings before sorting and limiting
-  const completedStatuses = ['Completed', 'Cancelled', 'Rescheduled', 'Absent'];
-  const filteredSchedule = scheduleData;
-  const sortedSchedule = [...filteredSchedule].sort((a, b) => {
+  const completedStatuses = [BOOKING_STATUSES.COMPLETED, BOOKING_STATUSES.CANCELLED, BOOKING_STATUSES.RESCHEDULED, BOOKING_STATUSES.ABSENT];
+  const sortedSchedule = [...scheduleData].sort((a, b) => {
     const aIsActive = !completedStatuses.includes(a.status);
     const bIsActive = !completedStatuses.includes(b.status);
     if (aIsActive !== bIsActive) {
@@ -1061,9 +704,6 @@ const StaffDashboard = () => {
     return (a.start_time || '').localeCompare(b.start_time || '');
   });
   const limitedSchedule = sortedSchedule.slice(0, 5);
-
-  // Before rendering the schedule table, add a debug log
-  console.log('[My Schedule] Bookings being rendered:', limitedSchedule);
 
   return (
     <div className="staff-dashboard">
@@ -1221,7 +861,7 @@ const StaffDashboard = () => {
                                 {(() => {
                                   let displayStatus = booking.status;
                                   let color = statusColorMap[displayStatus] || '#f44336';
-                                  if (displayStatus === 'Confirmed') {
+                                  if (displayStatus === BOOKING_STATUSES.CONFIRMED) {
                                     return (
                                       <button
                                         className="done-btn"
@@ -1278,7 +918,7 @@ const StaffDashboard = () => {
               
               {/* Payment Management and Sales Report */}
               <div className="staff-dashboard-charts-container" style={{ marginTop: '20px' }}>
-                <PaymentManagementTable />
+                <PaymentManagementTable loadingPayment={loadingPayment} paymentData={paymentData} />
 
                 <div className="staff-dashboard-sales-report-container">
                   <BarberSalesReport />
@@ -1296,7 +936,6 @@ const StaffDashboard = () => {
                   View Time Slots Status
                 </p>
                 <div className="staff-dashboard-timeslots-grid">
-                  {console.log("DEBUG: Data for slot grid (scheduleData):", scheduleData)}
                   {availableSlots.map((time) => {
                     const isBooked = scheduleData.some(booking => {
                       if (

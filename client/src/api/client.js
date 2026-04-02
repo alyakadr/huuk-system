@@ -1,20 +1,14 @@
-import axios from "axios";
+import http from "../utils/httpClient";
 import api from "../utils/api";
 import { getAuthToken } from '../utils/tokenUtils';
+import { withRetry } from "../utils/retry";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : "http://localhost:5000/api";
 
-const client = axios.create({
+const client = http.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
 });
-
-const createClientWithTimeout = (timeout) => {
-  return axios.create({
-    baseURL: API_BASE_URL,
-    timeout,
-  });
-};
 
 client.interceptors.request.use(
   (config) => {
@@ -38,46 +32,26 @@ client.interceptors.request.use(
         config.url.includes('/bookings/customer-satisfaction')
       )) {
       selectedToken = staffToken || token;
-      console.log('[API] Using staff token for manager dashboard endpoint:', config.url);
     } else if (config.url && (config.url.includes('/customer/') || 
         (config.url.includes('/bookings') && !isStaffInterface))) {
       // For customer endpoints and customer booking endpoints
       selectedToken = customerToken || token;
-      if (Math.random() < 0.05) {
-        console.log('[API] Using customer token for:', config.url);
-      }
     } else {
       // For staff endpoints, staff bookings, and other protected endpoints
       selectedToken = staffToken || token;
-      if (Math.random() < 0.05) {
-        console.log('[API] Using staff token for:', config.url);
-      }
     }
     
     // IMPORTANT: For booking endpoints, check interface context
     if (config.url && config.url.includes('/bookings')) {
       if (isStaffInterface) {
         selectedToken = staffToken || token;
-        console.log('[API] Booking request interceptor: Using staff token for staff interface');
       } else {
         selectedToken = customerToken || token;
-        console.log('[API] Booking request interceptor: Using customer token for customer interface');
       }
-      
-      console.log('[API] Booking request interceptor:', {
-        url: config.url,
-        isStaffInterface,
-        tokenType: selectedToken === staffToken ? 'staff' : 
-                  selectedToken === customerToken ? 'customer' : 
-                  selectedToken === token ? 'legacy' : 'none'
-      });
     }
     
     if (selectedToken) {
       config.headers.Authorization = `Bearer ${selectedToken}`;
-      if (Math.random() < 0.05) {
-        console.log('[API] Authorization header set with token');
-      }
     } else {
       console.warn('[API] No token available for request to:', config.url);
     }
@@ -110,7 +84,7 @@ client.interceptors.response.use(
 
 // Create a client instance with automatic token refresh
 const createApiClientWithTimeout = (timeout) => {
-  const clientInstance = axios.create({
+  const clientInstance = http.create({
     baseURL: API_BASE_URL,
     timeout,
   });
@@ -152,7 +126,7 @@ const createApiClientWithTimeout = (timeout) => {
         if (token) {
           try {
             // Try to refresh the token
-            const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
+            const refreshResponse = await http.post(`${API_BASE_URL}/auth/refresh`, {}, {
               headers: { Authorization: `Bearer ${token}` }
             });
             
@@ -208,68 +182,45 @@ export const fetchWithRetry = async (
   delayBase = 2000,
   timeout = 60000
 ) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      console.log(`Retry attempt ${i + 1} with timeout ${timeout}ms`);
-      const clientInstance = createApiClientWithTimeout(timeout);
-      const response = await fn(clientInstance);
-      console.log("Request succeeded:", response.data);
-      return response;
-    } catch (err) {
-      if (err.response?.status === 404) {
-        console.error("Endpoint not found, skipping retries:", {
-          message: err.message,
-          code: err.code,
-          status: err.response?.status,
-          data: err.response?.data,
-        });
-        throw new Error(
-          err.response?.data?.message ||
-            err.message ||
-            "Request failed due to missing endpoint"
-        );
+  try {
+    return await withRetry(
+      async () => {
+        const clientInstance = createApiClientWithTimeout(timeout);
+        return fn(clientInstance);
+      },
+      {
+        retries,
+        delayBase,
+        shouldRetry: (error) => error?.response?.status !== 404,
       }
-      console.error(`Retry ${i + 1} failed:`, {
-        message: err.message,
-        code: err.code,
-        status: err.response?.status,
-        data: err.response?.data,
-      });
-      if (i === retries - 1 && err.message.includes("timeout")) {
-        console.log("Retrying with extended timeout (90s)");
-        try {
-          const extendedClient = createApiClientWithTimeout(90000);
-          const response = await fn(extendedClient);
-          console.log(
-            "Request succeeded with extended timeout:",
-            response.data
-          );
-          return response;
-        } catch (extendedErr) {
-          console.error("Extended timeout attempt failed:", {
-            message: extendedErr.message,
-            code: extendedErr.code,
-            status: extendedErr.response?.status,
-            data: extendedErr.response?.data,
-          });
-          throw new Error(
-            extendedErr.response?.data?.message ||
-              extendedErr.message ||
-              "Request failed after retries"
-          );
-        }
-      }
-      if (i === retries - 1) {
+    );
+  } catch (error) {
+    if (error?.response?.status === 404) {
+      throw new Error(
+        error.response?.data?.message ||
+          error.message ||
+          "Request failed due to missing endpoint"
+      );
+    }
+
+    if (String(error?.message || "").includes("timeout")) {
+      try {
+        const extendedClient = createApiClientWithTimeout(90000);
+        return await fn(extendedClient);
+      } catch (extendedError) {
         throw new Error(
-          err.response?.data?.message ||
-            err.message ||
+          extendedError.response?.data?.message ||
+            extendedError.message ||
             "Request failed after retries"
         );
       }
-      const delay = delayBase * (i + 1) * 2;
-      console.log(`Retrying after ${delay}ms`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
     }
+
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Request failed after retries"
+    );
   }
 };
 
@@ -428,3 +379,6 @@ export const approveStaff = (staffId) =>
   );
 
 export default client;
+
+
+

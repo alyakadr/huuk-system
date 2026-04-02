@@ -1,5 +1,5 @@
 // Token migration utility to handle token inconsistencies
-import axios from 'axios';
+import http from "./httpClient";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : "http://localhost:5000/api";
 
@@ -58,7 +58,7 @@ const performMigration = async () => {
     
     // Try to validate token with backend
     try {
-      const response = await axios.get(`${API_BASE_URL}/auth/validate`, {
+      const response = await http.get(`${API_BASE_URL}/auth/validate`, {
         headers: {
           'Authorization': `Bearer ${currentToken}`
         },
@@ -84,7 +84,7 @@ const performMigration = async () => {
       // If token is invalid, try to refresh it
       if (error.response?.status === 401) {
         try {
-          const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
+          const refreshResponse = await http.post(`${API_BASE_URL}/auth/refresh`, {}, {
             headers: {
               'Authorization': `Bearer ${currentToken}`
             },
@@ -151,3 +151,6 @@ export const checkAuthStatus = () => {
     return { isAuthenticated: false, needsLogin: true };
   }
 };
+
+
+

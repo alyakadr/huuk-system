@@ -45,7 +45,7 @@ import {
   MdErrorOutline,
 } from "react-icons/md";
 import modalImage from "../../assets/modalcust1.jpg";
-import axios from "axios";
+import http from "../../utils/httpClient";
 import PaymentModal from "./PaymentModal";
 import BookingDetailsModal from "./BookingDetailsModal";
 import ConfirmationModal from "./ConfirmationModal";
@@ -493,7 +493,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
     }
 
     try {
-      const response = await axios.post(
+      const response = await http.post(
         `${API_BASE_URL}/auth/customer/signup`,
         {
           phone_number: signUpPhoneNumber,
@@ -503,7 +503,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
         },
       );
       if (response.data.message) {
-        await axios.post(`${API_BASE_URL}/customers/register`, {
+        await http.post(`${API_BASE_URL}/customers/register`, {
           phoneNumber: signUpPhoneNumber,
           email: signUpEmail,
         });
@@ -3093,3 +3093,6 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
 }
 
 export default Booking;
+
+
+

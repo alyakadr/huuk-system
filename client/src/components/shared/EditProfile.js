@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import axios from "axios";
+import http from "../../utils/httpClient";
 import { useProfile } from "../../ProfileContext";
 import { useNavigate } from "react-router-dom";
 import defaultProfile from "../../assets/default-picture.jpg";
@@ -35,7 +35,7 @@ const EditProfile = () => {
   const profileUserId = safeProfile.id || safeGlobalProfile.id || null;
 
   const fetchProfileRequest = useCallback(async () => {
-    const response = await axios.get(`${API_BASE_URL}/api/users/profile`, {
+    const response = await http.get(`${API_BASE_URL}/api/users/profile`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
 
@@ -197,7 +197,7 @@ const EditProfile = () => {
     try {
       console.log("Updating profile for ID:", profileUserId);
 
-      const response = await axios.patch(
+      const response = await http.patch(
         `${API_BASE_URL}/api/users/update-profile/${profileUserId}`,
         formData,
         {
@@ -504,3 +504,6 @@ const EditProfile = () => {
 };
 
 export default EditProfile;
+
+
+
