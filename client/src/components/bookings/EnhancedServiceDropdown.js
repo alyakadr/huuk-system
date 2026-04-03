@@ -27,6 +27,7 @@ import {
   TrendingUp,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { debugLog } from '../../utils/debugLog';
 
 // Styled components for enhanced UI
 const StyledSelect = styled(Select)(({ theme }) => ({
@@ -193,7 +194,7 @@ const EnhancedServiceDropdown = ({
 
   const handleChange = (event) => {
     const selectedValue = event.target.value;
-    console.log('Service selected:', selectedValue);
+    debugLog('Service selected:', selectedValue);
     
     // Validate that the selected value exists in services
     if (selectedValue === '' || (Array.isArray(services) && services.some(service => String(service.id) === String(selectedValue)))) {
@@ -416,7 +417,7 @@ const EnhancedServiceDropdown = ({
                   value={service.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('Service clicked:', service.id, service.name);
+                    debugLog('Service clicked:', service.id, service.name);
                     onChange(service.id);
                     setOpen(false);
                   }}

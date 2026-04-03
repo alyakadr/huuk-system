@@ -14,6 +14,7 @@ import { TIME_SLOTS } from "../../utils/timeSlotUtils";
 import { getCurrentWeekDates as getWeekDates } from "../../utils/dateUtils";
 import { useAuthSession, INTERFACE_ROLE } from "../../hooks/useAuthSession";
 import moment from "moment-timezone";
+import { debugLog } from "../../utils/debugLog";
 
 // Helper to get current date in Malaysia timezone
 const getMalaysiaToday = () => moment.tz("Asia/Kuala_Lumpur").toDate();
@@ -391,9 +392,9 @@ const StaffSchedule = () => {
   useEffect(() => {
     // This effect will run whenever bookings state changes
     // It ensures that the UI is updated when bookings are added or modified
-    console.log("📊 [BOOKINGS UPDATE] Bookings state changed, updating UI");
-    console.log("📊 [BOOKINGS UPDATE] Current view:", view);
-    console.log("📊 [BOOKINGS UPDATE] Bookings count:", bookings.length);
+    debugLog("📊 [BOOKINGS UPDATE] Bookings state changed, updating UI");
+    debugLog("📊 [BOOKINGS UPDATE] Current view:", view);
+    debugLog("📊 [BOOKINGS UPDATE] Bookings count:", bookings.length);
   }, [bookings, view]);
 
   // Initialize currentUser from localStorage
@@ -774,7 +775,7 @@ const StaffSchedule = () => {
       if (response.ok) {
         // Update local state only if API call succeeds
         setBlockedSlots((prev) => [...prev, { day, time }]);
-        console.log(`Slot ${time} on ${day} blocked successfully`);
+        debugLog(`Slot ${time} on ${day} blocked successfully`);
         alert("Time slot blocked successfully.");
       } else {
         const errorData = await response.json();
@@ -831,7 +832,7 @@ const StaffSchedule = () => {
         setBlockedSlots((prev) =>
           prev.filter((slot) => !(slot.day === day && slot.time === time)),
         );
-        console.log(`Slot ${time} on ${day} unblocked successfully`);
+        debugLog(`Slot ${time} on ${day} unblocked successfully`);
       } else {
         const errorData = await response.json();
         console.error("Failed to unblock slot:", errorData.message);
@@ -1201,7 +1202,7 @@ const StaffSchedule = () => {
   // Mark booking as done
   const markBookingDone = async (bookingId) => {
     try {
-      console.log(`Marking booking ${bookingId} as done`);
+      debugLog(`Marking booking ${bookingId} as done`);
 
       const response = await fetch(`${API_BASE_URL}/bookings/staff/mark-done`, {
         method: "POST",
@@ -1227,7 +1228,7 @@ const StaffSchedule = () => {
   // Mark booking as absent
   const markBookingAbsent = async (bookingId) => {
     try {
-      console.log(`Marking booking ${bookingId} as absent`);
+      debugLog(`Marking booking ${bookingId} as absent`);
       const response = await fetch(
         `${API_BASE_URL}/bookings/staff/mark-absent`,
         {
@@ -2324,3 +2325,4 @@ const StaffSchedule = () => {
 };
 
 export default StaffSchedule;
+

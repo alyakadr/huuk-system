@@ -4,6 +4,7 @@ import Modal from "react-modal";
 import { MdPhone, MdLock, MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
 import "../../styles/staffModals.css";
 import modalImage from "../../assets/modalcust1.jpg";
+import { debugLog } from "../../utils/debugLog";
 
 Modal.setAppElement("#root");
 
@@ -22,16 +23,16 @@ const StaffSignInModal = ({
   profile = {}, // Default to empty object to prevent undefined errors
 }) => {
   // Debug logging
-  console.log("StaffSignInModal render - isOpen:", isOpen);
-  console.log("StaffSignInModal render - errors:", errors);
-  console.log("StaffSignInModal render - loading:", loading);
-  console.log("StaffSignInModal render - phoneNumber:", signInPhoneNumber);
-  console.log("StaffSignInModal render - password:", signInPassword ? "[PRESENT]" : "[EMPTY]");
+  debugLog("StaffSignInModal render - isOpen:", isOpen);
+  debugLog("StaffSignInModal render - errors:", errors);
+  debugLog("StaffSignInModal render - loading:", loading);
+  debugLog("StaffSignInModal render - phoneNumber:", signInPhoneNumber);
+  debugLog("StaffSignInModal render - password:", signInPassword ? "[PRESENT]" : "[EMPTY]");
   
   if (isOpen) {
-    console.log("🔴 STAFF SIGNIN MODAL IS OPEN - Should be visible!");
+    debugLog("🔴 STAFF SIGNIN MODAL IS OPEN - Should be visible!");
   } else {
-    console.log("⚪ STAFF SIGNIN MODAL IS CLOSED");
+    debugLog("⚪ STAFF SIGNIN MODAL IS CLOSED");
   }
   const [showPassword, setShowPassword] = useState(false);
   

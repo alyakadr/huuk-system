@@ -1,16 +1,18 @@
-export const normalizeApiError = (error, fallbackMessage = "Request failed") => {
+export const normalizeApiError = (
+  error,
+  fallbackMessage = "Request failed",
+) => {
   const response = error?.response;
   const config = error?.config || {};
 
   const status = response?.status ?? null;
   const data = response?.data;
   const code = error?.code || null;
-  const message =
-    data?.message ||
-    error?.message ||
-    fallbackMessage;
+  const message = data?.message || error?.message || fallbackMessage;
 
-  const isTimeout = code === "ECONNABORTED" || String(message).toLowerCase().includes("timeout");
+  const isTimeout =
+    code === "ECONNABORTED" ||
+    String(message).toLowerCase().includes("timeout");
   const isNetworkError = code === "ERR_NETWORK" || (!response && !status);
 
   return {
@@ -26,7 +28,10 @@ export const normalizeApiError = (error, fallbackMessage = "Request failed") => 
   };
 };
 
-export const toUserMessage = (error, fallbackMessage = "Something went wrong. Please try again.") => {
+export const toUserMessage = (
+  error,
+  fallbackMessage = "Something went wrong. Please try again.",
+) => {
   const normalized = normalizeApiError(error, fallbackMessage);
 
   if (normalized.isTimeout) {

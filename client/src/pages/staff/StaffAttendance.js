@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import api from "../../utils/api"; // Correct import path
 import moment from "moment";
 import { jwtDecode } from "jwt-decode";
-import "../../styles/modernAttendance.css";
 import { restrictToRoles } from "../../utils/authUtils";
 import { fetchWithRetry } from "../../api/client";
 
@@ -784,61 +783,63 @@ const StaffAttendance = () => {
 
   if (error && (!userRole || !isApproved)) {
     return (
-      <div className="attendance-container">
-        <h1>Staff Attendance</h1>
-        <p className="error">{error}</p>
-        <a href="/staff-login">Log in again</a>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="card-dark rounded-huuk-lg max-w-xl w-full">
+          <h1 className="text-xl font-bold mb-2">Staff Attendance</h1>
+          <p className="text-red-400 mb-3">{error}</p>
+          <a href="/staff-login" className="btn-ghost">Log in again</a>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="modern-attendance-container">
+    <div className="p-5 bg-huuk-bg text-white min-h-screen font-quicksand w-full">
       {/* Error Message */}
       {error && (
-        <div className="error-message">
+        <div className="bg-red-600 text-white p-4 rounded-huuk-sm mb-5 flex items-center gap-2.5">
           <i className="fas fa-exclamation-triangle"></i>
           {error}
           {error.includes("Session expired") && (
-            <a href="/staff-login" className="login-link"> Log in again</a>
+            <a href="/staff-login" className="underline text-white"> Log in again</a>
           )}
         </div>
       )}
 
       {/* Time In/Out Section */}
-      <div className="time-controls">
-        <div className="time-input-group">
-          <label className="time-label">TIME-IN</label>
+      <div className="flex gap-8 mb-6 justify-start items-center bg-huuk-card p-5 rounded-huuk-lg flex-wrap">
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-bold text-white min-w-20 uppercase">TIME-IN</label>
           <input 
             type="time" 
             value={timeIn} 
             onChange={(e) => setTimeIn(e.target.value)} 
-            className="time-input"
+            className="px-5 py-3 border border-white rounded-[24px] bg-[#2a2a2a] text-white text-base w-[120px] text-center outline-none font-bold"
             disabled={isTimeInConfirmed || isLoading}
           />
           <button
             onClick={confirmTimeIn}
             disabled={isTimeInConfirmed || isLoading}
-            className={`confirm-button ${isTimeInConfirmed ? 'confirmed' : ''}`}
+            className={`px-6 py-3 rounded-huuk-md text-sm font-bold min-w-[90px] ${isTimeInConfirmed ? 'bg-green-600' : 'bg-huuk-blue'} text-white disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             {isTimeInConfirmed ? 'Confirmed' : 'Confirm'}
           </button>
         </div>
         
-        <div className="time-input-group">
-          <label className="time-label">TIME-OUT</label>
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-bold text-white min-w-20 uppercase">TIME-OUT</label>
           <input 
             type="time" 
             value={timeOut} 
             onChange={(e) => setTimeOut(e.target.value)} 
-            className="time-input"
+            className="px-5 py-3 border border-white rounded-[24px] bg-[#2a2a2a] text-white text-base w-[120px] text-center outline-none font-bold"
             disabled={!isTimeInConfirmed || isTimeOutConfirmed || isLoading}
           />
           <button
             type="button"
             onClick={confirmTimeOut}
             disabled={!isTimeInConfirmed || isTimeOutConfirmed || isLoading}
-            className={`confirm-button time-out ${isTimeOutConfirmed ? 'confirmed' : ''}`}
+            className={`px-6 py-3 rounded-huuk-md text-sm font-bold min-w-[90px] ${isTimeOutConfirmed ? 'bg-green-600' : 'bg-huuk-blue'} text-white disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             {isTimeOutConfirmed ? 'Confirmed' : 'Confirm'}
           </button>
@@ -846,68 +847,68 @@ const StaffAttendance = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="stats-container">
-        <div className="stat-card">
-          <div className="stat-icon">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="card-dark rounded-huuk-md flex items-center gap-4 min-h-[80px]">
+          <div className="w-[45px] h-[45px] rounded-full bg-huuk-blue flex items-center justify-center text-white text-lg shrink-0">
             <i className="fas fa-clock"></i>
           </div>
-          <div className="stat-content">
-            <div className="stat-value">{averageWorkingHours.toFixed(1)}</div>
-            <div className="stat-label">Average Working Hour</div>
+          <div className="flex-1">
+            <div className="text-2xl font-semibold text-white">{averageWorkingHours.toFixed(1)}</div>
+            <div className="text-sm text-gray-400">Average Working Hour</div>
           </div>
         </div>
         
-        <div className="stat-card">
-          <div className="stat-icon">
+        <div className="card-dark rounded-huuk-md flex items-center gap-4 min-h-[80px]">
+          <div className="w-[45px] h-[45px] rounded-full bg-huuk-blue flex items-center justify-center text-white text-lg shrink-0">
             <i className="fas fa-sign-in-alt"></i>
           </div>
-          <div className="stat-content">
-            <div className="stat-value">{averageInTime}</div>
-            <div className="stat-label">Average In Time</div>
+          <div className="flex-1">
+            <div className="text-2xl font-semibold text-white">{averageInTime}</div>
+            <div className="text-sm text-gray-400">Average In Time</div>
           </div>
         </div>
         
-        <div className="stat-card">
-          <div className="stat-icon">
+        <div className="card-dark rounded-huuk-md flex items-center gap-4 min-h-[80px]">
+          <div className="w-[45px] h-[45px] rounded-full bg-huuk-blue flex items-center justify-center text-white text-lg shrink-0">
             <i className="fas fa-sign-out-alt"></i>
           </div>
-          <div className="stat-content">
-            <div className="stat-value">{averageOutTime}</div>
-            <div className="stat-label">Average Out Time</div>
+          <div className="flex-1">
+            <div className="text-2xl font-semibold text-white">{averageOutTime}</div>
+            <div className="text-sm text-gray-400">Average Out Time</div>
           </div>
         </div>
       </div>
 
       {/* Date Range Selector */}
-      <div className="date-range-selector">
-        <select className="date-range-dropdown">
+      <div className="flex justify-end mb-5">
+        <select className="px-4 py-2 border border-white/20 rounded-huuk-sm bg-huuk-card text-white text-sm outline-none">
           <option value="29/6/2025 - 5/7/2025">29/6/2025 - 5/7/2025</option>
         </select>
       </div>
 
       {/* Records Table */}
-      <div className="records-section">
+      <div className="card-dark rounded-huuk-md overflow-hidden">
         {isLoading ? (
-          <div className="loading-spinner">
-            <div className="spinner"></div>
+          <div className="min-h-[220px] flex flex-col items-center justify-center text-white">
+            <div className="w-10 h-10 border-4 border-white/20 border-t-huuk-blue rounded-full animate-spin mb-4"></div>
             <p>Loading attendance records...</p>
           </div>
         ) : attendanceData.length === 0 ? (
-          <div className="no-records">
+          <div className="min-h-[220px] flex flex-col items-center justify-center text-gray-300">
             <i className="fas fa-calendar-times"></i>
             <p>No attendance records found.</p>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="attendance-table">
+          <div className="overflow-x-auto overflow-y-auto max-h-[400px] rounded-huuk-sm">
+            <table className="w-full border-collapse font-quicksand bg-transparent">
               <thead>
                 <tr>
-                  <th>DATE</th>
-                  <th>TIME-IN</th>
-                  <th>TIME-OUT</th>
-                  <th>TOTAL HOUR</th>
-                  <th>REMARK</th>
-                  <th>UPLOAD</th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">DATE</th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">TIME-IN</th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">TIME-OUT</th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">TOTAL HOUR</th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">REMARK</th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">UPLOAD</th>
                 </tr>
               </thead>
               <tbody>
@@ -921,42 +922,42 @@ const StaffAttendance = () => {
                   const isOnDuty = data.time_in && data.time_out;
                   
                   return (
-                    <tr key={data.id || index} className="table-row">
-                      <td className="date-cell">
+                    <tr key={data.id || index} className="hover:bg-white/5">
+                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
                         {data.created_date
                           ? moment(data.created_date).format("DD MMMM YYYY")
                           : "--"}
                       </td>
-                      <td className="time-cell">
+                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
                         {data.time_in
                           ? moment(data.time_in).format("HH:mm")
                           : "--:--"}
                       </td>
-                      <td className="time-cell">
+                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
                         {data.time_out
                           ? moment(data.time_out).format("HH:mm")
                           : "--:--"}
                       </td>
-                      <td className="hours-cell">
+                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
                         {getTotalHours(data) ? `${getTotalHours(data)}` : "--:--"}
                       </td>
-                      <td className="remark-cell">
+                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
                         {data.document_path ? (
                           data.remarks || "--"
                         ) : isOnDuty ? (
                           "-"
                         ) : (
-                          <span className="upload-instruction">
+                          <span className="text-xs text-huuk-muted">
                             Upload relevant supporting documents (valid for 3 working days)
                           </span>
                         )}
                       </td>
-                      <td className="upload-cell">
+                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
                         {data.document_path ? (
                           <button
-                            className={`add-file-button view-button ${
+                            className={`px-3 py-1.5 rounded-huuk-sm text-xs font-semibold ${
                               !viewEnabled || isLoading ? "disabled" : ""
-                            }`}
+                            } ${!viewEnabled || isLoading ? "bg-white/20 text-white/70 cursor-not-allowed" : "bg-huuk-blue text-white hover:bg-huuk-blue-dark"}`}
                             disabled={!viewEnabled || isLoading}
                             onClick={() =>
                               openViewModal(
@@ -970,9 +971,9 @@ const StaffAttendance = () => {
                           </button>
                         ) : (
                           <button
-                            className={`add-file-button ${
+                            className={`px-3 py-1.5 rounded-huuk-sm text-xs font-semibold ${
                               !uploadEnabled || isLoading ? "disabled" : ""
-                            }`}
+                            } ${!uploadEnabled || isLoading ? "bg-white/20 text-white/70 cursor-not-allowed" : "bg-huuk-accent text-huuk-card hover:opacity-90"}`}
                             disabled={!uploadEnabled || isLoading}
                             onClick={() => openUploadModal(data.id)}
                           >
@@ -990,29 +991,32 @@ const StaffAttendance = () => {
       </div>
 
       {isModalOpen && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>{isViewMode ? "View Document" : "Upload Document"}</h2>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-huuk-md p-5 w-[92%] max-w-xl shadow-xl text-huuk-card">
+            <h2 className="text-lg font-bold mb-4">{isViewMode ? "View Document" : "Upload Document"}</h2>
             {isViewMode ? (
               <>
-                <div className="file-preview">
+                <div className="w-full h-[300px] bg-gray-100 rounded-huuk-sm overflow-hidden mb-3">
                   {viewFilePath && viewFilePath.endsWith(".pdf") ? (
                     <iframe
                       src={`http://localhost:5000${viewFilePath}`}
                       title="File Preview"
+                      className="w-full h-full"
                     ></iframe>
                   ) : (
                     <img
                       src={`http://localhost:5000${viewFilePath}`}
                       alt="File Preview"
+                      className="w-full h-full object-contain"
                     />
                   )}
                 </div>
-                <input type="text" value={viewRemark || "--"} disabled />
+                <input type="text" value={viewRemark || "--"} disabled className="w-full border border-gray-300 rounded-huuk-sm px-3 py-2 mb-2" />
                 <input
                   type="file"
                   accept=".png,.jpg,.jpeg,.pdf"
                   onChange={handleFileChange}
+                  className="w-full border border-gray-300 rounded-huuk-sm px-3 py-2 mb-2"
                 />
                 <input
                   type="text"
@@ -1020,15 +1024,17 @@ const StaffAttendance = () => {
                   value={remark}
                   onChange={handleRemarkChange}
                   maxLength={55}
+                  className="w-full border border-gray-300 rounded-huuk-sm px-3 py-2 mb-3"
                 />
                 <button
                   type="submit"
                   disabled={!selectedFile || !remark || isLoading}
                   onClick={handleFileUpload}
+                  className="btn-primary mr-2"
                 >
                   Upload
                 </button>
-                <button type="button" onClick={closeModal}>
+                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-huuk-sm bg-gray-200 text-huuk-card font-semibold">
                   Close
                 </button>
               </>
@@ -1038,6 +1044,7 @@ const StaffAttendance = () => {
                   type="file"
                   accept=".png,.jpg,.jpeg,.pdf"
                   onChange={handleFileChange}
+                  className="w-full border border-gray-300 rounded-huuk-sm px-3 py-2 mb-2"
                 />
                 <input
                   type="text"
@@ -1045,15 +1052,17 @@ const StaffAttendance = () => {
                   value={remark}
                   onChange={handleRemarkChange}
                   maxLength={55}
+                  className="w-full border border-gray-300 rounded-huuk-sm px-3 py-2 mb-3"
                 />
                 <button
                   type="submit"
                   disabled={!selectedFile || !remark || isLoading}
                   onClick={handleFileUpload}
+                  className="btn-primary mr-2"
                 >
                   Upload
                 </button>
-                <button type="button" onClick={closeModal}>
+                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-huuk-sm bg-gray-200 text-huuk-card font-semibold">
                   Cancel
                 </button>
               </>

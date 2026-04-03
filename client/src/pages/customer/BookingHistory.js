@@ -30,6 +30,7 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../ProfileContext";
 import client from "../../api/client";
 import http from "../../utils/httpClient";
+import { debugLog } from "../../utils/debugLog";
 import io from "socket.io-client";
 import { jsPDF } from "jspdf";
 import "../../styles/bookingHistory.css";
@@ -105,7 +106,7 @@ const BookingHistory = () => {
 
     // Listen for custom refresh events from payment completion
     const handleRefreshBookingHistory = (event) => {
-      console.log("Received booking history refresh event:", event.detail);
+      debugLog("Received booking history refresh event:", event.detail);
       // Add a small delay to ensure database is updated
       setTimeout(() => {
         fetchBookings();
@@ -119,7 +120,7 @@ const BookingHistory = () => {
 
     // Also listen for focus events to refresh when user returns to page
     const handleFocus = () => {
-      console.log("Page focused, refreshing booking history");
+      debugLog("Page focused, refreshing booking history");
       fetchBookings();
     };
 
@@ -234,13 +235,13 @@ const BookingHistory = () => {
       comment: feedbackText,
     };
 
-    console.log("Submitting feedback with payload:", payload);
-    console.log("Selected booking:", selectedBooking);
-    console.log("Profile:", profile);
+    debugLog("Submitting feedback with payload:", payload);
+    debugLog("Selected booking:", selectedBooking);
+    debugLog("Profile:", profile);
 
     try {
       const response = await client.post("/bookings/reviews", payload);
-      console.log("Feedback submission successful:", response.data);
+      debugLog("Feedback submission successful:", response.data);
 
       // Create updated booking with review data
       const updatedBooking = {
@@ -298,7 +299,7 @@ const BookingHistory = () => {
       bookings.map((booking) => formatDate(booking.date)).filter(Boolean), // Remove invalid or empty dates
     ),
   ];
-  console.log("Booking dates:", bookingDates); // Debug booking dates
+  debugLog("Booking dates:", bookingDates); // Debug booking dates
 
   // Filter bookings based on selected date
   const filteredBookings = selectedDate
@@ -380,18 +381,18 @@ const BookingHistory = () => {
   });
 
   // Log the final result to verify correct sorting
-  console.log("=== FINAL SORTED ORDER ===");
+  debugLog("=== FINAL SORTED ORDER ===");
   sortedBookings.forEach((booking, index) => {
     const isActive = ["pending", "confirmed"].includes(
       String(booking.status).toLowerCase(),
     );
-    console.log(
+    debugLog(
       `${index + 1}. ID: ${booking.id}, Status: ${
         booking.status
       }, Active: ${isActive}, Date: ${booking.date} ${booking.time}`,
     );
   });
-  console.log("=== END SORTED ORDER ===");
+  debugLog("=== END SORTED ORDER ===");
 
   const bookingsPerPage = 7;
   const totalPages = Math.min(
@@ -419,7 +420,7 @@ const BookingHistory = () => {
       console.warn("Formatted date is empty for:", date);
       return true; // Disable if formatting fails
     }
-    console.log(
+    debugLog(
       "Checking date:",
       formattedDate,
       "in bookingDates:",
@@ -473,7 +474,7 @@ const BookingHistory = () => {
         },
       });
 
-      console.log("Available slots response:", {
+      debugLog("Available slots response:", {
         date: formattedDate,
         slots: response.data,
         params: {
@@ -493,7 +494,7 @@ const BookingHistory = () => {
       setAvailableSlots(validSlots);
 
       if (validSlots.length === 0) {
-        console.log("No available slots found for date:", formattedDate);
+        debugLog("No available slots found for date:", formattedDate);
       }
     } catch (err) {
       console.error("Error fetching available slots:", err);
@@ -529,7 +530,7 @@ const BookingHistory = () => {
         },
       });
 
-      console.log("Available staff response:", {
+      debugLog("Available staff response:", {
         date: formattedDate,
         time: time,
         staff: response.data,
@@ -552,7 +553,7 @@ const BookingHistory = () => {
         // Try to get staff name from the booking
         const staffName = selectedBooking.staff_name || "Current Staff";
 
-        console.log("Adding current staff to available staff list:", {
+        debugLog("Adding current staff to available staff list:", {
           id: currentStaffId,
           name: staffName,
         });
@@ -572,7 +573,7 @@ const BookingHistory = () => {
       }
 
       if (validStaff.length === 0) {
-        console.log(
+        debugLog(
           "No available staff found for date:",
           formattedDate,
           "and time:",
@@ -689,7 +690,7 @@ const BookingHistory = () => {
         },
       );
 
-      console.log("Reschedule response:", response.data);
+      debugLog("Reschedule response:", response.data);
 
       await fetchBookings(); // Refresh bookings
       setSuccess("Booking rescheduled successfully!");
@@ -744,7 +745,7 @@ const BookingHistory = () => {
         },
       );
 
-      console.log("Cancel response:", response.data);
+      debugLog("Cancel response:", response.data);
 
       await fetchBookings(); // Refresh bookings
       setSuccess("Booking cancelled successfully!");
@@ -934,7 +935,7 @@ const BookingHistory = () => {
                 <Box className="cust-booking-status">
                   {(() => {
                     // Debug logging
-                    console.log(
+                    debugLog(
                       `Booking ${booking.id} status: "${
                         booking.status
                       }" (type: ${typeof booking.status})`,
@@ -942,7 +943,7 @@ const BookingHistory = () => {
                     const isActive = ["pending", "confirmed"].includes(
                       String(booking.status).toLowerCase(),
                     );
-                    console.log(`Is active: ${isActive}`);
+                    debugLog(`Is active: ${isActive}`);
                     return isActive;
                   })() && (
                     <span
@@ -1775,3 +1776,4 @@ const BookingHistory = () => {
 };
 
 export default BookingHistory;
+

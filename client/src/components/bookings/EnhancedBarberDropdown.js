@@ -27,6 +27,7 @@ import {
   Group,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { debugLog } from '../../utils/debugLog';
 
 // Styled components for enhanced UI
 const StyledSelect = styled(Select)(({ theme }) => ({
@@ -192,7 +193,7 @@ const EnhancedBarberDropdown = ({
 
   const handleChange = (event) => {
     const selectedValue = event.target.value;
-    console.log('Barber selected:', selectedValue);
+    debugLog('Barber selected:', selectedValue);
     
     // Validate that the selected value exists in staff or is valid special value
     if (selectedValue === '' || selectedValue === 'any' || 

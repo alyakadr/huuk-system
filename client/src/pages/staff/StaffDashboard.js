@@ -10,8 +10,6 @@ import remindreminder from "../../assets/remindreminder.png";
 import donereminder from "../../assets/donereminder.png";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import SwitchModeButton from "../../components/shared/SwitchModeButton";
-import "../../styles/staffDashboard.css";
-import "../../styles/dummyDashboard.css";
 import api from "../../utils/api";
 import moment from "moment";
 import AddBookingModal from "../../components/AddBookingModal";
@@ -47,11 +45,11 @@ ChartJS.register(
 
 const PaymentManagementTable = ({ loadingPayment, paymentData }) => {
   return (
-    <div className="staff-dashboard-payment-management">
-      <div className="staff-dashboard-payment-header">
-        <h3 className="staff-dashboard-payment-title">Payment Management</h3>
+    <div className="card-dark mt-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold">Payment Management</h3>
         <button
-          className="staff-dashboard-button-view-all-button-sales"
+          className="btn-ghost text-sm"
           onClick={() =>
             alert(
               "This feature is currently under maintenance. Please check back later.",
@@ -61,24 +59,24 @@ const PaymentManagementTable = ({ loadingPayment, paymentData }) => {
           View all
         </button>
       </div>
-      <table className="staff-dashboard-payment-table">
+      <table className="huuk-table mt-3">
         <thead>
-          <tr className="staff-dashboard-table-header">
-            <th className="staff-dashboard-th">CUSTOMER NAME</th>
-            <th className="staff-dashboard-th">PAYMENT METHOD</th>
-            <th className="staff-dashboard-th">STATUS</th>
+          <tr>
+            <th className="huuk-th">CUSTOMER NAME</th>
+            <th className="huuk-th">PAYMENT METHOD</th>
+            <th className="huuk-th">STATUS</th>
           </tr>
         </thead>
         <tbody>
           {loadingPayment ? (
             <tr>
-              <td colSpan="3" style={{ textAlign: "center", color: "white" }}>
+              <td colSpan="3" className="huuk-td text-center">
                 Loading payment data...
               </td>
             </tr>
           ) : paymentData.length === 0 ? (
             <tr>
-              <td colSpan="3" style={{ textAlign: "center", color: "white" }}>
+              <td colSpan="3" className="huuk-td text-center">
                 No payment data available
               </td>
             </tr>
@@ -86,16 +84,16 @@ const PaymentManagementTable = ({ loadingPayment, paymentData }) => {
             paymentData.slice(0, 3).map((payment, index) => (
               <tr
                 key={payment.id || index}
-                className="staff-dashboard-table-row"
+                className="huuk-tr border-b border-white/10"
               >
-                <td className="staff-dashboard-table-cell">
+                <td className="huuk-td">
                   {payment.customer_name}
                 </td>
-                <td className="staff-dashboard-table-cell">
+                <td className="huuk-td">
                   {payment.payment_method}
                 </td>
                 <td
-                  className={`staff-dashboard-table-cell staff-dashboard-status ${payment.payment_status === "Paid" ? "staff-dashboard-status-paid" : "staff-dashboard-status-unpaid"}`}
+                  className={`huuk-td font-semibold ${payment.payment_status === "Paid" ? "text-green-400" : "text-yellow-300"}`}
                 >
                   {payment.payment_status}
                 </td>
@@ -763,7 +761,11 @@ const StaffDashboard = () => {
   };
 
   if (!user) {
-    return <div className="staff-dashboard-loading">Loading user data...</div>;
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-white font-quicksand">
+        Loading user data...
+      </div>
+    );
   }
 
   const completedStatuses = [
@@ -784,13 +786,13 @@ const StaffDashboard = () => {
   const limitedSchedule = sortedSchedule.slice(0, 5);
 
   return (
-    <div className="staff-dashboard">
-      <div className="staff-dashboard-dashboard-container">
-        <div className="staff-dashboard-main-content">
+    <div className="bg-huuk-bg text-white font-quicksand">
+      <div className="w-full">
+        <div className="w-full">
           {/* Header section with summary cards and attendance reminder */}
-          <div className="staff-dashboard-header-section">
-            <div className="staff-dashboard-header-content">
-              <div className="staff-dashboard-summary-cards-container">
+          <div className="mb-4">
+            <div className="flex flex-col xl:flex-row gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 flex-1">
                 {[
                   {
                     img: summ1,
@@ -819,65 +821,53 @@ const StaffDashboard = () => {
                       : summaryData.rescheduled.toString(),
                   },
                 ].map(({ img, label, value }) => (
-                  <div key={label} className="staff-dashboard-summary-card">
+                  <div key={label} className="card-dark rounded-huuk-lg flex items-center gap-3">
                     <img
                       src={img}
                       alt={label}
-                      className="staff-dashboard-summary-icon-img"
+                      className="w-8 h-8 object-contain"
                     />
                     <div>
-                      <p className="staff-dashboard-summary-label">{label}</p>
-                      <p className="staff-dashboard-summary-value">{value}</p>
+                      <p className="text-sm font-bold m-0">{label}</p>
+                      <p className="text-sm font-bold m-0">{value}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
               {/* Attendance reminder in header */}
-              <div className="staff-dashboard-attendance-reminder-container">
-                <div className="staff-dashboard-attendance-reminder">
-                  <div className="staff-dashboard-attendance-reminder-content">
+              <div className="w-full xl:max-w-md">
+                <div className="card-dark rounded-huuk-lg flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
                     <img
                       src={isTimeInConfirmed ? donereminder : remindreminder}
                       alt="Attendance Reminder"
-                      className={
-                        isTimeInConfirmed
-                          ? "staff-dashboard-done-reminder-icon-img"
-                          : "staff-dashboard-reminder-icon-img"
-                      }
+                      className="w-12 h-12 object-contain"
                     />
-                    <div className="staff-dashboard-attendance-reminder-text">
-                      <p
-                        className={
-                          isTimeInConfirmed
-                            ? "staff-dashboard-attendance-done-label"
-                            : "staff-dashboard-attendance-reminder-label"
-                        }
-                      >
+                    <div>
+                      <p className="font-bold text-sm m-0">
                         {isTimeInConfirmed
                           ? "Already Updated Time-In"
                           : "Not Yet Updated Time-In"}
                       </p>
                       {isTimeInConfirmed && (
-                        <p className="staff-dashboard-attendance-subtext">
+                        <p className="text-xs text-huuk-muted m-0 mt-1">
                           Great! Your time-in has been successfully recorded.
                         </p>
                       )}
                     </div>
                   </div>
                   {!isTimeInConfirmed && (
-                    <div className="staff-dashboard-attendance-reminder-button-container">
-                      <button
-                        className="staff-dashboard-attendance-button"
-                        onClick={() =>
-                          alert(
-                            "This feature is currently under maintenance. Please check back later.",
-                          )
-                        }
-                      >
-                        Update
-                      </button>
-                    </div>
+                    <button
+                      className="btn-primary"
+                      onClick={() =>
+                        alert(
+                          "This feature is currently under maintenance. Please check back later.",
+                        )
+                      }
+                    >
+                      Update
+                    </button>
                   )}
                 </div>
               </div>
@@ -885,12 +875,12 @@ const StaffDashboard = () => {
           </div>
 
           {/* Main appointment management layout */}
-          <div className="staff-dashboard-appointment-layout">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
             {/* Left side - Appointment List */}
-            <div className="staff-dashboard-appointment-list-section">
-              <div className="staff-dashboard-my-schedule-container">
-                <div className="staff-dashboard-schedule-header">
-                  <h3 className="staff-dashboard-schedule-title">
+            <div className="xl:col-span-8 space-y-4">
+              <div className="card-dark rounded-huuk-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold flex items-center">
                     My Schedule
                     <>
                       <span
@@ -905,38 +895,27 @@ const StaffDashboard = () => {
                         }}
                         title="Real-time updates enabled"
                       />
-                      <span
-                        style={{
-                          marginLeft: "8px",
-                          color: "#A0B2B8", // Glacial Indifference color
-                          fontStyle: "italic",
-                          fontSize: "14px",
-                          fontWeight: "normal",
-                        }}
-                      >
+                      <span className="ml-2 text-huuk-muted italic text-sm font-normal">
                         Active Booking
                       </span>
                     </>
                   </h3>
                   <button
-                    className="staff-dashboard-button-view-all-button-schedule"
+                    className="btn-ghost text-sm"
                     onClick={() => navigate("/staff/schedule")}
                   >
                     View All
                   </button>
                 </div>
-                <div className="staff-dashboard-schedule-table-wrapper">
-                  <table className="staff-dashboard-schedule-table">
+                <div className="overflow-x-auto">
+                  <table className="huuk-table">
                     <thead>
-                      <tr className="staff-dashboard-table-header">
-                        <th className="staff-dashboard-th">CUSTOMER NAME</th>
-                        <th className="staff-dashboard-th">PHONE NUMBER</th>
-                        <th className="staff-dashboard-th">SERVICE</th>
-                        <th className="staff-dashboard-th">TIME</th>
-                        <th
-                          className="staff-dashboard-th"
-                          style={{ textAlign: "center" }}
-                        >
+                      <tr>
+                        <th className="huuk-th">CUSTOMER NAME</th>
+                        <th className="huuk-th">PHONE NUMBER</th>
+                        <th className="huuk-th">SERVICE</th>
+                        <th className="huuk-th">TIME</th>
+                        <th className="huuk-th text-center">
                           ACTION
                         </th>
                       </tr>
@@ -945,10 +924,7 @@ const StaffDashboard = () => {
                     <tbody>
                       {loadingSchedule ? (
                         <tr>
-                          <td
-                            colSpan="5"
-                            style={{ textAlign: "center", color: "white" }}
-                          >
+                          <td colSpan="5" className="huuk-td text-center">
                             Loading...
                           </td>
                         </tr>
@@ -957,37 +933,25 @@ const StaffDashboard = () => {
                           return (
                             <tr
                               key={booking.id || index}
-                              className="flex-table-row"
+                              className="huuk-tr border-b border-white/10"
                             >
-                              <td
-                                className="staff-dashboard-table-cell"
-                                style={{ color: "white" }}
-                              >
+                              <td className="huuk-td">
                                 {booking.customer_name}
                               </td>
-                              <td
-                                className="staff-dashboard-table-cell"
-                                style={{ color: "white" }}
-                              >
+                              <td className="huuk-td">
                                 {booking.phone_number}
                               </td>
-                              <td
-                                className="staff-dashboard-table-cell"
-                                style={{ color: "white" }}
-                              >
+                              <td className="huuk-td">
                                 {booking.service_name}
                               </td>
-                              <td
-                                className="staff-dashboard-table-cell"
-                                style={{ color: "white" }}
-                              >
+                              <td className="huuk-td">
                                 {booking.start_time !== "-" &&
                                 booking.end_time !== "-"
                                   ? `${booking.start_time} - ${booking.end_time}`
                                   : "-"}
                               </td>
                               <td
-                                className="staff-dashboard-table-cell"
+                                className="huuk-td"
                                 style={{
                                   textAlign: "center",
                                   verticalAlign: "middle",
@@ -1002,19 +966,12 @@ const StaffDashboard = () => {
                                   ) {
                                     return (
                                       <button
-                                        className="done-btn"
+                                        className="btn-primary"
                                         style={{
-                                          backgroundColor: "#1976d2",
-                                          color: "white",
-                                          border: "none",
-                                          borderRadius: "4px",
                                           padding: "6px 0",
                                           minWidth: "90px",
                                           maxWidth: "120px",
-                                          fontWeight: "bold",
                                           fontSize: "14px",
-                                          fontFamily: "Quicksand, sans-serif",
-                                          cursor: "pointer",
                                           boxShadow:
                                             "0 2px 8px rgba(25, 118, 210, 0.08)",
                                           letterSpacing: "0.5px",
@@ -1032,7 +989,7 @@ const StaffDashboard = () => {
                                   }
                                   return (
                                     <span
-                                      className={`status-text ${displayStatus.toLowerCase()}`}
+                                      className="font-bold text-base block text-center"
                                       style={{
                                         fontFamily: "Quicksand, sans-serif",
                                         fontWeight: "bold",
@@ -1058,34 +1015,28 @@ const StaffDashboard = () => {
               </div>
 
               {/* Payment Management and Sales Report */}
-              <div
-                className="staff-dashboard-charts-container"
-                style={{ marginTop: "20px" }}
-              >
+              <div className="grid grid-cols-1 gap-4 mt-5">
                 <PaymentManagementTable
                   loadingPayment={loadingPayment}
                   paymentData={paymentData}
                 />
 
-                <div className="staff-dashboard-sales-report-container">
+                <div className="card-dark rounded-huuk-lg">
                   <BarberSalesReport />
                 </div>
               </div>
             </div>
 
             {/* Right side - Booking Time Slot */}
-            <div
-              className="staff-dashboard-booking-slot-section"
-              style={{ marginTop: "20px" }}
-            >
-              <div className="staff-dashboard-appointment-management-container">
-                <h3 className="staff-dashboard-timeslots-title">
+            <div className="xl:col-span-4 space-y-4 mt-5 xl:mt-0">
+              <div className="card-dark rounded-huuk-lg">
+                <h3 className="text-lg font-bold">
                   Appointment Management
                 </h3>
-                <p className="staff-dashboard-timeslots-subtitle">
+                <p className="text-sm text-huuk-muted mt-1">
                   View Time Slots Status
                 </p>
-                <div className="staff-dashboard-timeslots-grid">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
                   {availableSlots.map((time) => {
                     const isBooked = scheduleData.some((booking) => {
                       if (
@@ -1112,10 +1063,10 @@ const StaffDashboard = () => {
                     const isWithinHours = isWithinOperationalHours(time);
 
                     const getButtonClass = () => {
-                      if (isBooked) return "staff-dashboard-booked";
-                      if (!isWithinHours) return "staff-dashboard-unavailable"; // Out of operational hours
-                      if (isBlocked) return "staff-dashboard-blocked";
-                      return "";
+                      if (isBooked) return "bg-huuk-red/80 text-white";
+                      if (!isWithinHours) return "bg-gray-500 text-white";
+                      if (isBlocked) return "bg-huuk-yellow text-huuk-card";
+                      return "bg-huuk-card-light text-huuk-card hover:bg-white";
                     };
 
                     const isClickable =
@@ -1129,7 +1080,7 @@ const StaffDashboard = () => {
                             toggleSlotBlocking(time);
                           }
                         }}
-                        className={`staff-dashboard-timeslot-button ${getButtonClass()}`}
+                        className={`rounded-huuk-sm px-2 py-2 text-sm font-semibold transition-colors ${getButtonClass()}`}
                         disabled={!isClickable}
                         style={{
                           cursor: isClickable ? "pointer" : "not-allowed",
@@ -1154,11 +1105,10 @@ const StaffDashboard = () => {
                     );
                   })}
                   <button
-                    className="staff-dashboard-button-view-all-button-sales"
+                    className="btn-ghost mt-2"
                     onClick={() => {
                       navigate("/staff/appointments");
                     }}
-                    style={{ marginTop: "10px" }}
                   >
                     View all
                   </button>
@@ -1166,37 +1116,34 @@ const StaffDashboard = () => {
               </div>
 
               {/* Today's Appointments by All Staff under Appointment Management */}
-              <div
-                className="staff-dashboard-todays-appointment-container"
-                style={{ marginTop: "-10px", marginLeft: "0" }}
-              >
-                <div className="staff-dashboard-chart-header">
+              <div className="card-dark rounded-huuk-lg mt-0">
+                <div className="mb-2">
                   <h3
-                    className="staff-dashboard-chart-title"
+                    className="text-lg font-bold"
                     style={{ whiteSpace: "nowrap" }}
                   >
                     Today's Appointments by All Staff
                   </h3>
                 </div>
                 {loadingBarChart ? (
-                  <div className="staff-dashboard-chart-loading">
-                    <div className="staff-dashboard-loading-spinner"></div>
-                    <p className="staff-dashboard-no-appointments">
+                  <div className="min-h-[220px] flex flex-col items-center justify-center">
+                    <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <p className="text-sm text-huuk-muted mt-3">
                       Loading chart data...
                     </p>
                   </div>
                 ) : !barChartData.labels || barChartData.labels.length === 0 ? (
-                  <div className="staff-dashboard-empty-state">
-                    <div className="staff-dashboard-empty-icon">📊</div>
-                    <p className="staff-dashboard-no-appointments">
+                  <div className="min-h-[220px] flex flex-col items-center justify-center text-center">
+                    <div className="text-2xl">📊</div>
+                    <p className="text-sm mt-2">
                       No appointments scheduled for today
                     </p>
-                    <p className="staff-dashboard-empty-subtext">
+                    <p className="text-xs text-huuk-muted mt-1">
                       Check back later or view all appointments
                     </p>
                   </div>
                 ) : (
-                  <div className="staff-dashboard-chart-wrapper">
+                  <div className="h-[260px]">
                     <Bar
                       key={`bar-chart-${JSON.stringify(barChartData)}`}
                       data={todaysAppointmentBarData}
@@ -1239,36 +1186,14 @@ const StaffDashboard = () => {
       {/* Minimal Payment Confirmation Popup */}
       {showPaymentConfirmation && (
         <div
-          className="payment-popup-overlay"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 9999,
-          }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
         >
           <div
-            className="payment-popup-container-minimal"
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: "8px",
-              padding: "20px",
-              width: "90%",
-              maxWidth: "400px",
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
-              position: "relative",
-              zIndex: 10000,
-            }}
+            className="bg-white rounded-huuk-sm p-5 w-[90%] max-w-[400px] shadow-xl relative z-[10000]"
           >
             {/* Close button */}
             <button
-              className="payment-popup-close-minimal"
+              className="absolute top-2.5 right-2.5 bg-transparent border-none text-xl cursor-pointer"
               onClick={() => {
                 // Close popup without marking booking as done
                 setShowPaymentConfirmation(false);
@@ -1277,29 +1202,16 @@ const StaffDashboard = () => {
               }}
               aria-label="Close popup without completing booking"
               title="Close without completing booking"
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                background: "none",
-                border: "none",
-                fontSize: "20px",
-                cursor: "pointer",
-              }}
             >
               <i className="bi bi-x"></i>
             </button>
 
             {/* Header */}
             <div
-              className="payment-popup-header-minimal"
-              style={{
-                textAlign: "center",
-                marginBottom: "20px",
-              }}
+              className="text-center mb-5"
             >
               <i
-                className="bi bi-credit-card payment-popup-icon-minimal"
+                className="bi bi-credit-card"
                 style={{
                   fontSize: "32px",
                   color: "#3b82f6",
@@ -1307,10 +1219,8 @@ const StaffDashboard = () => {
                 }}
               ></i>
               <h3
-                className="payment-popup-title-minimal"
+                className="text-lg text-huuk-card m-0"
                 style={{
-                  margin: "0",
-                  color: "#1a1a1a",
                   fontSize: "18px",
                 }}
               >
@@ -1320,22 +1230,15 @@ const StaffDashboard = () => {
 
             {/* Content */}
             <div
-              className="payment-popup-content-minimal"
-              style={{
-                marginBottom: "20px",
-              }}
+              className="mb-5"
             >
               <div
-                className="payment-popup-info-minimal"
-                style={{
-                  textAlign: "center",
-                }}
+                className="text-center"
               >
                 <p
-                  className="payment-popup-customer-minimal"
+                  className="text-base m-0 mb-1"
                   style={{
                     fontSize: "16px",
-                    margin: "0 0 5px 0",
                   }}
                 >
                   <strong>
@@ -1344,17 +1247,15 @@ const StaffDashboard = () => {
                   </strong>
                 </p>
                 <p
-                  className="payment-popup-service-minimal"
+                  className="text-sm text-[#666] m-0 mb-4"
                   style={{
                     fontSize: "14px",
-                    color: "#666",
-                    margin: "0 0 15px 0",
                   }}
                 >
                   {paymentConfirmationData?.serviceName || "Service"}
                 </p>
                 <p
-                  className="payment-popup-question-minimal"
+                  className="text-base font-bold mt-4 mb-0"
                   style={{
                     fontSize: "16px",
                     fontWeight: "bold",
@@ -1368,51 +1269,18 @@ const StaffDashboard = () => {
 
             {/* Action Buttons */}
             <div
-              className="payment-popup-actions-minimal"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "10px",
-              }}
+              className="flex justify-between gap-2.5"
             >
               <button
-                className="payment-popup-btn-minimal payment-popup-paid-btn-minimal"
+                className="flex-1 p-3 bg-emerald-500 text-white border-none rounded-huuk-sm font-bold cursor-pointer flex items-center justify-center gap-1"
                 onClick={() => handlePaymentPaid(paymentConfirmationData)}
-                style={{
-                  flex: "1",
-                  padding: "12px",
-                  backgroundColor: "#10b981",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "5px",
-                }}
               >
                 <i className="bi bi-check-lg"></i> Yes, Paid
               </button>
 
               <button
-                className="payment-popup-btn-minimal payment-popup-pending-btn-minimal"
+                className="flex-1 p-3 bg-amber-500 text-white border-none rounded-huuk-sm font-bold cursor-pointer flex items-center justify-center gap-1"
                 onClick={() => handlePaymentUnpaid(paymentConfirmationData)}
-                style={{
-                  flex: "1",
-                  padding: "12px",
-                  backgroundColor: "#f59e0b",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "5px",
-                }}
               >
                 <i className="bi bi-clock"></i> Not Yet
               </button>

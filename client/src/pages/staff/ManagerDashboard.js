@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import { migrateTokens, checkAuthStatus } from "../../utils/tokenMigration";
-import "../../styles/managerDashboard.css";
-import "../../styles/PendingApprovals.css";
 import summ1 from "../../assets/summ1.png";
 import summ2 from "../../assets/summ2.png";
 import summ3 from "../../assets/summ3.png";
@@ -38,6 +36,7 @@ import {
 import moment from "moment";
 import http from "../../utils/httpClient";
 import { ensureStaffToken } from "../../utils/tokenUtils";
+import { debugLog } from "../../utils/debugLog";
 
 const outlets = OUTLET_NAMES_UPPER;
 const outletShortcuts = OUTLET_SHORTCUTS_UPPER;
@@ -274,20 +273,20 @@ const ManagerDashboard = () => {
     });
 
     socketRef.current.on("connect", () => {
-      console.log("WebSocket connected");
+      debugLog("WebSocket connected");
     });
 
     socketRef.current.on("attendanceUpdate", (update) => {
-      console.log("Received attendance update:", update);
+      debugLog("Received attendance update:", update);
       // Add a small delay to ensure the database has been updated
       setTimeout(() => {
-        console.log("Refreshing attendance data after WebSocket update");
+        debugLog("Refreshing attendance data after WebSocket update");
         fetchAttendanceData();
       }, 500);
     });
 
     socketRef.current.on("pendingStaffUpdate", (data) => {
-      console.log(
+      debugLog(
         "Received pending staff update at:",
         new Date().toISOString(),
         data,
@@ -311,7 +310,7 @@ const ManagerDashboard = () => {
     });
 
     socketRef.current.on("disconnect", () => {
-      console.log("WebSocket disconnected");
+      debugLog("WebSocket disconnected");
     });
 
     // Set up cleanup on component unmount
@@ -394,13 +393,13 @@ const ManagerDashboard = () => {
         },
       );
 
-      console.log("📊 Raw attendance response:", response.data);
+      debugLog("📊 Raw attendance response:", response.data);
       const attendanceData = response.data || [];
-      console.log("📋 Processed attendance data:", attendanceData);
-      console.log("📊 Total attendance records:", attendanceData.length);
+      debugLog("📋 Processed attendance data:", attendanceData);
+      debugLog("📊 Total attendance records:", attendanceData.length);
 
       // Process attendance data to update staff status
-      console.log("🏢 Initial staff status:", staffList);
+      debugLog("🏢 Initial staff status:", staffList);
 
       // Create a default staff status structure with outlet shortforms
       const defaultStaffStatus = [
@@ -508,11 +507,11 @@ const ManagerDashboard = () => {
       console.error("Error in fetchDashboardData:", error);
 
       // Log specific errors for each endpoint
-      console.log("Appointments fetch failed:", error);
-      console.log("Revenue Today fetch failed:", error);
-      console.log("Revenue Yesterday fetch failed:", error);
-      console.log("Appointments Today fetch failed:", error);
-      console.log("Appointments Yesterday fetch failed:", error);
+      debugLog("Appointments fetch failed:", error);
+      debugLog("Revenue Today fetch failed:", error);
+      debugLog("Revenue Yesterday fetch failed:", error);
+      debugLog("Appointments Today fetch failed:", error);
+      debugLog("Appointments Yesterday fetch failed:", error);
 
       setFetchError("Failed to load dashboard data");
       setIsLoading(false);
@@ -545,7 +544,7 @@ const ManagerDashboard = () => {
       );
 
       const responseData = response.data;
-      console.log("Transaction data response:", responseData);
+      debugLog("Transaction data response:", responseData);
 
       if (responseData && responseData.outlets) {
         // Map the API response to the format expected by the chart
@@ -635,7 +634,7 @@ const ManagerDashboard = () => {
       );
 
       const responseData = response.data;
-      console.log("Customer satisfaction data response:", responseData);
+      debugLog("Customer satisfaction data response:", responseData);
 
       if (responseData && Array.isArray(responseData)) {
         setCustomerSatisfactionData(responseData);
@@ -674,7 +673,7 @@ const ManagerDashboard = () => {
   useEffect(() => {
     const initializeManager = async () => {
       try {
-        console.log("🔄 Initializing manager dashboard...");
+        debugLog("🔄 Initializing manager dashboard...");
 
         // Ensure staff token is available
         const staffToken = ensureStaffToken();
@@ -696,7 +695,7 @@ const ManagerDashboard = () => {
           );
 
           if (response.data && response.data.role === "manager") {
-            console.log("✅ Manager authentication successful");
+            debugLog("✅ Manager authentication successful");
             // Set the user state from the profile response
             setUser(response.data);
           } else {
@@ -739,13 +738,13 @@ const ManagerDashboard = () => {
         // Use the staff token for all manager dashboard requests
         if (legacyToken && !staffToken) {
           localStorage.setItem("staff_token", legacyToken);
-          console.log("🔄 Starting token migration...");
+          debugLog("🔄 Starting token migration...");
         }
 
         // Skip token validation API call since endpoint doesn't exist
         // Just check if token exists and proceed
         if (staffToken || legacyToken) {
-          console.log("✅ Token exists, proceeding with dashboard load");
+          debugLog("✅ Token exists, proceeding with dashboard load");
           setTokenValidated(true);
         } else {
           console.error("❌ No valid token found");
@@ -788,7 +787,7 @@ const ManagerDashboard = () => {
   // Helper for maintenance View All button
   const MaintenanceViewAllButton = ({ style }) => (
     <button
-      className="manager-view-all-button maintenance"
+      className="btn-ghost text-sm"
       style={{
         cursor: "pointer",
         ...style,
@@ -801,48 +800,48 @@ const ManagerDashboard = () => {
 
   // Remove the conditional render that's causing the loading message
   return (
-    <main className="manager-main-content">
-      <div className="manager-main-summary-and-transactions">
-        <div className="manager-left-summary-overall">
-          <div className="manager-summary-header">
-            <h2 className="manager-summary-title">
+    <main className="w-full bg-huuk-bg text-white font-quicksand p-2">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+        <div className="xl:col-span-9 space-y-4">
+          <div className="flex items-center gap-5">
+            <h2 className="text-2xl font-bold m-0">
               Overall Staffs Status Appointment
             </h2>
             <MaintenanceViewAllButton />
           </div>
-          <div className="manager-summary-cards-container">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
               { img: summ1, label: "Done", value: doneCount },
               { img: summ3, label: "Pending", value: pendingCount },
               { img: summ2, label: "Reschedule", value: rescheduleCount },
               { img: summ4, label: "Cancelled", value: cancelledCount },
             ].map(({ img, label, value }) => (
-              <div key={label} className="manager-summary-card">
+              <div key={label} className="card-dark rounded-huuk-lg flex items-center gap-2 min-h-[45px]">
                 <img
                   src={img}
                   alt={label}
-                  className="manager-summary-icon-img"
+                  className="w-8 h-8 object-contain"
                 />
                 <div>
-                  <p className="manager-summary-label">{label}</p>
-                  <p className="manager-summary-value">{value}</p>
+                  <p className="text-sm font-bold m-0">{label}</p>
+                  <p className="text-sm font-bold m-0">{value}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <h2 className="manager-overall-performance-title">
+          <h2 className="text-2xl font-bold mt-2 mb-1">
             Today's Overall Performance Overview
           </h2>
-          <div className="manager-overall-performance-cards">
-            <div className="manager-overall-card revenue-card">
-              <div className="manager-overall-card-header">
-                <span className="manager-overall-card-title">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="card-dark rounded-huuk-lg min-h-[115px] flex flex-col justify-between">
+              <div className="flex justify-between items-center gap-2 mb-2">
+                <span className="text-sm font-semibold">
                   Total Revenue
                 </span>
                 <MaintenanceViewAllButton />
               </div>
-              <p className="manager-amount-centered">
+              <p className="text-3xl font-bold text-center my-2 text-white">
                 <span
                   style={{
                     color:
@@ -857,7 +856,7 @@ const ManagerDashboard = () => {
                 </span>
                 {revenueDiff !== 0 && (
                   <span
-                    className="trend-indicator"
+                    className="ml-2 text-xl align-middle"
                     style={{
                       color:
                         revenueDiff > 0
@@ -871,23 +870,23 @@ const ManagerDashboard = () => {
                   </span>
                 )}
               </p>
-              <p className="manager-comparison-text-centered">
-                <span className="bold-number">
+              <p className="text-sm text-center text-[#ccc] mt-2">
+                <span className="font-bold">
                   {revenueDiff > 0 ? "+" : revenueDiff < 0 ? "-" : ""}
                   RM{Math.abs(revenueDiff).toLocaleString()}
                 </span>{" "}
-                <span className="normal-text">compared to yesterday</span>
+                <span className="font-normal text-white">compared to yesterday</span>
               </p>
             </div>
 
-            <div className="manager-overall-card appointment-card">
-              <div className="manager-overall-card-header">
-                <span className="manager-overall-card-title">
+            <div className="card-dark rounded-huuk-lg min-h-[115px] flex flex-col justify-between">
+              <div className="flex justify-between items-center gap-2 mb-2">
+                <span className="text-sm font-semibold">
                   Total Appointment
                 </span>
                 <MaintenanceViewAllButton />
               </div>
-              <p className="manager-amount-centered">
+              <p className="text-3xl font-bold text-center my-2 text-white">
                 <span
                   style={{
                     color:
@@ -902,7 +901,7 @@ const ManagerDashboard = () => {
                 </span>
                 {appointmentDiff !== 0 && (
                   <span
-                    className="trend-indicator"
+                    className="ml-2 text-xl align-middle"
                     style={{
                       color:
                         appointmentDiff > 0
@@ -916,36 +915,36 @@ const ManagerDashboard = () => {
                   </span>
                 )}
               </p>
-              <p className="manager-comparison-text-centered">
-                <span className="bold-number">
+              <p className="text-sm text-center text-[#ccc] mt-2">
+                <span className="font-bold">
                   {appointmentDiff > 0 ? "+" : appointmentDiff < 0 ? "-" : ""}
                   {Math.abs(appointmentDiff)}
                 </span>{" "}
-                <span className="normal-text">compared to yesterday</span>
+                <span className="font-normal text-white">compared to yesterday</span>
               </p>
             </div>
 
-            <div className="manager-overall-card customer-card">
-              <div className="manager-overall-card-header">
-                <span className="manager-overall-card-title">
+            <div className="card-dark rounded-huuk-lg min-h-[115px] flex flex-col justify-between">
+              <div className="flex justify-between items-center gap-2 mb-2">
+                <span className="text-sm font-semibold">
                   Total Registered Customer
                 </span>
                 <MaintenanceViewAllButton />
               </div>
-              <p className="manager-amount-centered">
+              <p className="text-3xl font-bold text-center my-2 text-white">
                 {isLoading
                   ? "Loading..."
                   : fetchError
                     ? "N/A"
                     : totalCustomers.toLocaleString()}
               </p>
-              <p className="manager-comparison-text-centered">
-                <span className="normal-text">
+              <p className="text-sm text-center text-[#ccc] mt-2">
+                <span className="font-normal text-white">
                   {isLoading || fetchError ? (
                     "No data available"
                   ) : (
                     <>
-                      <span className="bold-number">
+                      <span className="font-bold">
                         {customerComparisonText}
                       </span>{" "}
                       since yesterday
@@ -955,7 +954,7 @@ const ManagerDashboard = () => {
               </p>
               {fetchError && (
                 <div
-                  className="error-text"
+                  className="mt-2 text-center"
                   style={{ color: "#ff1723", fontSize: 12 }}
                 >
                   {fetchError}
@@ -985,18 +984,18 @@ const ManagerDashboard = () => {
           </div>
         </div>
 
-        <section className="number-of-transaction-container">
-          <header className="transaction-header">
+        <section className="xl:col-span-3 card-dark rounded-huuk-lg min-h-[230px] mt-0 xl:mt-12 flex flex-col">
+          <header className="flex items-center justify-between mb-1">
             <h2>Number of Transaction</h2>
             <MaintenanceViewAllButton />
           </header>
 
-          <div className="outlet-selector">
+          <div className="flex items-center gap-2 mb-1">
             <button
               onClick={scrollLeft}
               disabled={!canScrollLeft}
               aria-label="Scroll left"
-              className="scroll-btn"
+              className="px-2 py-1 rounded-huuk-sm bg-white/10 disabled:opacity-40"
             >
               ‹
             </button>
@@ -1005,10 +1004,10 @@ const ManagerDashboard = () => {
               className="outlet-list-wrapper"
               ref={outletListRef}
               onScroll={onScroll}
-              style={{ overflowX: "auto", whiteSpace: "nowrap" }}
+              style={{ overflowX: "auto", whiteSpace: "nowrap", flex: 1 }}
             >
               <div
-                className="outlet-list"
+                className="flex items-center gap-2"
                 style={{
                   transform: `translateX(-${scrollIndex * itemWidth}px)`,
                   width: `${outlets.length * itemWidth}px`,
@@ -1019,7 +1018,7 @@ const ManagerDashboard = () => {
                   return (
                     <button
                       key={outlet}
-                      className={`outlet-btn ${selected ? "selected" : ""}`}
+                      className={`px-2 py-1 rounded-huuk-sm text-xs font-semibold ${selected ? "bg-huuk-blue text-white" : "bg-white/10 text-white"}`}
                       onClick={() => toggleOutlet(outlet)}
                       aria-pressed={selected}
                     >
@@ -1034,13 +1033,13 @@ const ManagerDashboard = () => {
               onClick={scrollRight}
               disabled={!canScrollRight}
               aria-label="Scroll right"
-              className="scroll-btn"
+              className="px-2 py-1 rounded-huuk-sm bg-white/10 disabled:opacity-40"
             >
               ›
             </button>
           </div>
 
-          <div className="chart-wrapper">
+          <div className="h-[165px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={filteredData}
@@ -1127,17 +1126,17 @@ const ManagerDashboard = () => {
         </section>
       </div>
 
-      <div className="manager-bottom-row">
-        <div className="pending-approvals-container">
-          <div className="pending-approvals-header">
-            <h2 className="pending-approvals-title">Pending Staff Approvals</h2>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mt-4">
+        <div className="xl:col-span-4 card-dark rounded-huuk-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold">Pending Staff Approvals</h2>
             <MaintenanceViewAllButton />
           </div>
           {isLoading ? (
             <p>Loading pending approvals...</p>
           ) : fetchError ? (
             <div
-              className="error-text"
+              className="mt-2 text-center"
               style={{ color: "#ff1723", fontSize: 12 }}
             >
               {fetchError}
@@ -1169,12 +1168,12 @@ const ManagerDashboard = () => {
               </button>
             </div>
           ) : pendingApprovals.length === 0 ? (
-            <p className="pending-approvals-empty">No pending approvals.</p>
+            <p className="text-sm text-huuk-muted">No pending approvals.</p>
           ) : (
             <>
-              <div className="pending-approvals-headers">
+              <div className="grid grid-cols-2 text-xs text-huuk-muted font-semibold border-b border-white/10 pb-2 mb-1">
                 <div>NAME</div>
-                <div className="date-time">DATE/TIME</div>
+                <div className="text-right">DATE/TIME</div>
               </div>
               {[...pendingApprovals]
                 .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
@@ -1196,9 +1195,9 @@ const ManagerDashboard = () => {
                     : "-";
                   const finalFormatted = `${formattedDate}, ${formattedTime}`;
                   return (
-                    <div key={index} className="pending-approvals-row">
+                    <div key={index} className="grid grid-cols-2 text-sm py-2 border-b border-white/10">
                       <div>{staff.username || "(No username)"}</div>
-                      <div className="date-time">{finalFormatted}</div>
+                      <div className="text-right">{finalFormatted}</div>
                     </div>
                   );
                 })}
@@ -1206,9 +1205,9 @@ const ManagerDashboard = () => {
           )}
         </div>
 
-        <div className="manager-customer-satisfaction-container manager-schedule-container compact">
-          <div className="manager-schedule-header">
-            <h2 className="manager-schedule-title">Customer Satisfaction</h2>
+        <div className="xl:col-span-4 card-dark rounded-huuk-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold">Customer Satisfaction</h2>
             <MaintenanceViewAllButton />
           </div>
           <ResponsiveContainer width="100%" height={180}>
@@ -1279,16 +1278,16 @@ const ManagerDashboard = () => {
           </ResponsiveContainer>
         </div>
 
-        <div className="manager-staff-management-container manager-schedule-container compact">
-          <div className="manager-schedule-header">
-            <h2 className="manager-schedule-title">Staff Attendance</h2>
+        <div className="xl:col-span-4 card-dark rounded-huuk-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold">Staff Attendance</h2>
             <MaintenanceViewAllButton />
           </div>
-          <div className="staff-attendance-summary">
-            <div className="attendance-table-header">
-              <div className="attendance-table-cell outlet">OUTLET</div>
-              <div className="attendance-table-cell on-duty">ON DUTY</div>
-              <div className="attendance-table-cell off-duty">OFF DUTY</div>
+          <div>
+            <div className="grid grid-cols-3 text-xs text-huuk-muted font-semibold border-b border-white/10 pb-2 mb-1">
+              <div>OUTLET</div>
+              <div className="text-center">ON DUTY</div>
+              <div className="text-right">OFF DUTY</div>
             </div>
             {attendanceError
               ? // Always show default data even if there's an error
@@ -1298,16 +1297,16 @@ const ManagerDashboard = () => {
                   { outlet: "ONU", onDuty: 4, offDuty: 3 },
                   { outlet: "SWP", onDuty: 6, offDuty: 0 },
                 ].map(({ outlet, onDuty, offDuty }) => (
-                  <div key={outlet} className="attendance-table-row">
-                    <div className="attendance-table-cell outlet">{outlet}</div>
+                  <div key={outlet} className="grid grid-cols-3 text-sm py-2 border-b border-white/10">
+                    <div>{outlet}</div>
                     <div
-                      className="attendance-table-cell on-duty"
+                      className="text-center"
                       style={{ color: "#90d14f" }}
                     >
                       {onDuty}
                     </div>
                     <div
-                      className="attendance-table-cell off-duty"
+                      className="text-right"
                       style={{ color: "#ec1f23" }}
                     >
                       {offDuty}
@@ -1322,18 +1321,18 @@ const ManagerDashboard = () => {
                     { outlet: "ONU", onDuty: 4, offDuty: 3 },
                     { outlet: "SWP", onDuty: 6, offDuty: 0 },
                   ].map(({ outlet, onDuty, offDuty }) => (
-                    <div key={outlet} className="attendance-table-row">
-                      <div className="attendance-table-cell outlet">
+                    <div key={outlet} className="grid grid-cols-3 text-sm py-2 border-b border-white/10">
+                      <div>
                         {outlet}
                       </div>
                       <div
-                        className="attendance-table-cell on-duty"
+                        className="text-center"
                         style={{ color: "#90d14f" }}
                       >
                         {onDuty}
                       </div>
                       <div
-                        className="attendance-table-cell off-duty"
+                        className="text-right"
                         style={{ color: "#ec1f23" }}
                       >
                         {offDuty}
@@ -1342,18 +1341,18 @@ const ManagerDashboard = () => {
                   ))
                 : // Show actual data if available
                   staffStatus.map(({ outlet, onDuty, offDuty }) => (
-                    <div key={outlet} className="attendance-table-row">
-                      <div className="attendance-table-cell outlet">
+                    <div key={outlet} className="grid grid-cols-3 text-sm py-2 border-b border-white/10">
+                      <div>
                         {outlet}
                       </div>
                       <div
-                        className="attendance-table-cell on-duty"
+                        className="text-center"
                         style={{ color: "#90d14f" }}
                       >
                         {onDuty}
                       </div>
                       <div
-                        className="attendance-table-cell off-duty"
+                        className="text-right"
                         style={{ color: "#ec1f23" }}
                       >
                         {offDuty}
@@ -1376,3 +1375,4 @@ const ManagerDashboard = () => {
 };
 
 export default ManagerDashboard;
+

@@ -9,6 +9,7 @@ import client, {
   updatePaymentStatus,
   checkPaymentStatusBySession,
 } from "../../api/client";
+import { debugLog } from "../../utils/debugLog";
 
 const PaymentForm = memo(
   ({
@@ -31,10 +32,10 @@ const PaymentForm = memo(
     const paymentElementMounted = useRef(false);
 
     useEffect(() => {
-      console.log("PaymentForm mounted for booking:", bookingId);
+      debugLog("PaymentForm mounted for booking:", bookingId);
       paymentElementMounted.current = true;
       return () => {
-        console.log("PaymentForm unmounted");
+        debugLog("PaymentForm unmounted");
         paymentElementMounted.current = false;
       };
     }, [bookingId]);
@@ -57,7 +58,7 @@ const PaymentForm = memo(
       let actualBookingIds = bookingId;
       
       if (combinedData && combinedData.isMultipleBookings) {
-        console.log("[PAYMENT FORM] Processing multiple bookings payment:", combinedData);
+        debugLog("[PAYMENT FORM] Processing multiple bookings payment:", combinedData);
         actualBookingIds = combinedData.bookingIds.slice(0, 5);
         
         // Validate that all bookings have valid IDs
@@ -103,14 +104,14 @@ const PaymentForm = memo(
           };
           throw new Error(errorMessages[error.code] || error.message);
         }
-        console.log("Payment succeeded:", {
+        debugLog("Payment succeeded:", {
           paymentIntentId: paymentIntent.id,
           bookingId,
           timestamp: new Date().toISOString(),
         });
         const paymentIntentId = paymentIntent.id;
         // Immediately update payment status in database after successful payment
-        console.log(`Updating payment status to Paid for booking ${bookingId}`);
+        debugLog(`Updating payment status to Paid for booking ${bookingId}`);
         let statusUpdated = false;
         
         try {
@@ -120,10 +121,10 @@ const PaymentForm = memo(
             // Use the new multiple booking update API
             const { updateMultipleBookingsPaymentStatus } = await import('../../api/client');
             await updateMultipleBookingsPaymentStatus(combinedData.bookingIds, "Paid");
-            console.log(`Successfully updated payment status to Paid for multiple bookings:`, combinedData.bookingIds);
+            debugLog(`Successfully updated payment status to Paid for multiple bookings:`, combinedData.bookingIds);
           } else {
             await updatePaymentStatus(bookingId, "Paid");
-            console.log(`Successfully updated payment status to Paid for booking ${bookingId}`);
+            debugLog(`Successfully updated payment status to Paid for booking ${bookingId}`);
           }
           statusUpdated = true;
         } catch (updateErr) {
@@ -138,21 +139,21 @@ const PaymentForm = memo(
         
         // If immediate update failed, retry with payment intent check
         if (!statusUpdated) {
-          console.log("Retrying payment status update using payment intent check");
+          debugLog("Retrying payment status update using payment intent check");
           let attempts = 0;
           const maxAttempts = 8;
           const interval = 2000;
           let booking;
           
           while (attempts < maxAttempts && !statusUpdated) {
-            console.log(
+            debugLog(
               `Checking payment status for booking ${bookingId}, paymentIntent ${paymentIntentId}, attempt ${
                 attempts + 1
               }`
             );
             try {
               const response = await checkPaymentStatusBySession(paymentIntentId);
-              console.log("Payment status response:", {
+              debugLog("Payment status response:", {
                 data: response.data,
                 bookingId,
                 paymentIntentId,
@@ -195,7 +196,7 @@ const PaymentForm = memo(
             for (const id of actualBookingIds) {
               try {
                 await client.post(`/bookings/finalize/${id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
-                console.log(`Finalized booking ${id}`);
+                debugLog(`Finalized booking ${id}`);
               } catch (err) {
                 console.error(`Failed to finalize booking ${id}:`, err);
               }
@@ -203,12 +204,12 @@ const PaymentForm = memo(
           } else if (bookingId) {
             try {
               await client.post(`/bookings/finalize/${bookingId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
-              console.log(`Finalized booking ${bookingId}`);
+              debugLog(`Finalized booking ${bookingId}`);
             } catch (err) {
               console.error(`Failed to finalize booking ${bookingId}:`, err);
             }
           }
-          console.log(`Updating UI for booking ${bookingId} to Paid`);
+          debugLog(`Updating UI for booking ${bookingId} to Paid`);
           setBookingDetails((prev) => ({
             ...prev,
             payment_method: "Online Payment",
@@ -219,7 +220,7 @@ const PaymentForm = memo(
             showSuccessMessage("Payment successful! Your booking has been confirmed.");
           }
           setTimeout(() => {
-            console.log(
+            debugLog(
               "Scrolling to MY HISTORY section for booking:",
               bookingId
             );
@@ -230,7 +231,7 @@ const PaymentForm = memo(
           
           // Trigger a refresh of booking history by dispatching a custom event
           setTimeout(() => {
-            console.log("Triggering booking history refresh after payment");
+            debugLog("Triggering booking history refresh after payment");
             window.dispatchEvent(new CustomEvent('refreshBookingHistory', {
               detail: { bookingId, paymentStatus: 'Paid' }
             }));
@@ -350,7 +351,7 @@ const PaymentForm = memo(
             paymentMethodOrder: ["fpx", "card"],
           }}
           onReady={() =>
-            console.log("PaymentElement ready for booking:", bookingId)
+            debugLog("PaymentElement ready for booking:", bookingId)
           }
           onLoadError={(error) =>
             setPaymentError(

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import './AddBookingModal.css';
 import api from '../utils/api';
 import moment from 'moment';
+import { debugLog } from '../utils/debugLog';
 
 const RescheduleBookingModal = ({ 
   isOpen, 
@@ -60,7 +61,7 @@ const RescheduleBookingModal = ({
       const userData = JSON.parse(userJson);
       const staffId = userData.id;
       
-      console.log(`Fetching bookings for date: ${date}, staff ID: ${staffId}`);
+      debugLog(`Fetching bookings for date: ${date}, staff ID: ${staffId}`);
       
       // Fetch bookings for the selected date
       const bookingsResponse = await api.get("/bookings/staff/appointments", {
@@ -84,14 +85,14 @@ const RescheduleBookingModal = ({
       const bookings = bookingsResponse.data.appointments || [];
       const blockedSlots = blockedSlotsResponse.data.blocked_slots || [];
       
-      console.log(`Found ${bookings.length} bookings and ${blockedSlots.length} blocked slots for ${date}`);
+      debugLog(`Found ${bookings.length} bookings and ${blockedSlots.length} blocked slots for ${date}`);
       
       if (bookings.length > 0) {
-        console.log('First booking:', bookings[0]);
+        debugLog('First booking:', bookings[0]);
       }
       
       if (blockedSlots.length > 0) {
-        console.log('First blocked slot:', blockedSlots[0]);
+        debugLog('First blocked slot:', blockedSlots[0]);
       }
       
       // Generate all time slots
@@ -104,44 +105,44 @@ const RescheduleBookingModal = ({
       bookings.forEach(booking => {
         // Skip cancelled bookings or the booking being rescheduled
         if (booking.status?.toLowerCase() === 'cancelled' || booking.id === selectedBooking.id) {
-          console.log(`Skipping booking ID ${booking.id} - ${booking.status === 'cancelled' ? 'cancelled' : 'current booking'}`);
+          debugLog(`Skipping booking ID ${booking.id} - ${booking.status === 'cancelled' ? 'cancelled' : 'current booking'}`);
           return;
         }
         
         const startTime = moment(booking.start_time, 'HH:mm');
         const endTime = moment(booking.end_time || booking.start_time, 'HH:mm');
         
-        console.log(`Processing booking: ${booking.customer_name}, start: ${booking.start_time}, end: ${booking.end_time}`);
+        debugLog(`Processing booking: ${booking.customer_name}, start: ${booking.start_time}, end: ${booking.end_time}`);
         
         // If valid times
         if (startTime.isValid() && endTime.isValid()) {
           // Calculate duration in 30-minute slots
           const durationSlots = Math.ceil(endTime.diff(startTime, 'minutes') / 30);
           
-          console.log(`Booking duration: ${durationSlots} slots (${endTime.diff(startTime, 'minutes')} minutes)`);
+          debugLog(`Booking duration: ${durationSlots} slots (${endTime.diff(startTime, 'minutes')} minutes)`);
           
           // Mark all slots within the booking as unavailable
           for (let i = 0; i < durationSlots; i++) {
             const slotTime = startTime.clone().add(i * 30, 'minutes').format('HH:mm');
             unavailableTimes.add(slotTime);
-            console.log(`Marking slot ${slotTime} as unavailable`);
+            debugLog(`Marking slot ${slotTime} as unavailable`);
           }
         } else {
-          console.log(`Invalid booking times: start=${booking.start_time}, end=${booking.end_time}`);
+          debugLog(`Invalid booking times: start=${booking.start_time}, end=${booking.end_time}`);
         }
       });
       
       // Mark blocked slots as unavailable
       blockedSlots.forEach(slot => {
         unavailableTimes.add(slot.time);
-        console.log(`Marking blocked slot ${slot.time} as unavailable`);
+        debugLog(`Marking blocked slot ${slot.time} as unavailable`);
       });
       
       // Filter available time slots
       const available = allTimeSlots.filter(time => !unavailableTimes.has(time));
       
-      console.log(`Total time slots: ${allTimeSlots.length}, Unavailable: ${unavailableTimes.size}, Available: ${available.length}`);
-      console.log('Available slots:', available);
+      debugLog(`Total time slots: ${allTimeSlots.length}, Unavailable: ${unavailableTimes.size}, Available: ${available.length}`);
+      debugLog('Available slots:', available);
       
       setAvailableTimeSlots(available);
       setDebugInfo({
@@ -176,8 +177,8 @@ const RescheduleBookingModal = ({
         newTime: selectedBooking.start_time || ''
       });
       
-      console.log('Selected booking:', selectedBooking);
-      console.log('Setting initial date:', initialDate);
+      debugLog('Selected booking:', selectedBooking);
+      debugLog('Setting initial date:', initialDate);
       
       // Fetch available slots for the initial date
       fetchAvailableTimeSlots(initialDate);
@@ -310,4 +311,5 @@ const RescheduleBookingModal = ({
 };
 
 export default RescheduleBookingModal;
+
 

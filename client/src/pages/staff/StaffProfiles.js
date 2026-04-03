@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../ProfileContext";
 import http from "../../utils/httpClient";
-import styles from "../../styles/StaffProfiles.css";
 import { FaEnvelope, FaPhoneAlt } from "react-icons/fa"; // Import the icons
 import { OUTLET_NAMES_TITLE } from "../../constants/outlets";
 
@@ -149,11 +148,11 @@ const StaffProfiles = () => {
   console.log("Profile:", profile, "Profile loading:", profileLoading);
 
   if (profileLoading) {
-    return <div>Loading profile...</div>;
+    return <div className="min-h-[50vh] flex items-center justify-center text-white">Loading profile...</div>;
   }
 
   if (profileError) {
-    return <div style={{ color: "red" }}>Error: {profileError}</div>;
+    return <div className="text-red-400">Error: {profileError}</div>;
   }
 
   if (!profile || !profile.role) {
@@ -168,32 +167,32 @@ const StaffProfiles = () => {
   console.log("Profile role:", profile.role);
 
   if (profile.role !== "manager") {
-    return <div>You do not have permission to view this page.</div>;
+    return <div className="text-white">You do not have permission to view this page.</div>;
   }
 
   if (loading) {
-    return <div>Loading staff list...</div>;
+    return <div className="min-h-[50vh] flex items-center justify-center text-white">Loading staff list...</div>;
   }
 
   if (err) {
-    return <div style={{ color: "red" }}>Error: {err}</div>;
+    return <div className="text-red-400">Error: {err}</div>;
   }
 
   console.log("Rendering filteredStaffList:", filteredStaffList);
 
   return (
-    <div className="staff-profiles">
-      <h2>Staff Profiles</h2>
+    <div className="max-w-6xl mx-auto px-5 py-8 font-quicksand text-white">
+      <h2 className="text-center mb-7 text-3xl font-bold">Staff Profiles</h2>
       <div>
         <button
           onClick={() => setShowFilter(!showFilter)}
-          className="filter-button"
+          className="btn-primary"
         >
           {showFilter ? "Close Filter" : "Filter by Outlet"}
         </button>
         {showFilter && (
-          <div className="filter-container">
-            <label>
+          <div className="mt-3 bg-huuk-card rounded-huuk-md p-4 grid grid-cols-2 md:grid-cols-3 gap-2">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={selectedOutlets.length === outlets.length}
@@ -205,7 +204,7 @@ const StaffProfiles = () => {
               Select All
             </label>
             {outlets.map((outlet, index) => (
-              <label key={index}>
+              <label key={index} className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
                   value={outlet}
@@ -226,14 +225,14 @@ const StaffProfiles = () => {
         )}
       </div>
 
-      <div className="profile-container">
+      <div className="flex flex-wrap justify-center gap-5 mt-5">
         {currentItems.length === 0 ? (
           <p>No staff members found.</p>
         ) : (
           currentItems.map((staff) => (
-            <div className="profile-card" key={staff.id}>
+            <div className="bg-huuk-card rounded-huuk-md p-5 w-[280px] relative shadow-lg" key={staff.id}>
               <div
-                className="icon-menu"
+                className="absolute top-3 right-3 cursor-pointer text-white z-20"
                 onClick={() => handleToggleMenu(staff.id)}
               >
                 &#8942; {/* Three dots */}
@@ -241,11 +240,11 @@ const StaffProfiles = () => {
 
               {/* Make sure menuOpen is set correctly */}
               {menuOpen === staff.id && (
-                <div className="dropdown-menu">
-                  <button onClick={() => viewProfile(staff.id)}>
+                <div className="absolute top-11 right-3 bg-huuk-bg rounded-huuk-sm overflow-hidden shadow-xl z-10">
+                  <button onClick={() => viewProfile(staff.id)} className="block w-full px-4 py-2 bg-transparent border-none text-white text-left cursor-pointer hover:bg-white/20">
                     View full profile
                   </button>
-                  <button onClick={() => deleteProfile(staff.id)}>
+                  <button onClick={() => deleteProfile(staff.id)} className="block w-full px-4 py-2 bg-transparent border-none text-white text-left cursor-pointer hover:bg-white/20">
                     Delete profile
                   </button>
                 </div>
@@ -263,17 +262,18 @@ const StaffProfiles = () => {
                   e.target.src =
                     "http://localhost:5000/uploads/profile_pictures/default.jpg";
                 }}
+                className="w-[70px] h-[70px] rounded-full object-cover mb-2.5 bg-[#ccc]"
               />
-              <p>
+              <p className="my-1.5">
                 <strong>Name:</strong> {staff.username}
               </p>
-              <p>
+              <p className="my-1.5">
                 <strong>Outlet:</strong> {staff.outlet}
               </p>
-              <p>
+              <p className="my-1.5 flex items-center gap-1">
                 <FaEnvelope /> <strong>Email:</strong> {staff.email}
               </p>
-              <p>
+              <p className="my-1.5 flex items-center gap-1">
                 <FaPhoneAlt /> <strong>Phone:</strong>{" "}
                 {staff.phone_number || "Not set"}
               </p>
@@ -282,17 +282,19 @@ const StaffProfiles = () => {
         )}
       </div>
 
-      <div className="pagination">
+      <div className="flex justify-center mt-7 gap-2.5 items-center">
         <button
           onClick={() => handlePagination(-1)}
           disabled={currentPage === 1}
+          className="px-4 py-2 bg-white/20 text-white border-none rounded-huuk-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Prev
         </button>
-        <span>Page {currentPage}</span>
+        <span className="text-sm">Page {currentPage}</span>
         <button
           onClick={() => handlePagination(1)}
           disabled={currentPage * itemsPerPage >= filteredStaffList.length}
+          className="px-4 py-2 bg-white/20 text-white border-none rounded-huuk-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Next
         </button>

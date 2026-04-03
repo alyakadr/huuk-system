@@ -107,9 +107,9 @@ const PaymentSummary = () => {
 
   if (loading) {
     return (
-      <div className="payment-summary-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="flex flex-col items-center text-white">
+          <div className="w-10 h-10 border-4 border-white/20 border-t-huuk-blue rounded-full animate-spin mb-3"></div>
           <p>Loading payments...</p>
         </div>
       </div>
@@ -117,56 +117,57 @@ const PaymentSummary = () => {
   }
 
   return (
-    <div className="payment-summary-container">
-      <div className="payment-header">
-        <h1>Payment Management</h1>
-        <p>Monitor and manage all payment transactions</p>
+    <div className="w-full text-white font-quicksand space-y-4">
+      <div className="card-dark rounded-huuk-lg">
+        <h1 className="text-2xl font-bold">Payment Management</h1>
+        <p className="text-sm text-huuk-muted mt-1">Monitor and manage all payment transactions</p>
       </div>
 
       {error && (
-        <div className="error-message">
+        <div className="bg-red-600 text-white p-3 rounded-huuk-sm flex items-center gap-2">
           <i className="bi bi-exclamation-triangle"></i>
           {error}
         </div>
       )}
 
       {/* Summary Cards */}
-      <div className="payment-summary-cards">
-        <div className="summary-card">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="card-dark rounded-huuk-lg flex items-center gap-3">
           <i className="bi bi-cash-stack"></i>
           <div>
-            <h4>Total Revenue</h4>
-            <p>{formatCurrency(totalAmount)}</p>
+            <h4 className="text-sm font-semibold">Total Revenue</h4>
+            <p className="text-lg font-bold">{formatCurrency(totalAmount)}</p>
           </div>
         </div>
-        <div className="summary-card">
+        <div className="card-dark rounded-huuk-lg flex items-center gap-3">
           <i className="bi bi-credit-card"></i>
           <div>
-            <h4>Online Payments</h4>
-            <p>{onlinePayments.length}</p>
+            <h4 className="text-sm font-semibold">Online Payments</h4>
+            <p className="text-lg font-bold">{onlinePayments.length}</p>
           </div>
         </div>
-        <div className="summary-card">
+        <div className="card-dark rounded-huuk-lg flex items-center gap-3">
           <i className="bi bi-shop"></i>
           <div>
-            <h4>Outlet Payments</h4>
-            <p>{outletPayments.length}</p>
+            <h4 className="text-sm font-semibold">Outlet Payments</h4>
+            <p className="text-lg font-bold">{outletPayments.length}</p>
           </div>
         </div>
-        <div className="summary-card">
+        <div className="card-dark rounded-huuk-lg flex items-center gap-3">
           <i className="bi bi-receipt"></i>
           <div>
-            <h4>Total Transactions</h4>
-            <p>{payments.length}</p>
+            <h4 className="text-sm font-semibold">Total Transactions</h4>
+            <p className="text-lg font-bold">{payments.length}</p>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="payment-filters">
-        <div className="filter-group">
-          <label>Payment Method:</label>
+      <div className="card-dark rounded-huuk-lg grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-semibold">Payment Method:</label>
           <select
+            className="bg-white/10 border border-white/20 rounded-huuk-sm px-3 py-2 text-sm text-white"
             value={filters.paymentMethod}
             onChange={(e) =>
               handleFilterChange("paymentMethod", e.target.value)
@@ -178,9 +179,10 @@ const PaymentSummary = () => {
             <option value="Pay at Outlet">Pay at Outlet</option>
           </select>
         </div>
-        <div className="filter-group">
-          <label>Payment Status:</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-semibold">Payment Status:</label>
           <select
+            className="bg-white/10 border border-white/20 rounded-huuk-sm px-3 py-2 text-sm text-white"
             value={filters.paymentStatus}
             onChange={(e) =>
               handleFilterChange("paymentStatus", e.target.value)
@@ -192,9 +194,10 @@ const PaymentSummary = () => {
             <option value="Failed">Failed</option>
           </select>
         </div>
-        <div className="filter-group">
-          <label>Date Range:</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-semibold">Date Range:</label>
           <select
+            className="bg-white/10 border border-white/20 rounded-huuk-sm px-3 py-2 text-sm text-white"
             value={filters.dateRange}
             onChange={(e) => handleFilterChange("dateRange", e.target.value)}
           >
@@ -207,61 +210,61 @@ const PaymentSummary = () => {
       </div>
 
       {/* Payments Table */}
-      <div className="payments-table-container">
-        <table className="payments-table">
+      <div className="card-dark rounded-huuk-lg overflow-x-auto">
+        <table className="huuk-table">
           <thead>
             <tr>
-              <th>Booking ID</th>
-              <th>Customer</th>
-              <th>Service</th>
-              <th>Amount</th>
-              <th>Payment Method</th>
-              <th>Status</th>
-              <th>Date</th>
-              <th>Staff</th>
+              <th className="huuk-th">Booking ID</th>
+              <th className="huuk-th">Customer</th>
+              <th className="huuk-th">Service</th>
+              <th className="huuk-th">Amount</th>
+              <th className="huuk-th">Payment Method</th>
+              <th className="huuk-th">Status</th>
+              <th className="huuk-th">Date</th>
+              <th className="huuk-th">Staff</th>
             </tr>
           </thead>
           <tbody>
             {payments.length === 0 ? (
               <tr>
-                <td colSpan="8" className="no-payments">
+                <td colSpan="8" className="huuk-td text-center py-8">
                   <i className="bi bi-receipt"></i>
                   No payments found for the selected criteria.
                 </td>
               </tr>
             ) : (
               payments.map((payment) => (
-                <tr key={payment.booking_id} className="payment-row">
-                  <td className="booking-id-cell">
+                <tr key={payment.booking_id} className="huuk-tr border-b border-white/10">
+                  <td className="huuk-td">
                     #{String(payment.booking_id).padStart(7, "0")}
                   </td>
-                  <td className="customer-cell">
-                    <div className="customer-info">
-                      <span className="customer-name">
+                  <td className="huuk-td">
+                    <div className="flex flex-col">
+                      <span className="font-semibold">
                         {payment.customer_name}
                       </span>
-                      <span className="customer-phone">
+                      <span className="text-xs text-huuk-muted">
                         {payment.phone_number}
                       </span>
                     </div>
                   </td>
-                  <td className="service-cell">{payment.service_name}</td>
-                  <td className="amount-cell">
-                    <span className="amount">
+                  <td className="huuk-td">{payment.service_name}</td>
+                  <td className="huuk-td">
+                    <span className="font-semibold">
                       {formatCurrency(payment.amount)}
                     </span>
                   </td>
-                  <td className="payment-method-cell">
-                    <div className="payment-method">
+                  <td className="huuk-td">
+                    <div className="flex items-center gap-2">
                       <i
                         className={`bi ${getPaymentMethodIcon(payment.payment_method)}`}
                       ></i>
                       <span>{payment.payment_method}</span>
                     </div>
                   </td>
-                  <td className="status-cell">
+                  <td className="huuk-td">
                     <span
-                      className="status-badge"
+                      className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold text-white"
                       style={{
                         backgroundColor: getPaymentStatusColor(
                           payment.payment_status,
@@ -271,10 +274,10 @@ const PaymentSummary = () => {
                       {payment.payment_status}
                     </span>
                   </td>
-                  <td className="date-cell">
+                  <td className="huuk-td">
                     {formatDate(payment.booking_date)}
                   </td>
-                  <td className="staff-cell">{payment.staff_name}</td>
+                  <td className="huuk-td">{payment.staff_name}</td>
                 </tr>
               ))
             )}

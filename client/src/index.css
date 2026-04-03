@@ -1,13 +1,54 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Quicksand', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #0e0d0f;
+    color: white;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Reusable component layer utilities */
+@layer components {
+  .btn-primary {
+    @apply bg-huuk-blue hover:bg-huuk-blue-dark text-white font-bold py-2 px-4 rounded-huuk-sm transition-colors duration-200 cursor-pointer border-none font-quicksand;
+  }
+
+  .btn-accent {
+    @apply bg-huuk-accent hover:opacity-90 text-huuk-card font-bold py-2 px-4 rounded-huuk-sm transition-opacity duration-200 cursor-pointer border-none font-quicksand;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent border-none text-huuk-blue underline font-bold cursor-pointer font-quicksand;
+  }
+
+  /* Dark card used throughout the app */
+  .card-dark {
+    @apply bg-huuk-card rounded-huuk-lg p-4 text-white font-quicksand;
+  }
+
+  /* Status badges */
+  .badge-paid   { @apply bg-green-500 text-white text-xs rounded-full px-2 py-0.5 font-bold; }
+  .badge-pending{ @apply bg-yellow-400 text-huuk-card text-xs rounded-full px-2 py-0.5 font-bold; }
+  .badge-unpaid { @apply bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-bold; }
+
+  /* Tables */
+  .huuk-table { @apply w-full border-collapse font-quicksand; }
+  .huuk-th    { @apply text-huuk-muted text-xs font-bold uppercase py-2 px-3 text-left; }
+  .huuk-td    { @apply text-white text-sm py-2 px-3; }
+  .huuk-tr:hover { @apply bg-white/5; }
 }

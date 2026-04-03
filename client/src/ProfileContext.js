@@ -10,6 +10,7 @@ import Modal from "react-modal";
 import { MdPhone, MdLock, MdVisibility, MdVisibilityOff } from "react-icons/md";
 import { useSpring, animated } from "@react-spring/web";
 import styles from "./styles/homepage.module.css";
+import { debugLog } from "./utils/debugLog";
 
 const ProfileContext = createContext();
 
@@ -46,7 +47,7 @@ export const ProfileProvider = ({ children }) => {
     (newProfile) => {
       // Only log when there's a significant profile change
       if (newProfile?.id !== profile?.id || (!newProfile && profile)) {
-        console.log(
+        debugLog(
           "Setting profile:",
           newProfile?.id ? `[User ID: ${newProfile.id}]` : "[Logged out]",
         );
@@ -86,7 +87,7 @@ export const ProfileProvider = ({ children }) => {
         // Check for saved booking data and trigger booking submission
         const tempBookingData = localStorage.getItem("TEMP_BOOKING_FORM_DATA");
         if (tempBookingData) {
-          console.log(
+          debugLog(
             "[SIGN IN] Found saved booking data, will restore and submit",
           );
           // Use a small timeout to ensure token is fully set before booking submission
@@ -140,7 +141,7 @@ export const ProfileProvider = ({ children }) => {
           "FORCE_LOGOUT_IN_PROGRESS",
         );
         if (logoutInProgress) {
-          console.log("Logout in progress, skipping profile load");
+          debugLog("Logout in progress, skipping profile load");
           setProfile(null);
           setLoading(false);
           return;
@@ -148,7 +149,7 @@ export const ProfileProvider = ({ children }) => {
 
         // Additional check to prevent loading during logout process
         if (isLoggingOut) {
-          console.log("Currently logging out, skipping profile load");
+          debugLog("Currently logging out, skipping profile load");
           setProfile(null);
           setLoading(false);
           return;
@@ -179,13 +180,13 @@ export const ProfileProvider = ({ children }) => {
         if (isStaffInterface && staffToken && staffProfile) {
           token = staffToken;
           storedProfile = staffProfile;
-          console.log("Loading staff session for staff interface");
+          debugLog("Loading staff session for staff interface");
         } else if (isCustomerInterface && customerToken && customerProfile) {
           token = customerToken;
           storedProfile = customerProfile;
           // Reduced logging frequency
           if (Math.random() < 0.1)
-            console.log("Loading customer session for customer interface");
+            debugLog("Loading customer session for customer interface");
         }
         // NO FALLBACKS - strict interface separation
         // Staff sessions should ONLY work on staff interfaces
@@ -198,7 +199,7 @@ export const ProfileProvider = ({ children }) => {
               if (token) {
                 // Reduce validation logging frequency
                 if (Math.random() < 0.1)
-                  console.log("Validating token for user:", parsedProfile.id);
+                  debugLog("Validating token for user:", parsedProfile.id);
                 http
                   .get(`${API_BASE_URL}/auth/validate`, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -206,7 +207,7 @@ export const ProfileProvider = ({ children }) => {
                   .then(() => {
                     // Only log successful validation occasionally
                     if (Math.random() < 0.1)
-                      console.log(
+                      debugLog(
                         "Token validated for user:",
                         parsedProfile.id,
                       );
@@ -220,7 +221,7 @@ export const ProfileProvider = ({ children }) => {
 
                     // Clear storage based on which session was actually being validated
                     if (isStaffInterface && staffToken && staffProfile) {
-                      console.log("Clearing expired staff session tokens");
+                      debugLog("Clearing expired staff session tokens");
                       localStorage.removeItem("staff_token");
                       localStorage.removeItem("staff_loggedInUser");
                       localStorage.removeItem("staff_userId");
@@ -229,13 +230,13 @@ export const ProfileProvider = ({ children }) => {
                       customerToken &&
                       customerProfile
                     ) {
-                      console.log("Clearing expired customer session tokens");
+                      debugLog("Clearing expired customer session tokens");
                       localStorage.removeItem("customer_token");
                       localStorage.removeItem("customer_loggedInUser");
                       localStorage.removeItem("customer_userId");
                     } else {
                       // Fallback for legacy tokens or edge cases
-                      console.log("Clearing expired legacy tokens as fallback");
+                      debugLog("Clearing expired legacy tokens as fallback");
                       localStorage.removeItem("token");
                       localStorage.removeItem("loggedInUser");
                       localStorage.removeItem("userId");
@@ -249,7 +250,7 @@ export const ProfileProvider = ({ children }) => {
 
                     // Force redirect to clean login after token expiry
                     if (error.response?.status === 401) {
-                      console.log(
+                      debugLog(
                         "Token expired (401), forcing redirect to clean login",
                       );
                       // Only redirect if not already on the staff-login page
@@ -293,7 +294,7 @@ export const ProfileProvider = ({ children }) => {
     const handleStorageUpdate = (e) => {
       // Ignore storage events during logout to prevent auto re-login
       if (isLoggingOut) {
-        console.log("Ignoring storage event during logout:", e.key);
+        debugLog("Ignoring storage event during logout:", e.key);
         return;
       }
 
@@ -305,7 +306,7 @@ export const ProfileProvider = ({ children }) => {
 
       // Handle storage events with interface awareness
       if (e.key === "customer_loggedInUser" || e.key === "staff_loggedInUser") {
-        console.log(`Storage event for ${e.key}:`, e.newValue);
+        debugLog(`Storage event for ${e.key}:`, e.newValue);
 
         // Only respond to storage events that match the current interface
         const isCustomerEvent = e.key === "customer_loggedInUser";
@@ -315,7 +316,7 @@ export const ProfileProvider = ({ children }) => {
           (isCustomerInterface && isStaffEvent) ||
           (isStaffInterface && isCustomerEvent)
         ) {
-          console.log(
+          debugLog(
             `Ignoring ${e.key} event for ${isStaffInterface ? "staff" : "customer"} interface`,
           );
           return;
@@ -323,7 +324,7 @@ export const ProfileProvider = ({ children }) => {
 
         // If the value is null/empty (cleared), don't restore profile
         if (!e.newValue) {
-          console.log("Storage cleared, not restoring profile");
+          debugLog("Storage cleared, not restoring profile");
           debounceSetProfile(null);
           return;
         }
@@ -331,7 +332,7 @@ export const ProfileProvider = ({ children }) => {
         try {
           const newProfile = JSON.parse(e.newValue);
           if (newProfile && newProfile.id && newProfile.role) {
-            console.log(
+            debugLog(
               `Setting profile from ${e.key} for ${isStaffInterface ? "staff" : "customer"} interface:`,
               newProfile,
             );
@@ -346,10 +347,10 @@ export const ProfileProvider = ({ children }) => {
       }
       // Keep legacy support for backward compatibility
       else if (e.key === "loggedInUser") {
-        console.log("Storage event for loggedInUser (legacy):", e.newValue);
+        debugLog("Storage event for loggedInUser (legacy):", e.newValue);
         // If the value is null/empty (cleared), don't restore profile
         if (!e.newValue) {
-          console.log("Legacy storage cleared, not restoring profile");
+          debugLog("Legacy storage cleared, not restoring profile");
           debounceSetProfile(null);
           return;
         }
@@ -381,7 +382,7 @@ export const ProfileProvider = ({ children }) => {
   const updateProfile = useCallback(
     (updatedProfile) => {
       if (!updatedProfile) {
-        console.log("Clearing profile data and all session storage");
+        debugLog("Clearing profile data and all session storage");
         debounceSetProfile(null);
 
         // Clear ALL possible storage keys to prevent re-login
@@ -403,7 +404,7 @@ export const ProfileProvider = ({ children }) => {
 
         keysToRemove.forEach((key) => {
           if (localStorage.getItem(key)) {
-            console.log(`Removing ${key} from localStorage`);
+            debugLog(`Removing ${key} from localStorage`);
             localStorage.removeItem(key);
           }
         });
@@ -411,7 +412,7 @@ export const ProfileProvider = ({ children }) => {
         // Also clear sessionStorage
         sessionStorage.clear();
 
-        console.log("All session data cleared successfully");
+        debugLog("All session data cleared successfully");
         return;
       }
 
@@ -420,7 +421,7 @@ export const ProfileProvider = ({ children }) => {
         return;
       }
 
-      console.log("Updating profile and storing in localStorage:", {
+      debugLog("Updating profile and storing in localStorage:", {
         profile: updatedProfile,
         role: updatedProfile.role,
         token: updatedProfile.token ? "[PRESENT]" : "[MISSING]",
@@ -439,13 +440,13 @@ export const ProfileProvider = ({ children }) => {
       if (hasChanged) {
         debounceSetProfile(mergedProfile);
       } else {
-        console.log("Profile data unchanged, skipping update");
+        debugLog("Profile data unchanged, skipping update");
         return;
       }
 
       // Store based on role - ONLY use role-specific keys (allow concurrent sessions)
       if (updatedProfile.role === "customer") {
-        console.log("Setting customer session tokens");
+        debugLog("Setting customer session tokens");
         localStorage.setItem(
           "customer_loggedInUser",
           JSON.stringify(mergedProfile),
@@ -454,10 +455,10 @@ export const ProfileProvider = ({ children }) => {
           localStorage.setItem("customer_token", updatedProfile.token);
         }
         localStorage.setItem("customer_userId", String(mergedProfile.id));
-        console.log("Customer session tokens set");
+        debugLog("Customer session tokens set");
       } else {
         // Staff or manager
-        console.log("Setting staff session tokens");
+        debugLog("Setting staff session tokens");
         localStorage.setItem(
           "staff_loggedInUser",
           JSON.stringify(mergedProfile),
@@ -466,7 +467,7 @@ export const ProfileProvider = ({ children }) => {
           localStorage.setItem("staff_token", updatedProfile.token);
         }
         localStorage.setItem("staff_userId", String(mergedProfile.id));
-        console.log("Staff session tokens set");
+        debugLog("Staff session tokens set");
       }
 
       // Use role-specific storage event to prevent cross-role conflicts
@@ -715,3 +716,4 @@ export const ProfileProvider = ({ children }) => {
 export const useProfile = () => {
   return useContext(ProfileContext);
 };
+

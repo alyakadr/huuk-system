@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../utils/api";
 import moment from "moment";
 import { Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Typography, Box } from "@mui/material";
-import "../../styles/staffAppointments.css";
 import AddBookingModal from "../../components/AddBookingModal";
 import RescheduleBookingModal from "../../components/RescheduleBookingModal";
 import { TIME_SLOTS, calculateAvailableSlotDuration, getAvailableServicesForSlot } from "../../utils/timeSlotUtils";
@@ -1405,9 +1404,9 @@ const location = useLocation();
 
   if (loading) {
     return (
-      <div className="staff-appointments-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
+      <div className="w-full min-h-[60vh] flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center text-white">
+          <div className="w-10 h-10 border-4 border-white/20 border-t-huuk-blue rounded-full animate-spin mb-4"></div>
           <p>Loading appointments...</p>
         </div>
       </div>
@@ -1417,12 +1416,12 @@ const location = useLocation();
   // If there's an error, display it
   if (error) {
     return (
-      <div className="staff-appointments-container">
-        <div className="error-container">
-          <div className="error-message">
+      <div className="w-full min-h-[60vh] flex items-center justify-center">
+        <div className="max-w-xl w-full">
+          <div className="bg-red-600 text-white p-4 rounded-huuk-sm mb-5 flex items-center gap-3">
             <i className="bi bi-exclamation-triangle"></i>
             <p>{error}</p>
-            <button onClick={() => window.location.reload()} className="retry-btn">
+            <button onClick={() => window.location.reload()} className="btn-primary ml-auto">
               Retry
             </button>
           </div>
@@ -1433,15 +1432,15 @@ const location = useLocation();
 
   return (
     <>
-    <div className="staff-appointments-container">
+    <div className="w-full min-h-screen font-quicksand text-white">
       {/* Main Content - Split Layout */}
-      <div className="staff-appointments-main">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         {/* Left Side - Appointments Table */}
-        <div className="appointments-section">
-          <div className="booking-details-header">
-            <h2 className="booking-details-title">Booking Details</h2>
+        <div className="xl:col-span-8 card-dark rounded-huuk-lg">
+          <div className="mb-3">
+            <h2 className="text-xl font-bold">Booking Details</h2>
           </div>
-          <div className="appointments-table-container" onScroll={(e) => {
+          <div className="appointments-table-container overflow-auto max-h-[640px]" onScroll={(e) => {
             const container = e.target;
             const hasOverflow = container.scrollHeight > container.clientHeight;
             if (hasOverflow) {
@@ -1450,15 +1449,15 @@ const location = useLocation();
               container.classList.remove('has-overflow');
             }
           }}>
-          <table className="appointments-table">
+          <table className="huuk-table">
             {/* Single table header */}
             <thead>
               <tr>
-                <th>CUSTOMER NAME</th>
-                <th>PHONE NUMBER</th>
-                <th>SERVICE</th>
-                <th>TIME</th>
-                <th>SERVICE STATUS</th>
+                <th className="huuk-th">CUSTOMER NAME</th>
+                <th className="huuk-th">PHONE NUMBER</th>
+                <th className="huuk-th">SERVICE</th>
+                <th className="huuk-th">TIME</th>
+                <th className="huuk-th">SERVICE STATUS</th>
               </tr>
             </thead>
             <tbody>
@@ -1467,19 +1466,19 @@ const location = useLocation();
                 sortedDates.map(date => (
                   <React.Fragment key={`date-section-${date}`}>
                     {/* Date header row */}
-                    <tr className="date-header-row">
-                      <td colSpan="5" className="date-header">
-                        <div className="date-header-content">
+                    <tr className="bg-white/5">
+                      <td colSpan="5" className="px-4 py-2">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-huuk-accent">
                           <i className="bi bi-calendar-date"></i>
-                          <span className="date-text">{formatDateForDisplay(date)}</span>
-                          <span className="appointment-count">({groupedAppointments[date].length} appointment{groupedAppointments[date].length !== 1 ? 's' : ''})</span>
+                          <span>{formatDateForDisplay(date)}</span>
+                          <span className="text-huuk-muted">({groupedAppointments[date].length} appointment{groupedAppointments[date].length !== 1 ? 's' : ''})</span>
                         </div>
                       </td>
                     </tr>
                     {/* Appointment rows for this date */}
                     {groupedAppointments[date].map((appointment) => (
-                      <tr key={appointment.id} className={`appointment-row ${appointment.id && typeof appointment.id === 'string' && appointment.id.includes('dummy') ? 'dummy-appointment' : ''}`}>
-                        <td className="customer-name" style={{ paddingLeft: '18px' }}>{appointment.customer_name || 'N/A'}</td>
+                      <tr key={appointment.id} className="huuk-tr border-b border-white/10">
+                        <td className="huuk-td" style={{ paddingLeft: '18px' }}>{appointment.customer_name || 'N/A'}</td>
                         <td>{(() => {
                           // Comprehensive phone number fallback logic
                           const phoneFields = [
@@ -1503,10 +1502,10 @@ const location = useLocation();
                           );
                           return phoneNumber ? phoneNumber.toString().trim() : 'N/A';
                         })()}</td>
-                        <td className="service-text">{appointment.service_name || 'N/A'}</td>
-                        <td className="time-display">{appointment.start_time && appointment.end_time ? `${formatTime(appointment.start_time)} – ${formatTime(appointment.end_time)}` : `${formatTime(appointment.start_time) || 'N/A'} – ${formatTime(appointment.end_time) || 'N/A'}`}</td>
-                        <td className="service-status-column" style={{ textAlign: 'center', fontStyle: 'italic' }}>
-                          <div className="service-status-container" style={{ fontStyle: 'italic' }}>
+                        <td className="huuk-td">{appointment.service_name || 'N/A'}</td>
+                        <td className="huuk-td">{appointment.start_time && appointment.end_time ? `${formatTime(appointment.start_time)} – ${formatTime(appointment.end_time)}` : `${formatTime(appointment.start_time) || 'N/A'} – ${formatTime(appointment.end_time) || 'N/A'}`}</td>
+                        <td className="huuk-td text-center italic" style={{ textAlign: 'center', fontStyle: 'italic' }}>
+                          <div className="italic" style={{ fontStyle: 'italic' }}>
                             {(() => {
                               // Normalize status to lowercase for consistent checking
                               const normalizedStatus = (appointment.status || '').toLowerCase();
@@ -1535,16 +1534,16 @@ const location = useLocation();
                                 // 3+ days in future: Reschedule and Cancel
                                 if (daysDiff >= 3) {
                                   return (
-                                    <div className="action-buttons-wrapper">
+                                    <div className="flex justify-center gap-2">
                                       <button
                                         onClick={() => handleReschedule(appointment.id)}
-                                        className="action-btn reschedule-btn"
+                                        className="px-3 py-1 rounded-huuk-sm bg-huuk-purple text-white text-xs font-semibold hover:opacity-90"
                                       >
                                         Reschedule
                                       </button>
                                       <button
                                         onClick={() => handleOpenCancelDialog(appointment.id)}
-                                        className="action-btn cancel-btn"
+                                        className="px-3 py-1 rounded-huuk-sm bg-huuk-red text-white text-xs font-semibold hover:opacity-90"
                                       >
                                         Cancel
                                       </button>
@@ -1554,17 +1553,17 @@ const location = useLocation();
                                 // 2+ days in future till old appointment: Done and Cancel
                                 else if (daysDiff >= 2 || daysDiff < 0) {
                                   return (
-                                    <div className="action-buttons-wrapper">
+                                    <div className="flex justify-center gap-2">
                                       <button
                                         onClick={() => checkPaymentConfirmation(appointment.id)}
                                         disabled={processingIds.has(appointment.id)}
-                                        className="action-btn done-btn"
+                                        className="px-3 py-1 rounded-huuk-sm bg-huuk-blue text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
                                       >
                                         Done
                                       </button>
                                       <button
                                         onClick={() => handleOpenCancelDialog(appointment.id)}
-                                        className="action-btn cancel-btn"
+                                        className="px-3 py-1 rounded-huuk-sm bg-huuk-red text-white text-xs font-semibold hover:opacity-90"
                                       >
                                         Cancel
                                       </button>
@@ -1574,18 +1573,18 @@ const location = useLocation();
                                 // Default case (0-1 days in future) - Show Done and Absent
                                 else {
                                   return (
-                                    <div className="action-buttons-wrapper">
+                                    <div className="flex justify-center gap-2">
                                       <button
                                         onClick={() => checkPaymentConfirmation(appointment.id)}
                                         disabled={processingIds.has(appointment.id)}
-                                        className="action-btn done-btn"
+                                        className="px-3 py-1 rounded-huuk-sm bg-huuk-blue text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
                                       >
                                         Done
                                       </button>
                                       <button
                                         onClick={() => handleStatusChange(appointment.id, "absent")}
                                         disabled={processingIds.has(appointment.id)}
-                                        className="action-btn absent-btn"
+                                        className="px-3 py-1 rounded-huuk-sm bg-amber-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
                                       >
                                         Absent
                                       </button>
@@ -1611,7 +1610,7 @@ const location = useLocation();
               ) : (
                 /* Empty state */
                 <tr>
-                  <td colSpan="5" className="no-appointments">
+                  <td colSpan="5" className="huuk-td text-center py-8">
                     <i className="bi bi-calendar-x"></i>
                     {selectedDate ? 
                       'No appointments found for the selected date.' : 
@@ -1626,23 +1625,23 @@ const location = useLocation();
           
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="pagination">
+            <div className="flex items-center justify-center gap-3 mt-3">
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="pagination-btn"
+                className="px-3 py-1 rounded-huuk-sm bg-huuk-card-light text-huuk-card disabled:opacity-40"
               >
                 <i className="bi bi-chevron-left"></i>
               </button>
               
-              <span className="pagination-info">
+              <span className="text-sm text-huuk-muted">
                 Page {currentPage} of {totalPages}
               </span>
               
               <button
                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="pagination-btn"
+                className="px-3 py-1 rounded-huuk-sm bg-huuk-card-light text-huuk-card disabled:opacity-40"
               >
                 <i className="bi bi-chevron-right"></i>
               </button>
@@ -1651,35 +1650,28 @@ const location = useLocation();
         </div>
 
         {/* Right Side - Booking Slot Section */}
-        <div className="booking-slot-section">
+        <div className="xl:col-span-4 card-dark rounded-huuk-lg space-y-4">
           {/* Enhanced Date Filter Controls */}
-          <div className="slots-date-filter">
-            <div className="date-filter-header">
-              <h4 className="date-filter-title">
+          <div className="rounded-huuk-sm border border-white/10 p-3">
+            <div className="mb-2">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
                 <i className="bi bi-calendar3"></i>
                 Select Date
               </h4>
             </div>
-            <div className="date-filter-controls">
-              <div className="date-input-wrapper">
+            <div>
+              <div className="relative">
                 <input
                   type="date"
-                  className="date-input"
+                  className="w-full bg-huuk-card-light text-huuk-card border-none rounded-huuk-sm px-3 py-2"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   id="date-filter-input"
                 />
                 <span
-                  className="calendar-icon"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer flex items-center z-[2]"
                   style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    zIndex: 2
+                    zIndex: 2,
                   }}
                   onClick={() => {
                     const input = document.getElementById('date-filter-input');
@@ -1689,14 +1681,14 @@ const location = useLocation();
                 >
                   <i className="bi bi-calendar3" style={{ fontSize: '18px', color: '#888' }}></i>
                 </span>
-                <div className="date-display">
+                <div className="text-xs text-huuk-muted mt-1">
                   {selectedDate ? formatDateForDisplay(selectedDate) : moment().format('DD-MM-YYYY')}
                 </div>
               </div>
-              <div className="date-quick-actions">
+              <div className="grid grid-cols-3 gap-2 mt-2">
                 <button
                   type="button"
-                  className={`quick-btn today-btn ${selectedDate === moment().format('YYYY-MM-DD') ? 'active' : ''}`}
+                  className={`px-2 py-1 rounded-huuk-sm text-xs font-semibold ${selectedDate === moment().format('YYYY-MM-DD') ? 'bg-huuk-blue text-white' : 'bg-white/10 text-white'}`}
                   onClick={() => setSelectedDate(moment().format('YYYY-MM-DD'))}
                 >
                   <i className="bi bi-calendar-day"></i>
@@ -1704,7 +1696,7 @@ const location = useLocation();
                 </button>
                 <button
                   type="button"
-                  className={`quick-btn tomorrow-btn ${selectedDate === moment().add(1, 'day').format('YYYY-MM-DD') ? 'active' : ''}`}
+                  className={`px-2 py-1 rounded-huuk-sm text-xs font-semibold ${selectedDate === moment().add(1, 'day').format('YYYY-MM-DD') ? 'bg-huuk-blue text-white' : 'bg-white/10 text-white'}`}
                   onClick={() => setSelectedDate(moment().add(1, 'day').format('YYYY-MM-DD'))}
                 >
                   <i className="bi bi-calendar-plus"></i>
@@ -1712,7 +1704,7 @@ const location = useLocation();
                 </button>
                 <button
                   type="button"
-                  className={`quick-btn clear-btn ${!selectedDate ? 'active' : ''}`}
+                  className={`px-2 py-1 rounded-huuk-sm text-xs font-semibold ${!selectedDate ? 'bg-huuk-blue text-white' : 'bg-white/10 text-white'}`}
                   onClick={() => setSelectedDate('')}
                 >
                   <i className="bi bi-calendar-range"></i>
@@ -1723,37 +1715,37 @@ const location = useLocation();
           </div>
           
           {/* Title and Legend Header */}
-          <div className="booking-slots-header">
-            <h3 className="staff-dashboard-timeslots-title">Booking Slots</h3>
-            <div className="booking-slot-legend">
-              <div className="legend-item">
-                <div className="legend-square legend-blocked"></div>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold">Booking Slots</h3>
+            <div className="flex items-center gap-3 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-sm bg-huuk-yellow"></div>
                 <span>Blocked</span>
               </div>
-              <div className="legend-item">
-                <div className="legend-square legend-booked"></div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-sm bg-huuk-red"></div>
                 <span>Booked</span>
               </div>
-              <div className="legend-item">
-                <div className="legend-square legend-available"></div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-sm bg-huuk-card-light"></div>
                 <span>Available</span>
               </div>
             </div>
           </div>
           
-          <div className="booking-slots-container">
-            <div className="staff-dashboard-timeslots-grid">
+          <div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {todaySlots.map((slot, index) => {
                 const getButtonClass = () => {
-                  if (slot.status === 'booked') return 'staff-dashboard-booked';
-                  if (slot.status === 'blocked') return 'staff-dashboard-blocked';
-                  return '';
+                  if (slot.status === 'booked') return 'bg-huuk-red text-white';
+                  if (slot.status === 'blocked') return 'bg-huuk-yellow text-huuk-card';
+                  return 'bg-huuk-card-light text-huuk-card';
                 };
                 
                 return (
                   <button
                     key={index}
-                    className={`staff-dashboard-timeslot-button ${getButtonClass()}`}
+                    className={`rounded-huuk-sm px-2 py-2 text-sm font-semibold transition-colors ${getButtonClass()}`}
                     onClick={() => toggleTimeSlot(slot.time)}
                     disabled={slot.status === 'booked'}
                     style={{
@@ -1768,7 +1760,7 @@ const location = useLocation();
             </div>
           </div>
           <button 
-            className="add-new-booking-btn"
+            className="w-full mt-2 flex items-center justify-between px-4 py-3 rounded-huuk-sm bg-huuk-blue text-white font-semibold hover:bg-huuk-blue-dark"
             onClick={() => {
               // Set up selected slot for the currently selected date (or today if none selected)
               const targetDate = selectedDate ? moment(selectedDate) : moment();
@@ -1911,9 +1903,9 @@ const location = useLocation();
               setShowAddBookingModal(true);
             }}
           >
-            <span className="add-booking-text">Add New Booking</span>
-            <div className="add-booking-icon">
-              <span className="plus-icon">+</span>
+            <span>Add New Booking</span>
+            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+              <span className="text-base leading-none">+</span>
             </div>
           </button>
         </div>
@@ -1970,31 +1962,11 @@ const location = useLocation();
     
     {/* Minimal Payment Confirmation Popup - Same as StaffDashboard */}
     {showPaymentConfirmation && (
-      <div className="payment-popup-overlay" style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 9999
-      }}>
-        <div className="payment-popup-container-minimal" style={{
-          backgroundColor: '#fff',
-          borderRadius: '8px',
-          padding: '20px',
-          width: '90%',
-          maxWidth: '400px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
-          position: 'relative',
-          zIndex: 10000
-        }}>
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
+        <div className="bg-white rounded-huuk-sm p-5 w-[90%] max-w-[400px] shadow-xl relative z-[10000]">
           {/* Close button */}
           <button 
-            className="payment-popup-close-minimal"
+            className="absolute top-2.5 right-2.5 bg-transparent border-none text-xl cursor-pointer"
             onClick={() => {
               // Close popup without marking booking as done
               setShowPaymentConfirmation(false);
@@ -2003,110 +1975,47 @@ const location = useLocation();
             }}
             aria-label="Close popup without completing booking"
             title="Close without completing booking"
-            style={{
-              position: 'absolute',
-              top: '10px',
-              right: '10px',
-              background: 'none',
-              border: 'none',
-              fontSize: '20px',
-              cursor: 'pointer'
-            }}
           >
             <i className="bi bi-x"></i>
           </button>
           
           {/* Header */}
-          <div className="payment-popup-header-minimal" style={{
-            textAlign: 'center',
-            marginBottom: '20px'
-          }}>
-            <i className="bi bi-credit-card payment-popup-icon-minimal" style={{
+          <div className="text-center mb-5">
+            <i className="bi bi-credit-card" style={{
               fontSize: '32px',
               color: '#3b82f6',
               marginBottom: '10px'
             }}></i>
-            <h3 className="payment-popup-title-minimal" style={{
-              margin: '0',
-              color: '#1a1a1a',
-              fontSize: '18px'
-            }}>Payment Confirmation</h3>
+            <h3 className="text-lg text-huuk-card m-0">Payment Confirmation</h3>
           </div>
           
           {/* Content */}
-          <div className="payment-popup-content-minimal" style={{
-            marginBottom: '20px'
-          }}>
-            <div className="payment-popup-info-minimal" style={{
-              textAlign: 'center'
-            }}>
-              <p className="payment-popup-customer-minimal" style={{
-                fontSize: '16px',
-                margin: '0 0 5px 0'
-              }}>
+          <div className="mb-5">
+            <div className="text-center">
+              <p className="text-base m-0 mb-1">
                 <strong>{paymentConfirmationData?.customerName || "Walk-in Customer"}</strong>
               </p>
-              <p className="payment-popup-service-minimal" style={{
-                fontSize: '14px',
-                color: '#666',
-                margin: '0 0 15px 0'
-              }}>
+              <p className="text-sm text-[#666] m-0 mb-4">
                 {paymentConfirmationData?.serviceName || "Service"}
               </p>
-              <p className="payment-popup-question-minimal" style={{
-                fontSize: '16px',
-                fontWeight: 'bold',
-                margin: '15px 0 0 0'
-              }}>
+              <p className="text-base font-bold mt-4 mb-0">
                 Has the customer paid?
               </p>
             </div>
           </div>
           
           {/* Action Buttons */}
-          <div className="payment-popup-actions-minimal" style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '10px'
-          }}>
+          <div className="flex justify-between gap-2.5">
             <button 
-              className="payment-popup-btn-minimal payment-popup-paid-btn-minimal"
+              className="flex-1 p-3 bg-emerald-500 text-white border-none rounded-huuk-sm font-bold cursor-pointer flex items-center justify-center gap-1"
               onClick={handlePaymentPaid}
-              style={{
-                flex: '1',
-                padding: '12px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px'
-              }}
             >
               <i className="bi bi-check-lg"></i> Yes, Paid
             </button>
             
             <button 
-              className="payment-popup-btn-minimal payment-popup-pending-btn-minimal"
+              className="flex-1 p-3 bg-amber-500 text-white border-none rounded-huuk-sm font-bold cursor-pointer flex items-center justify-center gap-1"
               onClick={handlePaymentUnpaid}
-              style={{
-                flex: '1',
-                padding: '12px',
-                backgroundColor: '#f59e0b',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px'
-              }}
             >
               <i className="bi bi-clock"></i> Not Yet
             </button>

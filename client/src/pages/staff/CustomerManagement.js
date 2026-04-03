@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import api from "../../utils/api";
-import "../../styles/customerManagement.css";
 
 const CustomerManagement = () => {
   const [customers, setCustomers] = useState([]);
@@ -30,33 +29,43 @@ const CustomerManagement = () => {
     fetchCustomers();
   }, []);
 
-  if (isLoading) return <div>Loading customers...</div>;
-  if (error) return <div>{error}</div>;
+  if (isLoading)
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center text-white">
+        Loading customers...
+      </div>
+    );
+  if (error)
+    return (
+      <div className="text-red-400 bg-red-950/40 border border-red-600 rounded-huuk-sm p-3">
+        {error}
+      </div>
+    );
 
   return (
-    <div className="customer-management-container">
-      <h2>Customer Management</h2>
-      <table className="customer-table">
+    <div className="card-dark rounded-huuk-lg min-h-[60vh]">
+      <h2 className="text-2xl font-bold mb-4">Customer Management</h2>
+      <table className="huuk-table">
         <thead>
           <tr>
-            <th>Full Name</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Registration Date</th>
+            <th className="huuk-th">Full Name</th>
+            <th className="huuk-th">Username</th>
+            <th className="huuk-th">Email</th>
+            <th className="huuk-th">Registration Date</th>
           </tr>
         </thead>
         <tbody>
           {customers.length === 0 ? (
             <tr>
-              <td colSpan="4">No customers found.</td>
+              <td colSpan="4" className="huuk-td text-center py-6">No customers found.</td>
             </tr>
           ) : (
             customers.map((customer) => (
-              <tr key={customer.id}>
-                <td>{customer.fullname || "(No name)"}</td>
-                <td>{customer.username || "(No username)"}</td>
-                <td>{customer.email}</td>
-                <td>
+              <tr key={customer.id} className="huuk-tr border-b border-white/10">
+                <td className="huuk-td">{customer.fullname || "(No name)"}</td>
+                <td className="huuk-td">{customer.username || "(No username)"}</td>
+                <td className="huuk-td">{customer.email}</td>
+                <td className="huuk-td">
                   {new Date(customer.created_at).toLocaleDateString("en-GB", {
                     day: "2-digit",
                     month: "long",

@@ -23,6 +23,7 @@ import {
   Store,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { debugLog } from '../../utils/debugLog';
 
 // Styled components for enhanced UI
 const StyledSelect = styled(Select)(({ theme }) => ({
@@ -184,7 +185,7 @@ const EnhancedOutletDropdown = ({
 
   const handleChange = (event) => {
     const selectedValue = event.target.value;
-    console.log('Outlet selected:', selectedValue);
+    debugLog('Outlet selected:', selectedValue);
     
     // Validate that the selected value exists in outlets or is empty
     if (selectedValue === '' || (Array.isArray(outlets) && outlets.some(outlet => outlet.id === selectedValue))) {

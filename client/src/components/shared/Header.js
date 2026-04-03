@@ -1,155 +1,151 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import moment from "moment";
-import "../../styles/header.css";
 import logo from "../../assets/logo.PNG";
 
-const Header = ({
-  logoSrc,
-  username,
-  role,
-  minimized,
-  pageTitle,
-  mode, // Add mode prop
-}) => {
-  const [currentTimeDisplay, setCurrentTimeDisplay] = useState(
-    moment().format("HH:mm")
-  );
+const Header = ({ logoSrc, username, role, minimized, pageTitle, mode }) => {
+  const [currentTimeDisplay, setCurrentTimeDisplay] = useState(moment().format("HH:mm"));
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
 
   useEffect(() => {
-    setCurrentTimeDisplay(moment().format("HH:mm"));
-    const timer = setInterval(() => {
-      setCurrentTimeDisplay(moment().format("HH:mm"));
-    }, 1000);
+    const timer = setInterval(() => setCurrentTimeDisplay(moment().format("HH:mm")), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const getDate = () => {
-    return moment().format("dddd, D MMMM YYYY");
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
-  const handleSearchClear = () => {
-    setSearchQuery("");
-  };
-
-  const handleNotificationToggle = () => {
-    setNotificationOpen(!notificationOpen);
-  };
+  const getDate = () => moment().format("dddd, D MMMM YYYY");
 
   const sampleNotifications = [
-    {
-      id: 1,
-      type: "appointment",
-      message: "New appointment scheduled for tomorrow",
-      time: "5 min ago",
-      unread: true
-    },
-    {
-      id: 2,
-      type: "reminder",
-      message: "Staff meeting in 30 minutes",
-      time: "10 min ago",
-      unread: true
-    },
-    {
-      id: 3,
-      type: "update",
-      message: "System update completed successfully",
-      time: "1 hour ago",
-      unread: false
-    }
+    { id: 1, type: "appointment", message: "New appointment scheduled for tomorrow", time: "5 min ago", unread: true },
+    { id: 2, type: "reminder", message: "Staff meeting in 30 minutes", time: "10 min ago", unread: true },
+    { id: 3, type: "update", message: "System update completed successfully", time: "1 hour ago", unread: false },
   ];
 
+  const leftOffset = minimized ? "77px" : "285px";
+  const headerWidth = minimized ? "calc(100% - 77px)" : "calc(100% - 285px)";
+
   return (
-    <header className={`header ${minimized ? "minimized" : ""}`}>
-      <div className="header-left">
-        <div className="header-logo-container">
-          <img src={logo} alt="Company Logo" className="header-logo" />
+    <header
+      className="flex justify-between items-start z-[1000] box-border"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: leftOffset,
+        width: headerWidth,
+        marginTop: "-20px",
+        marginLeft: "-15px",
+        transition: "left 0.3s ease, width 0.3s ease",
+        background: "transparent",
+        padding: "0",
+      }}
+    >
+      {/* Left: logo + title + date */}
+      <div className="flex flex-col items-start gap-2">
+        <div className="flex-shrink-0">
+          <img src={logo} alt="Company Logo" className="h-[120px] w-auto block" />
         </div>
-        <div className="header-text">
-          <h1 className="header-title">
-            {pageTitle || `Welcome back, ${username}!`} {" "}
+        <div className="text-left ml-5 -mt-5 flex-1">
+          <h1 className="text-3xl font-bold text-white text-left m-0" style={{ fontFamily: "Montserrat, sans-serif" }}>
+            {pageTitle || `Welcome back, ${username}!`}{" "}
             {role === "manager" && mode && (
-              <span className="header-mode-badge">
-                <span className="bi bi-eye header-mode-badge-icon"></span>{" "}
+              <span className="inline-flex items-center text-[#ababab] font-bold text-[15px] ml-2.5 px-3 py-1 rounded-[20px] select-none">
+                <i className="bi bi-eye text-[25px] mr-2.5" />
                 {mode}
               </span>
             )}
           </h1>
-          <p className="header-date">
+          <p className="text-[#ffc50f] font-semibold text-lg m-0" style={{ fontFamily: "Montserrat, sans-serif" }}>
             {getDate()}, {currentTimeDisplay}
           </p>
         </div>
       </div>
-      <div className="header-actions">
-        {/* Search Bar */}
-        <div className={`header-search-bar-container ${searchFocused ? 'focused' : ''}`}>
-          <div className="header-search-input-wrapper">
+
+      {/* Right: search + notifications */}
+      <div
+        className="absolute flex items-center gap-3 flex-row-reverse"
+        style={{ right: "300px", top: "50px", flexWrap: "nowrap" }}
+      >
+        {/* Search bar */}
+        <div className="relative w-[220px] min-w-[180px] z-[1100]">
+          <div
+            className="relative w-full flex items-center rounded-[18px] transition-all duration-300"
+            style={{
+              background: "linear-gradient(135deg, rgba(30,41,59,0.95) 0%,rgba(15,23,42,0.95) 100%)",
+              border: searchFocused ? "2px solid #3b82f6" : "2px solid transparent",
+              backdropFilter: "blur(15px)",
+              boxShadow: searchFocused
+                ? "0 0 0 4px rgba(59,130,246,0.12),0 12px 32px -8px rgba(59,130,246,0.25)"
+                : "0 4px 12px -2px rgba(0,0,0,0.12)",
+            }}
+          >
+            <i className="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg pointer-events-none z-[1]" />
             <input
               type="text"
-              className="header-search-bar"
+              className="w-full py-2 px-[50px] bg-transparent text-white text-sm outline-none font-quicksand placeholder-slate-500 rounded-[16px]"
               placeholder="Search customers, appointments, staff..."
               value={searchQuery}
-              onChange={handleSearchChange}
+              onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
             />
-            <i className="bi bi-search header-search-icon"></i>
             {searchQuery && (
-              <i 
-                className="bi bi-x-circle header-clear-icon"
-                onClick={handleSearchClear}
-              ></i>
+              <i
+                className="bi bi-x-circle absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg cursor-pointer hover:text-red-400 z-[1]"
+                onClick={() => setSearchQuery("")}
+              />
             )}
           </div>
         </div>
 
-        {/* Notification Icon */}
-        <div className="header-notification-container">
-          <button 
-            className="header-notification-button"
-            onClick={handleNotificationToggle}
+        {/* Bell icon */}
+        <div className="relative flex-shrink-0">
+          <button
+            className="flex items-center justify-center w-11 h-11 rounded-[16px] cursor-pointer transition-all duration-300 hover:-translate-y-0.5"
+            style={{
+              background: "linear-gradient(135deg,rgba(30,41,59,0.9) 0%,rgba(15,23,42,0.9) 100%)",
+              border: "2px solid transparent",
+              backdropFilter: "blur(15px)",
+              boxShadow: "0 4px 12px -2px rgba(0,0,0,0.12)",
+              color: "white",
+            }}
+            onClick={() => setNotificationOpen(!notificationOpen)}
           >
-            <i className="bi bi-bell header-notification-icon"></i>
+            <i className="bi bi-bell text-[22px] leading-none" />
           </button>
-          
+
           {notificationOpen && (
-            <div className="header-notification-dropdown">
-              <h3 className="header-notification-title">Notifications</h3>
-              <div className="header-notification-content">
-                {sampleNotifications.length > 0 ? (
-                  <ul className="header-notification-list">
-                    {sampleNotifications.map((notification) => (
-                      <li key={notification.id} className={`header-notification-item ${notification.unread ? 'unread' : ''}`}>
-                        <div className="header-notification-icon-wrapper">
-                          <i className={`bi bi-${notification.type === 'appointment' ? 'calendar' : notification.type === 'reminder' ? 'clock' : 'info-circle'} header-notification-type-icon`}></i>
-                        </div>
-                        <div className="header-notification-body">
-                          <div className="header-notification-text">{notification.message}</div>
-                          <div className="header-notification-time">{notification.time}</div>
-                        </div>
-                        {notification.unread && <div className="header-notification-unread-indicator"></div>}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="header-notification-empty">
-                    <i className="bi bi-bell-slash" style={{fontSize: '48px', marginBottom: '12px', opacity: '0.5'}}></i>
-                    <p>No notifications</p>
-                  </div>
-                )}
-              </div>
-              <div className="header-notification-actions">
-                <button className="header-mark-all-read">
-                  <i className="bi bi-check2-all"></i>
-                  Mark all as read
+            <div
+              className="absolute right-0 top-[calc(100%+8px)] w-[400px] max-w-[calc(100vw-60px)] rounded-[20px] overflow-hidden flex flex-col z-[1300]"
+              style={{
+                background: "linear-gradient(145deg,rgba(255,255,255,0.98) 0%,rgba(248,250,252,0.98) 100%)",
+                color: "#1f2937",
+                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.15)",
+                border: "2px solid rgba(255,255,255,0.2)",
+                backdropFilter: "blur(24px)",
+                animation: "fadeInDown 0.3s ease",
+              }}
+            >
+              <h3 className="text-lg font-bold m-0 px-6 py-5 border-b border-gray-200 text-gray-900 font-quicksand">
+                Notifications
+              </h3>
+              <ul className="list-none p-0 m-0 overflow-y-auto max-h-[300px]">
+                {sampleNotifications.map((n) => (
+                  <li
+                    key={n.id}
+                    className={`flex items-start gap-3 px-6 py-3 border-b border-gray-100 last:border-b-0 ${n.unread ? "bg-blue-50/50" : ""}`}
+                  >
+                    <i className={`bi bi-${n.type === "appointment" ? "calendar" : n.type === "reminder" ? "clock" : "info-circle"} text-huuk-blue text-lg mt-0.5`} />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 m-0">{n.message}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 m-0">{n.time}</p>
+                    </div>
+                    {n.unread && <span className="w-2 h-2 rounded-full bg-huuk-blue mt-1 flex-shrink-0" />}
+                  </li>
+                ))}
+              </ul>
+              <div className="px-6 py-3 border-t border-gray-200">
+                <button className="flex items-center gap-1 text-huuk-blue text-sm font-bold bg-transparent border-none cursor-pointer hover:underline font-quicksand">
+                  <i className="bi bi-check2-all" /> Mark all as read
                 </button>
               </div>
             </div>

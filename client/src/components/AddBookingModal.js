@@ -13,6 +13,7 @@ import {
   formatDuration,
 } from "../utils/timeSlotUtils";
 import { fetchBookingsByPhone } from "../utils/api";
+import { debugLog } from "../utils/debugLog";
 import "./AddBookingModal.css";
 
 // Malaysia timezone constant
@@ -242,7 +243,7 @@ const AddBookingModal = ({
           "[)",
         );
         if (overlap) {
-          console.log(
+          debugLog(
             `Slot ${time} is booked: ${booking.service || "Service"} for ${booking.customer_name || "Customer"} (${bookingTime}-${calculatedEnd.format("HH:mm")})`,
           );
         }
@@ -259,7 +260,7 @@ const AddBookingModal = ({
           "[)",
         );
         if (overlap) {
-          console.log(
+          debugLog(
             `Slot ${time} is booked: ${booking.service || "Service"} for ${booking.customer_name || "Customer"} (${bookingTime}-${booking.end_time})`,
           );
         }
@@ -275,7 +276,7 @@ const AddBookingModal = ({
         "[)",
       );
       if (overlap) {
-        console.log(
+        debugLog(
           `Slot ${time} is booked: ${booking.service || "Service"} for ${booking.customer_name || "Customer"} (${bookingTime}-${calculatedEnd.format("HH:mm")})`,
         );
       }
@@ -285,7 +286,7 @@ const AddBookingModal = ({
     // Check blocked slots with enhanced detection for various formats
     const isBlocked = blockedSlots.some((slot) => {
       // Log the slot structure to debug
-      console.log(
+      debugLog(
         "Checking blocked slot:",
         slot,
         "against time:",
@@ -297,14 +298,14 @@ const AddBookingModal = ({
       // Case 1: Simple time string
       if (typeof slot === "string") {
         const isMatch = slot === time;
-        if (isMatch) console.log(`Slot ${time} is blocked (string match)`);
+        if (isMatch) debugLog(`Slot ${time} is blocked (string match)`);
         return isMatch;
       }
 
       // Case 2: Object with time property only
       if (slot.time && !slot.date && !slot.day) {
         const isMatch = slot.time === time;
-        if (isMatch) console.log(`Slot ${time} is blocked (time-only match)`);
+        if (isMatch) debugLog(`Slot ${time} is blocked (time-only match)`);
         return isMatch;
       }
 
@@ -313,7 +314,7 @@ const AddBookingModal = ({
         const blockedDate = extractDateOnly(slot.date);
         const isMatch = slot.time === time && blockedDate === date;
         if (isMatch)
-          console.log(`Slot ${time} is blocked on ${date} (time+date match)`);
+          debugLog(`Slot ${time} is blocked on ${date} (time+date match)`);
         return isMatch;
       }
 
@@ -327,7 +328,7 @@ const AddBookingModal = ({
         // Check if day display matches and time matches
         const isMatch = slot.time === time && slot.day === dayDisplay;
         if (isMatch)
-          console.log(
+          debugLog(
             `Slot ${time} is blocked on ${dayDisplay} (time+day match)`,
           );
         return isMatch;
@@ -336,8 +337,8 @@ const AddBookingModal = ({
       return false;
     });
 
-    if (isBooked) console.log(`Slot ${time} on ${date} is BOOKED`);
-    if (isBlocked) console.log(`Slot ${time} on ${date} is BLOCKED`);
+    if (isBooked) debugLog(`Slot ${time} on ${date} is BOOKED`);
+    if (isBlocked) debugLog(`Slot ${time} on ${date} is BLOCKED`);
 
     return isBooked || isBlocked;
   };
@@ -684,18 +685,18 @@ const AddBookingModal = ({
   const getConsecutiveAvailableSlots = useCallback(
     (startTime, date) => {
       if (!startTime || !timeSlots.length) {
-        console.log("No start time or time slots provided");
+        debugLog("No start time or time slots provided");
         return 0;
       }
 
       const startIndex = timeSlots.indexOf(startTime);
       if (startIndex === -1) {
-        console.log(`Start time ${startTime} not found in time slots`);
+        debugLog(`Start time ${startTime} not found in time slots`);
         return 0;
       }
 
       // Log the blocked slots for this date to help debug
-      console.log(
+      debugLog(
         "Blocked slots for date",
         date,
         ":",
@@ -717,7 +718,7 @@ const AddBookingModal = ({
 
         if (slotTaken) {
           // Stop counting if we hit an unavailable slot
-          console.log(
+          debugLog(
             `Slot ${currentSlot} is taken - stopping count at ${consecutiveCount} slots`,
           );
           break;
@@ -744,7 +745,7 @@ const AddBookingModal = ({
               );
               // If less than 20 minutes remaining, this slot can't support full 30-min services
               if (remainingDuration < 20) {
-                console.log(
+                debugLog(
                   `Slot ${currentSlot} has insufficient remaining time (${remainingDuration} min)`,
                 );
                 return 0; // Not enough time even for shortest service
@@ -756,11 +757,11 @@ const AddBookingModal = ({
 
       // Log available slots for debugging
       if (consecutiveCount > 0) {
-        console.log(
+        debugLog(
           `Available slots from ${startTime} on ${date}: ${availableSlots.join(", ")} (${consecutiveCount} slots)`,
         );
       } else {
-        console.log(`No available slots from ${startTime} on ${date}`);
+        debugLog(`No available slots from ${startTime} on ${date}`);
       }
 
       return consecutiveCount;
@@ -1154,7 +1155,7 @@ const AddBookingModal = ({
     const outletId = currentUser?.outlet_id || 1;
 
     // Log submission data for debugging
-    console.log("Submitting booking with data:", {
+    debugLog("Submitting booking with data:", {
       service_id: serviceId,
       customer_name: customerName,
       phone_number: phoneNumber,
@@ -1869,3 +1870,4 @@ const AddBookingModal = ({
 };
 
 export default AddBookingModal;
+

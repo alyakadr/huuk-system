@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import "../../styles/sidebar.css";
 import { useProfile } from "../../ProfileContext";
 import Cookies from "js-cookie";
 
-// Create a default profile picture as data URL
 const defaultProfile =
   "data:image/svg+xml,%3Csvg width='130' height='130' viewBox='0 0 130 130' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='130' height='130' rx='65' fill='%23e5e7eb'/%3E%3Ccircle cx='65' cy='45' r='18' fill='%239ca3af'/%3E%3Cpath d='M35 100c0-16.57 13.43-30 30-30s30 13.43 30 30v10H35v-10z' fill='%239ca3af'/%3E%3C/svg%3E";
 
@@ -15,16 +13,10 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   const { profile, updateProfile, setIsLoggingOut } = useProfile();
   const baseURL = "http://localhost:5000";
 
-  useEffect(() => {
-    setOpenDropdown(null);
-  }, [location.pathname]);
+  useEffect(() => { setOpenDropdown(null); }, [location.pathname]);
 
-  // Sync profile context with user data
   useEffect(() => {
-    if (!user || !user.id) {
-      return;
-    }
-
+    if (!user || !user.id) return;
     const shouldSyncProfile =
       !profile ||
       profile.id !== user.id ||
@@ -32,22 +24,10 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       profile.role !== user.role ||
       profile.outlet !== user.outlet ||
       profile.profile_picture !== user.profile_picture;
-
-    if (shouldSyncProfile) {
-      console.log("Syncing profile context with user data:", user);
-      updateProfile(user);
-    }
+    if (shouldSyncProfile) updateProfile(user);
   }, [
-    user?.id,
-    user?.username,
-    user?.role,
-    user?.outlet,
-    user?.profile_picture,
-    profile?.id,
-    profile?.username,
-    profile?.role,
-    profile?.outlet,
-    profile?.profile_picture,
+    user?.id, user?.username, user?.role, user?.outlet, user?.profile_picture,
+    profile?.id, profile?.username, profile?.role, profile?.outlet, profile?.profile_picture,
     updateProfile,
   ]);
 
@@ -57,380 +37,196 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   const resolveDisplayedOutlet = () => {
     if (profile?.outlet) return profile.outlet;
     if (user?.outlet) return user.outlet;
-
     try {
-      const stored = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}",
-      );
+      const stored = JSON.parse(localStorage.getItem("staff_loggedInUser") || "{}");
       return stored?.outlet || "";
-    } catch {
-      return "";
-    }
+    } catch { return ""; }
   };
 
   const displayedOutlet = resolveDisplayedOutlet();
-  const shouldShowOutlet =
-    normalizedRole === "staff" || normalizedRole === "manager";
+  const shouldShowOutlet = normalizedRole === "staff" || normalizedRole === "manager";
 
-  // Track profile picture changes for smooth updates
   const [profileImageUrl, setProfileImageUrl] = useState(defaultProfile);
   const [imageLoading, setImageLoading] = useState(false);
   const [failedUrls, setFailedUrls] = useState(new Set());
 
-  // Update profile image URL when profile changes
   useEffect(() => {
     const profilePicture = profile?.profile_picture || user?.profile_picture;
-
-    // If profile picture is default or null, use default immediately
-    if (
-      !profilePicture ||
-      profilePicture === "/Uploads/profile_pictures/default.jpg"
-    ) {
+    if (!profilePicture || profilePicture === "/Uploads/profile_pictures/default.jpg") {
       if (profileImageUrl !== defaultProfile) {
-        console.log("Using default profile picture");
         setProfileImageUrl(defaultProfile);
         setImageLoading(false);
-        // Clear failed URLs for future attempts
         setFailedUrls(new Set());
       }
       return;
     }
-
-    // Ensure the URL is properly formatted
-    const url = profilePicture.startsWith("http")
-      ? profilePicture
-      : `${baseURL}${profilePicture}`;
-
-    // Force refresh on profile picture changes - clear failed URLs cache
-    const profileChanged =
-      profile?.profile_picture &&
-      profile.profile_picture !== user?.profile_picture;
-    if (profileChanged) {
-      console.log("Profile picture changed, clearing failed URLs cache");
-      setFailedUrls(new Set());
-    }
-
-    // Check if this URL has already failed before (skip if profile just changed)
-    if (!profileChanged && failedUrls.has(url)) {
-      console.log("Profile picture URL previously failed, using default:", url);
-      setProfileImageUrl(defaultProfile);
-      return;
-    }
-
-    // Update if URL has changed or if we need to force refresh
+    const url = profilePicture.startsWith("http") ? profilePicture : `${baseURL}${profilePicture}`;
+    const profileChanged = profile?.profile_picture && profile.profile_picture !== user?.profile_picture;
+    if (profileChanged) setFailedUrls(new Set());
+    if (!profileChanged && failedUrls.has(url)) { setProfileImageUrl(defaultProfile); return; }
     if (url !== profileImageUrl && !imageLoading) {
-      console.log("Profile picture URL updated:", url);
       setImageLoading(true);
-
-      // Test if the image can be loaded with better error handling
       const img = new Image();
-
-      // Add cache busting for new uploads
       const cacheBustedUrl = profileChanged ? `${url}?t=${Date.now()}` : url;
-
-      // Add timeout to prevent hanging
       const timeoutId = setTimeout(() => {
-        console.warn("Profile image load timeout, marking as failed:", url);
         setFailedUrls((prev) => new Set([...prev, url]));
         setProfileImageUrl(defaultProfile);
         setImageLoading(false);
-      }, 5000); // Increased timeout for new uploads
-
+      }, 5000);
       img.onload = () => {
         clearTimeout(timeoutId);
-        console.log("Profile image loaded successfully:", url);
         setProfileImageUrl(url);
         setImageLoading(false);
-        // Remove from failed URLs if it was there
-        setFailedUrls((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(url);
-          return newSet;
-        });
+        setFailedUrls((prev) => { const s = new Set(prev); s.delete(url); return s; });
       };
-      img.onerror = (error) => {
+      img.onerror = () => {
         clearTimeout(timeoutId);
-        console.warn("Profile image failed to load, marking as failed:", url);
         setFailedUrls((prev) => new Set([...prev, url]));
         setProfileImageUrl(defaultProfile);
         setImageLoading(false);
       };
-
-      // Set source with cache busting if needed
       img.src = cacheBustedUrl;
     }
   }, [
-    profile?.profile_picture,
-    user?.profile_picture,
-    profileImageUrl,
-    imageLoading,
-    failedUrls,
-    baseURL,
+    profile?.profile_picture, user?.profile_picture, profileImageUrl,
+    imageLoading, failedUrls, baseURL,
   ]);
 
-  // Get the profile picture URL
-  const getProfilePictureUrl = () => {
-    return profileImageUrl;
-  };
-
   const handleLogout = () => {
-    // Set a flag to prevent any re-authentication attempts during logout
     localStorage.setItem("FORCE_LOGOUT_IN_PROGRESS", "true");
-
-    // Set logging out flag to prevent auto re-login in ProfileContext
-    if (setIsLoggingOut) {
-      setIsLoggingOut(true);
-    }
-
-    // STEP 1: Clear ProfileContext first to prevent re-authentication
-    try {
-      updateProfile(null);
-    } catch (error) {
-      console.error("Error clearing ProfileContext:", error);
-    }
-
-    // STEP 2: Clear all authentication cookies
-    try {
-      Cookies.remove("email");
-    } catch (error) {
-      console.error("Error clearing cookies:", error);
-    }
-
-    // STEP 3: Aggressively clear ALL localStorage items that could contain auth data
-    const keysToRemove = [
-      "staff_loggedInUser",
-      "staff_token",
-      "staff_userId",
-      "customer_loggedInUser",
-      "customer_token",
-      "customer_userId",
-      "loggedInUser",
-      "token",
-      "userId",
-      "isTimeInConfirmed",
-      "timeIn",
-      "lastVisitedPage",
-      "switchModeTimestamp",
-      "FORCE_LOGOUT_IN_PROGRESS", // Clear this last
-    ];
-
-    keysToRemove.forEach((key) => {
-      try {
-        if (localStorage.getItem(key)) {
-          localStorage.removeItem(key);
-        }
-      } catch (error) {
-        console.error(`Error removing ${key}:`, error);
-      }
-    });
-
-    // STEP 4: Clear session storage completely
-    try {
-      sessionStorage.clear();
-    } catch (error) {
-      console.error("Error clearing sessionStorage:", error);
-    }
-
-    // STEP 5: Force immediate redirect to clean login interface
+    if (setIsLoggingOut) setIsLoggingOut(true);
+    try { updateProfile(null); } catch (e) { console.error(e); }
+    try { Cookies.remove("email"); } catch (e) { console.error(e); }
+    [
+      "staff_loggedInUser","staff_token","staff_userId","customer_loggedInUser",
+      "customer_token","customer_userId","loggedInUser","token","userId",
+      "isTimeInConfirmed","timeIn","lastVisitedPage","switchModeTimestamp",
+      "FORCE_LOGOUT_IN_PROGRESS",
+    ].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { console.error(e); } });
+    try { sessionStorage.clear(); } catch (e) { console.error(e); }
     setTimeout(() => {
       try {
-        // Final cleanup of the logout flag
         localStorage.removeItem("FORCE_LOGOUT_IN_PROGRESS");
-        // Redirect with fromLogout parameter to show clean login interface
         window.location.replace("/staff-login?fromLogout=true");
-      } catch (error) {
-        console.error("Error during redirect:", error);
-        // Fallback redirect with parameter
-        window.location.href = "/staff-login?fromLogout=true";
-      }
-    }, 250); // Small delay to ensure all cleanup is complete
+      } catch { window.location.href = "/staff-login?fromLogout=true"; }
+    }, 250);
   };
 
   const handleEditProfile = () => {
-    if (user?.role === "manager") {
-      navigate("/manager/edit-profile");
-    } else if (user?.role === "staff") {
-      navigate("/staff/edit-profile");
-    } else {
-      navigate("/edit-profile");
-    }
+    if (user?.role === "manager") navigate("/manager/edit-profile");
+    else if (user?.role === "staff") navigate("/staff/edit-profile");
+    else navigate("/edit-profile");
   };
+
+  const navItemCls = (isActive, disabled) =>
+    [
+      "flex items-center px-5 py-1 mb-1 text-sm font-quicksand transition-all duration-200 list-none",
+      isActive ? "bg-huuk-accent text-huuk-card font-bold" : "bg-huuk-card text-white",
+      !disabled ? "hover:bg-huuk-accent hover:text-huuk-card hover:font-bold cursor-pointer" : "cursor-not-allowed",
+    ].join(" ");
+
+  const footerItems = [
+    { icon: "help_outline", label: "Help", onClick: undefined },
+    {
+      icon: "settings", label: "Setting",
+      onClick: () => {
+        if (user?.role === "manager") navigate("/manager/settings");
+        else if (user?.role === "staff") navigate("/staff/settings");
+        else navigate("/");
+      },
+    },
+    { icon: "logout", label: "Log Out", onClick: handleLogout },
+  ];
 
   return (
     <div
       key={location.pathname}
-      className={`sidebar ${minimized ? "minimized" : ""}`}
+      className={`fixed left-0 top-0 h-screen bg-huuk-card text-white flex flex-col rounded-[25px] font-quicksand z-[1200] transition-all duration-300 ease-in-out overflow-hidden ${minimized ? "w-[72px]" : "w-[280px]"}`}
     >
-      <div className="sidebar-top-sticky">
-        <button
-          className="sidebar-toggle"
-          onClick={toggleSidebar}
-          title={minimized ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <span className="material-icons">
-            {minimized ? "chevron_right" : "chevron_left"}
-          </span>
-        </button>
+      {/* Toggle button */}
+      <button
+        className="absolute top-3 left-5 bg-white border-none rounded-full w-8 h-8 cursor-pointer flex justify-center items-center shadow z-[1100]"
+        onClick={toggleSidebar}
+        title={minimized ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label="Toggle sidebar"
+      >
+        <span className="material-icons text-base">
+          {minimized ? "chevron_right" : "chevron_left"}
+        </span>
+      </button>
 
-        <div
-          className="sidebar-profile"
-          onClick={handleEditProfile}
-          style={{
-            position: "relative",
-            cursor: "pointer",
-            overflow: "hidden",
-          }}
-        >
+      {/* Profile section */}
+      <div
+        className={`flex flex-col items-center text-center cursor-pointer relative group ${minimized ? "pt-5 mt-6" : "mt-7 mb-2.5"}`}
+        onClick={handleEditProfile}
+      >
+        <div className="relative inline-block">
           <img
-            src={getProfilePictureUrl()}
+            src={profileImageUrl}
             alt="Profile"
-            className={`profile-img ${minimized ? "small" : ""}`}
-            onError={(e) => {
-              console.log("Profile image onError triggered, using default");
-              // Prevent infinite loop by only setting default if not already default
-              if (e.target.src !== defaultProfile) {
-                e.target.src = defaultProfile;
-              }
-            }}
+            className={`${minimized ? "w-12 h-12" : "w-[130px] h-[130px]"} rounded-full object-cover transition-transform duration-300 hover:scale-105`}
+            onError={(e) => { if (e.target.src !== defaultProfile) e.target.src = defaultProfile; }}
           />
-          <div
-            className="edit-profile-overlay"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              background: "rgba(0, 0, 0, 0.7)",
-              borderRadius: "50%",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: 0,
-              transition: "opacity 0.3s ease",
-              color: "white",
-              fontSize: "12px",
-              fontWeight: "bold",
-              zIndex: 10,
-            }}
-          >
-            {!minimized && (
-              <>
-                <span
-                  className="material-icons"
-                  style={{
-                    fontSize: "20px",
-                    marginBottom: "4px",
-                  }}
-                >
-                  edit
-                </span>
-                <span>Edit Profile</span>
-              </>
-            )}
-            {minimized && (
-              <span
-                className="material-icons"
-                style={{
-                  fontSize: "20px",
-                }}
-              >
-                edit
-              </span>
-            )}
+          <div className="absolute inset-0 bg-black/70 rounded-full flex flex-col items-center justify-center text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+            <span className="material-icons text-xl mb-1">edit</span>
+            {!minimized && <span>Edit Profile</span>}
           </div>
-          {!minimized && (
-            <>
-              <h2 className="profile-name">
-                {profile?.username || user?.username || "User"}
-              </h2>
-              <p
-                className="profile-role"
-                style={{ marginBottom: "15px", marginTop: "0px" }}
-              >
-                {rawRole
-                  ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1)
-                  : "Role"}
-              </p>
-              {shouldShowOutlet && (
-                <p className="profile-outlet">
-                  {displayedOutlet || "Outlet not assigned"}
-                </p>
-              )}
-            </>
-          )}
         </div>
+        {!minimized && (
+          <>
+            <h2 className="text-white text-base font-bold mt-2 mb-0">
+              {profile?.username || user?.username || "User"}
+            </h2>
+            <p className="text-white text-sm mb-4 mt-0">
+              {rawRole ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1) : "Role"}
+            </p>
+            {shouldShowOutlet && (
+              <p className="text-white text-sm">{displayedOutlet || "Outlet not assigned"}</p>
+            )}
+          </>
+        )}
       </div>
 
-      <nav className="sidebar-nav-scroll">
-        <ul>
+      {/* Main nav */}
+      <nav className="overflow-y-auto flex-1">
+        <ul className="list-none p-0 m-0">
           {navItems.map((item) => {
             const hasSubNav = !!item.subNav;
             const isOpen = openDropdown === item.label;
             const isActive =
               item.path === location.pathname ||
-              (hasSubNav &&
-                item.subNav.some((sub) => sub.path === location.pathname));
-
+              (hasSubNav && item.subNav.some((s) => s.path === location.pathname));
             return (
-              <li key={item.label}>
+              <li key={item.label} className="list-none">
                 <div
-                  className={`sidebar-item ${isActive ? "active" : ""} ${item.disabled ? "disabled" : ""}`}
+                  className={navItemCls(isActive, item.disabled)}
+                  style={{ opacity: item.disabled ? 0.5 : 1 }}
+                  title={minimized ? (item.disabled ? `${item.label} (Disabled)` : item.label) : undefined}
                   onClick={() => {
-                    if (item.disabled) {
-                      return; // Prevent navigation for disabled items
-                    }
-                    if (hasSubNav) {
-                      setOpenDropdown(isOpen ? null : item.label);
-                    } else if (item.path) {
-                      navigate(item.path);
-                      setOpenDropdown(null);
-                    }
-                  }}
-                  title={
-                    minimized
-                      ? item.disabled
-                        ? `${item.label} (Disabled)`
-                        : item.label
-                      : undefined
-                  }
-                  style={{
-                    cursor: item.disabled
-                      ? "not-allowed"
-                      : hasSubNav || item.path
-                        ? "pointer"
-                        : "default",
-                    opacity: item.disabled ? 0.5 : 1,
+                    if (item.disabled) return;
+                    if (hasSubNav) setOpenDropdown(isOpen ? null : item.label);
+                    else if (item.path) { navigate(item.path); setOpenDropdown(null); }
                   }}
                 >
-                  <span className="material-icons sidebar-icon">
+                  <span className={`material-icons mr-2 text-xl transition-colors duration-200 ${isActive ? "text-huuk-card" : "text-white"}`}>
                     {item.icon}
                   </span>
                   {!minimized && item.label}
                 </div>
-
                 {isOpen && hasSubNav && !minimized && (
-                  <ul className="sidebar-subnav">
-                    {item.subNav.map((subItem) => (
+                  <ul className="list-none m-0 mb-2.5 ml-10 pl-4 border-l-2 border-huuk-accent p-0">
+                    {item.subNav.map((sub) => (
                       <li
-                        key={subItem.label}
-                        className={`sidebar-subnav-item ${
-                          subItem.path === location.pathname ? "active" : ""
-                        } ${subItem.disabled ? "disabled" : ""}`}
-                        onClick={() => {
-                          if (subItem.disabled) {
-                            return; // Prevent navigation for disabled subnav items
-                          }
-                          navigate(subItem.path);
-                          setOpenDropdown(null);
-                        }}
-                        style={{
-                          cursor: subItem.disabled ? "not-allowed" : "pointer",
-                          opacity: subItem.disabled ? 0.5 : 1,
-                        }}
+                        key={sub.label}
+                        className={[
+                          "text-sm py-1 list-none",
+                          sub.path === location.pathname ? "text-huuk-accent font-bold" : "text-white",
+                          !sub.disabled ? "cursor-pointer hover:text-huuk-accent" : "cursor-not-allowed opacity-50",
+                        ].join(" ")}
+                        style={{ opacity: sub.disabled ? 0.5 : 1 }}
+                        onClick={() => { if (sub.disabled) return; navigate(sub.path); setOpenDropdown(null); }}
                       >
-                        {subItem.label}
+                        {sub.label}
                       </li>
                     ))}
                   </ul>
@@ -441,34 +237,21 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         </ul>
       </nav>
 
+      {/* Footer nav */}
       {!openDropdown && (
-        <nav className="sidebar-footer-nav sticky-footer">
-          <ul>
-            <li className="sidebar-item" title="Help">
-              <span className="material-icons sidebar-icon">help_outline</span>
-              {!minimized && "Help"}
-            </li>
-            <li
-              className="sidebar-item"
-              title="Setting"
-              onClick={() => {
-                if (user?.role === "manager") navigate("/manager/settings");
-                else if (user?.role === "staff") navigate("/staff/settings");
-                else navigate("/");
-              }}
-            >
-              <span className="material-icons sidebar-icon">settings</span>
-              {!minimized && "Setting"}
-            </li>
-            <li
-              className="sidebar-item"
-              onClick={handleLogout}
-              style={{ cursor: "pointer" }}
-              title="Log Out"
-            >
-              <span className="material-icons sidebar-icon">logout</span>
-              {!minimized && "Log Out"}
-            </li>
+        <nav className="mt-auto pt-4 border-t border-gray-700">
+          <ul className="list-none p-0 m-0">
+            {footerItems.map(({ icon, label, onClick }) => (
+              <li
+                key={label}
+                className="flex items-center px-5 py-1 mb-1 text-sm text-white bg-huuk-card cursor-pointer hover:bg-huuk-accent hover:text-huuk-card hover:font-bold transition-all duration-200 list-none"
+                title={minimized ? label : undefined}
+                onClick={onClick}
+              >
+                <span className="material-icons mr-2 text-xl">{icon}</span>
+                {!minimized && label}
+              </li>
+            ))}
           </ul>
         </nav>
       )}

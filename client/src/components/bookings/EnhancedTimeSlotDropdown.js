@@ -31,6 +31,7 @@ import {
   Close,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { debugLog } from '../../utils/debugLog';
 
 // Styled components for enhanced UI
 const StyledSelect = styled(Select)(({ theme }) => ({
@@ -172,7 +173,7 @@ const EnhancedTimeSlotDropdown = ({
   // Reduced prop logging frequency
   React.useEffect(() => {
     if (Math.random() < 0.1) {
-      console.log('[TIME SLOT DROPDOWN] Props updated:', {
+      debugLog('[TIME SLOT DROPDOWN] Props updated:', {
         timeSlots: Array.isArray(timeSlots) ? timeSlots.length : 'not array',
         loading,
         disabled,
@@ -185,7 +186,7 @@ const EnhancedTimeSlotDropdown = ({
 
   const handleChange = (event) => {
     const selectedValue = event.target.value;
-    console.log('Time slot selected:', selectedValue);
+    debugLog('Time slot selected:', selectedValue);
     
     // Validate that the selected value exists in timeSlots or is empty
     if (selectedValue === '' || (Array.isArray(timeSlots) && timeSlots.some(slot => String(slot) === String(selectedValue)))) {
@@ -267,7 +268,7 @@ const EnhancedTimeSlotDropdown = ({
     
     // Reduced filtering logging frequency
     if (Math.random() < 0.1) {
-      console.log('[TIME SLOT FILTERING] Filtering process:', {
+      debugLog('[TIME SLOT FILTERING] Filtering process:', {
         totalTimeSlots: timeSlots.length,
         selectedTimesCount: selectedTimes.length,
         searchTerm: searchTerm
@@ -290,10 +291,10 @@ const EnhancedTimeSlotDropdown = ({
         const shouldInclude = matchesSearch && isNotSelected;
         
         if (!shouldInclude && searchTerm) {
-          console.log('🔍 [TIME SLOT FILTERING] Excluding slot due to search:', slot, 'searchTerm:', searchTerm);
+          debugLog('🔍 [TIME SLOT FILTERING] Excluding slot due to search:', slot, 'searchTerm:', searchTerm);
         }
         if (!shouldInclude && selectedTimes.some(selectedSlot => String(selectedSlot) === String(slot))) {
-          console.log('🔍 [TIME SLOT FILTERING] Excluding slot - already selected:', slot);
+          debugLog('🔍 [TIME SLOT FILTERING] Excluding slot - already selected:', slot);
         }
         
         return shouldInclude;
@@ -305,7 +306,7 @@ const EnhancedTimeSlotDropdown = ({
     
     // Reduced filtering result logging frequency
     if (Math.random() < 0.1) {
-      console.log('[TIME SLOT FILTERING] Result:', {
+      debugLog('[TIME SLOT FILTERING] Result:', {
         inputSlots: timeSlots.length,
         filteredSlots: filtered.length,
         removedCount: timeSlots.length - filtered.length
@@ -356,7 +357,7 @@ const EnhancedTimeSlotDropdown = ({
     // Only apply isPastTenPM check if the selected date is today
     const isPastTenPM = isToday && (currentHour > 22 || (currentHour === 22 && currentMinute > 0));
     
-    console.log('📅 [TIME STATUS] Current time status:', {
+    debugLog('📅 [TIME STATUS] Current time status:', {
       now: now.toISOString(),
       today: today.toISOString(),
       selectedDate: selectedDateObj ? selectedDateObj.toISOString() : null,
@@ -477,7 +478,7 @@ const EnhancedTimeSlotDropdown = ({
         <StyledMenuItem 
           value=""
           onClick={(e) => {
-            console.log('🔴 [DIRECT CLICK] Clear selection clicked');
+            debugLog('🔴 [DIRECT CLICK] Clear selection clicked');
             e.preventDefault();
             e.stopPropagation();
             
@@ -593,7 +594,7 @@ const EnhancedTimeSlotDropdown = ({
                   key={slot} 
                   value={slot}
                   onClick={(e) => {
-                    console.log('🔴 [DIRECT CLICK] Time slot clicked:', slot);
+                    debugLog('🔴 [DIRECT CLICK] Time slot clicked:', slot);
                     e.preventDefault();
                     e.stopPropagation();
                     

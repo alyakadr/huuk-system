@@ -220,12 +220,14 @@ export const fetchWithRetry = async (
       },
     );
   } catch (error) {
-    const normalizedError = normalizeApiError(error, "Request failed after retries");
+    const normalizedError = normalizeApiError(
+      error,
+      "Request failed after retries",
+    );
 
     if (normalizedError.status === 404) {
       throw new Error(
-        normalizedError.message ||
-          "Request failed due to missing endpoint",
+        normalizedError.message || "Request failed due to missing endpoint",
       );
     }
 
@@ -234,18 +236,17 @@ export const fetchWithRetry = async (
         const extendedClient = createApiClientWithTimeout(90000);
         return await fn(extendedClient);
       } catch (extendedError) {
-        const normalizedExtended = normalizeApiError(extendedError, "Request failed after retries");
+        const normalizedExtended = normalizeApiError(
+          extendedError,
+          "Request failed after retries",
+        );
         throw new Error(
-          normalizedExtended.message ||
-            "Request failed after retries",
+          normalizedExtended.message || "Request failed after retries",
         );
       }
     }
 
-    throw new Error(
-      normalizedError.message ||
-        "Request failed after retries",
-    );
+    throw new Error(normalizedError.message || "Request failed after retries");
   }
 };
 
