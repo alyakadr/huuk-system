@@ -13,7 +13,6 @@ import {
   formatBookingTimeRange,
   resolveBookingDuration,
 } from "../../utils/bookingDisplay";
-import "../../styles/booking.css";
 
 Modal.setAppElement("#root");
 

@@ -3,7 +3,6 @@ import { Typography, Button, TextField } from "@mui/material";
 import Modal from "react-modal";
 import { animated, useSpring } from "@react-spring/web";
 import { MdPhone, MdLock, MdBadge, MdPerson } from "react-icons/md";
-import "../../styles/booking.css";
 
 Modal.setAppElement("#root");
 

@@ -14,7 +14,11 @@ const managerNavItems = [
     disabled: true,
     subNav: [
       { label: "Profiles", path: "/manager/staff-profile", disabled: true },
-      { label: "Staff Attendance", path: "/manager/staff-attendance", disabled: true },
+      {
+        label: "Staff Attendance",
+        path: "/manager/staff-attendance",
+        disabled: true,
+      },
     ],
   },
   {
@@ -40,7 +44,12 @@ const managerNavItems = [
     path: "/manager/payment-summary",
     disabled: true,
   },
-  { icon: "assessment", label: "Sales Report", path: "/manager/sales-report", disabled: true },
+  {
+    icon: "assessment",
+    label: "Sales Report",
+    path: "/manager/sales-report",
+    disabled: true,
+  },
 ];
 
 const ManagerLayout = () => {
@@ -87,7 +96,7 @@ const ManagerLayout = () => {
   const getPageTitle = () => {
     // Get username from profile context or user state
     const username = profile?.username || user?.username || "User";
-    
+
     if (location.pathname === "/manager") {
       return `Welcome back, ${username}!`;
     }
@@ -97,7 +106,7 @@ const ManagerLayout = () => {
       }
       if (item.subNav) {
         const subItem = item.subNav.find(
-          (sub) => sub.path === location.pathname
+          (sub) => sub.path === location.pathname,
         );
         if (subItem) {
           return item.label;
@@ -115,12 +124,14 @@ const ManagerLayout = () => {
 
   useEffect(() => {
     // Check for user data in both legacy and new storage keys
-    const storedUser = localStorage.getItem("staff_loggedInUser") || localStorage.getItem("loggedInUser");
+    const storedUser =
+      localStorage.getItem("staff_loggedInUser") ||
+      localStorage.getItem("loggedInUser");
     if (!storedUser) {
       navigate("/staff-login");
       return;
     }
-    
+
     try {
       const user = JSON.parse(storedUser);
       if (user.role !== "manager") {
@@ -148,8 +159,12 @@ const ManagerLayout = () => {
     overflow: "auto",
     backgroundColor: "#0e0d0f",
     paddingTop: "170px",
-    marginLeft: isMobile ? "72px" : (isSidebarMinimized ? "72px" : "270px"),
-    width: isMobile ? "calc(100% - 72px)" : (isSidebarMinimized ? "calc(100% - 72px)" : "calc(100% - 270px)"),
+    marginLeft: isMobile ? "72px" : isSidebarMinimized ? "72px" : "270px",
+    width: isMobile
+      ? "calc(100% - 72px)"
+      : isSidebarMinimized
+        ? "calc(100% - 72px)"
+        : "calc(100% - 270px)",
     boxSizing: "border-box",
     transition: "margin-left 0.3s ease, width 0.3s ease",
     zIndex: 1000,

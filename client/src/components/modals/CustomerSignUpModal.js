@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { IconButton } from "@mui/material";
 import Modal from "react-modal";
-import { MdPhone, MdLock, MdPerson, MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
-import "../../styles/enhancedModals.css";
+import {
+  MdPhone,
+  MdLock,
+  MdPerson,
+  MdClose,
+  MdVisibility,
+  MdVisibilityOff,
+} from "react-icons/md";
 import modalImage from "../../assets/modalcust1.jpg";
 
 Modal.setAppElement("#root");
@@ -23,7 +29,7 @@ const CustomerSignUpModal = ({
   onShowSignIn,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  
+
   useEffect(() => {
     return () => {
       setSignUpErrors({ phoneNumber: "", password: "", name: "" });
@@ -60,7 +66,9 @@ const CustomerSignUpModal = ({
               </p>
             </div>
             <div className="enhanced-signup-switch-text">
-              <span className="enhanced-signup-no-account">Already have an account? </span>
+              <span className="enhanced-signup-no-account">
+                Already have an account?{" "}
+              </span>
               <span
                 onClick={onShowSignIn}
                 className="enhanced-signup-sign-in-text"
@@ -79,23 +87,21 @@ const CustomerSignUpModal = ({
           >
             <MdClose />
           </IconButton>
-          
+
           <div className="enhanced-signup-form-container">
             <h2 className="enhanced-signup-heading">Sign Up</h2>
-            
+
             {loading.signUp && (
               <div className="enhanced-signup-loading">
                 <div className="enhanced-signup-spinner"></div>
                 <span>Creating your account...</span>
               </div>
             )}
-            
+
             {(errors.name || errors.phoneNumber || errors.password) && (
               <div className="enhanced-signup-error-container">
                 {errors.name && (
-                  <div className="enhanced-signup-error">
-                    {errors.name}
-                  </div>
+                  <div className="enhanced-signup-error">{errors.name}</div>
                 )}
                 {errors.phoneNumber && (
                   <div className="enhanced-signup-error">
@@ -103,13 +109,11 @@ const CustomerSignUpModal = ({
                   </div>
                 )}
                 {errors.password && (
-                  <div className="enhanced-signup-error">
-                    {errors.password}
-                  </div>
+                  <div className="enhanced-signup-error">{errors.password}</div>
                 )}
               </div>
             )}
-            
+
             <form onSubmit={handleSignUp} className="enhanced-signup-form">
               <div className="enhanced-signup-input-group">
                 <label htmlFor="name" className="enhanced-signup-label">
@@ -127,7 +131,7 @@ const CustomerSignUpModal = ({
                     }}
                     placeholder="Enter your full name"
                     required
-                    className={`enhanced-signup-input ${errors.name ? 'error' : ''}`}
+                    className={`enhanced-signup-input ${errors.name ? "error" : ""}`}
                     disabled={loading.signUp}
                   />
                 </div>
@@ -149,7 +153,7 @@ const CustomerSignUpModal = ({
                     }}
                     placeholder="Enter your phone number"
                     required
-                    className={`enhanced-signup-input ${errors.phoneNumber ? 'error' : ''}`}
+                    className={`enhanced-signup-input ${errors.phoneNumber ? "error" : ""}`}
                     disabled={loading.signUp}
                   />
                 </div>
@@ -171,7 +175,7 @@ const CustomerSignUpModal = ({
                     }}
                     placeholder="Enter your password"
                     required
-                    className={`enhanced-signup-input ${errors.password ? 'error' : ''}`}
+                    className={`enhanced-signup-input ${errors.password ? "error" : ""}`}
                     disabled={loading.signUp}
                   />
                   <IconButton
@@ -188,7 +192,12 @@ const CustomerSignUpModal = ({
               <button
                 type="submit"
                 className="enhanced-signup-submit-btn"
-                disabled={loading.signUp || !signUpName || !signUpPhoneNumber || !signUpPassword}
+                disabled={
+                  loading.signUp ||
+                  !signUpName ||
+                  !signUpPhoneNumber ||
+                  !signUpPassword
+                }
               >
                 {loading.signUp ? (
                   <div>

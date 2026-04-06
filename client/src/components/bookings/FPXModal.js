@@ -5,7 +5,6 @@ import { animated, useSpring } from "@react-spring/web";
 import { Elements } from "@stripe/react-stripe-js";
 import PaymentForm from "./PaymentForm";
 import { stripePromise } from "../../utils/constants";
-import "../../styles/booking.css";
 
 Modal.setAppElement("#root");
 

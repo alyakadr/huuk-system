@@ -21,7 +21,6 @@ import Modal from "react-modal";
 import { animated, useSpring } from "@react-spring/web";
 import { verifyAuthentication } from "../../utils/bookingUtils";
 import { getUserData, getAuthToken } from "../../utils/tokenUtils";
-import "../../styles/booking.css";
 
 Modal.setAppElement("#root");
 

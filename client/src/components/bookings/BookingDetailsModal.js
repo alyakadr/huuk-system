@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Typography,
   Button,
   Table,
   TableBody,
@@ -12,13 +11,12 @@ import {
 } from "@mui/material";
 import Modal from "react-modal";
 import { animated, useSpring } from "@react-spring/web";
-import { MdEdit, MdDelete, MdAdd } from "react-icons/md";
+import { MdDelete, MdAdd } from "react-icons/md";
 import { normalizeTime } from "../../utils/bookingUtils";
 import {
   formatBookingTimeRange,
   resolveBookingDuration,
 } from "../../utils/bookingDisplay";
-import "../../styles/booking.css";
 
 Modal.setAppElement("#root");
 
@@ -967,8 +965,6 @@ const BookingDetailsModal = ({
                               // For real bookings, call API first
                               if (booking.id) {
                                 try {
-                                  // Store the booking for potential rollback
-                                  const bookingToDelete = { ...booking };
                                   const originalIndex = index;
 
                                   // Call the delete API directly using client

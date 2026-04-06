@@ -23,19 +23,19 @@ const CustHeader = ({
   // });
 
   const handleLogout = () => {
-    console.log('🧹 Logging out customer from CustHeader...');
+    console.log("🧹 Logging out customer from CustHeader...");
     try {
       // Clear session storage
       sessionStorage.clear();
-      
+
       // Use ProfileContext's proper logout method (handles localStorage properly)
       updateProfile(null);
-      
-      console.log('✅ Customer logged out successfully from CustHeader');
-      
+
+      console.log("✅ Customer logged out successfully from CustHeader");
+
       // Navigate to home
       navigate("/", { replace: true });
-      
+
       // Reload to ensure clean state
       window.location.reload();
     } catch (error) {
@@ -53,45 +53,45 @@ const CustHeader = ({
     <header className="cust-header">
       <img src={logo} alt="HUUK Logo" className="cust-logo" />
       <nav className="cust-nav">
-        <button 
+        <button
           onClick={() => handleNavClick("hero")}
           className={activeSection === "hero" ? "active" : ""}
         >
           HOME
         </button>
-        <button 
+        <button
           onClick={() => handleNavClick("booking")}
           className={activeSection === "booking" ? "active" : ""}
         >
           BOOKING
         </button>
         {isLoggedIn && (
-          <button 
+          <button
             onClick={() => handleNavClick("bookingHistory")}
             className={activeSection === "bookingHistory" ? "active" : ""}
           >
             MY HISTORY
           </button>
         )}
-        <button 
+        <button
           onClick={() => handleNavClick("aboutUs")}
           className={activeSection === "aboutUs" ? "active" : ""}
         >
           ABOUT US
         </button>
-        <button 
+        <button
           onClick={() => handleNavClick("gallery")}
           className={activeSection === "gallery" ? "active" : ""}
         >
           GALLERY
         </button>
-        <button 
+        <button
           onClick={() => handleNavClick("location")}
           className={activeSection === "location" ? "active" : ""}
         >
           LOCATION
         </button>
-        <button 
+        <button
           onClick={() => handleNavClick("services")}
           className={activeSection === "services" ? "active" : ""}
         >

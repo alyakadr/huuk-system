@@ -75,7 +75,7 @@ const ManageStaffAttendance = () => {
           navigate("/login?loginRequired=true");
         } else {
           setError(
-            error.response?.data?.message || "Failed to load attendance data."
+            error.response?.data?.message || "Failed to load attendance data.",
           );
         }
       })
@@ -131,7 +131,11 @@ const ManageStaffAttendance = () => {
       {error && <p className="text-red-400">{error}</p>}
       <div className="flex items-center gap-2 mb-3">
         <label className="text-sm font-semibold">Outlet:</label>
-        <select value={outlet} onChange={handleOutletChange} className="bg-white/10 border border-white/20 rounded-huuk-sm px-3 py-2 text-sm text-white">
+        <select
+          value={outlet}
+          onChange={handleOutletChange}
+          className="bg-white/10 border border-white/20 rounded-huuk-sm px-3 py-2 text-sm text-white"
+        >
           <option value="">Select Outlet</option>
           {outlets.map((outletOption) => (
             <option key={outletOption} value={outletOption}>

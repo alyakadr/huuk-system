@@ -8,7 +8,6 @@ import {
   MdVisibility,
   MdVisibilityOff,
 } from "react-icons/md";
-import "../../styles/enhancedModals.css";
 import modalImage from "../../assets/modalcust1.jpg";
 import { debugLog } from "../../utils/debugLog";
 
@@ -128,22 +127,14 @@ const StaffSignInModal = ({
                   </div>
                 )}
                 {errors.password && (
-                  <div className="enhanced-signin-error">
-                    {errors.password}
-                  </div>
+                  <div className="enhanced-signin-error">{errors.password}</div>
                 )}
               </div>
             )}
 
-            <form
-              onSubmit={handleSignIn}
-              className="enhanced-signin-form"
-            >
+            <form onSubmit={handleSignIn} className="enhanced-signin-form">
               <div className="enhanced-signin-input-group">
-                <label
-                  htmlFor="phoneNumber"
-                  className="enhanced-signin-label"
-                >
+                <label htmlFor="phoneNumber" className="enhanced-signin-label">
                   Phone Number
                 </label>
                 <div className="enhanced-signin-input-container">
@@ -165,10 +156,7 @@ const StaffSignInModal = ({
               </div>
 
               <div className="enhanced-signin-input-group">
-                <label
-                  htmlFor="password"
-                  className="enhanced-signin-label"
-                >
+                <label htmlFor="password" className="enhanced-signin-label">
                   Password
                 </label>
                 <div className="enhanced-signin-input-container">

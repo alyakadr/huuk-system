@@ -576,15 +576,15 @@ const ManagerAppointmentManagement = () => {
     }
 
     return (
-        <div className="flex gap-1 justify-center items-center flex-wrap m-0">
+      <div className="flex gap-1 justify-center items-center flex-wrap m-0">
         <button
-            className="bg-white text-huuk-card border border-[#ddd] px-3 py-1.5 rounded text-[13px] font-bold font-quicksand cursor-pointer mr-2 min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block hover:bg-[#f5f5f5] hover:border-[#999]"
+          className="bg-white text-huuk-card border border-[#ddd] px-3 py-1.5 rounded text-[13px] font-bold font-quicksand cursor-pointer mr-2 min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block hover:bg-[#f5f5f5] hover:border-[#999]"
           onClick={() => handleReschedule(appointment.id)}
         >
           Reschedule
         </button>
         <button
-            className="bg-[#d32f2f] text-white border border-[#d32f2f] px-3 py-1.5 rounded text-[13px] font-bold font-quicksand cursor-pointer min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block hover:bg-[#b71c1c] hover:border-[#b71c1c]"
+          className="bg-[#d32f2f] text-white border border-[#d32f2f] px-3 py-1.5 rounded text-[13px] font-bold font-quicksand cursor-pointer min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block hover:bg-[#b71c1c] hover:border-[#b71c1c]"
           onClick={() => handleOpenCancelDialog(appointment.id)}
         >
           Cancel

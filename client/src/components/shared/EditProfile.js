@@ -7,7 +7,6 @@ import ChangePasswordModal from "./ChangePasswordModal";
 import { useAuthSession } from "../../hooks/useAuthSession";
 import { useForm } from "../../hooks/useForm";
 import { useFetch } from "../../hooks/useFetch";
-import "../../styles/editProfile.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 const PROFILE_IMAGE_CANVAS_SIZE = 130;

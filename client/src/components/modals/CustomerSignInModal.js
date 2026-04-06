@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { IconButton } from "@mui/material";
 import Modal from "react-modal";
-import { MdPhone, MdLock, MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
-import "../../styles/enhancedModals.css";
+import {
+  MdPhone,
+  MdLock,
+  MdClose,
+  MdVisibility,
+  MdVisibilityOff,
+} from "react-icons/md";
 import modalImage from "../../assets/modalcust1.jpg";
 
 Modal.setAppElement("#root");
@@ -22,7 +27,7 @@ const CustomerSignInModal = ({
   profile = {},
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  
+
   useEffect(() => {
     return () => {
       setSignInErrors({ phoneNumber: "", password: "" });
@@ -58,7 +63,9 @@ const CustomerSignInModal = ({
               </p>
             </div>
             <div className="enhanced-signin-switch-text">
-              <span className="enhanced-signin-no-account">Don't have an account? </span>
+              <span className="enhanced-signin-no-account">
+                Don't have an account?{" "}
+              </span>
               <span
                 onClick={() => navigate("/signup")}
                 className="enhanced-signin-sign-up-text"
@@ -67,9 +74,8 @@ const CustomerSignInModal = ({
               </span>
             </div>
           </div>
-          
         </div>
-       
+
         <div className="enhanced-signin-right-section">
           <IconButton
             className="enhanced-signin-close-btn"
@@ -94,9 +100,7 @@ const CustomerSignInModal = ({
                   </div>
                 )}
                 {errors.password && (
-                  <div className="enhanced-signin-error">
-                    {errors.password}
-                  </div>
+                  <div className="enhanced-signin-error">{errors.password}</div>
                 )}
               </div>
             )}
@@ -117,7 +121,7 @@ const CustomerSignInModal = ({
                     }}
                     placeholder="Enter your phone number"
                     required
-                    className={`enhanced-signin-input ${errors.phoneNumber ? 'error' : ''}`}
+                    className={`enhanced-signin-input ${errors.phoneNumber ? "error" : ""}`}
                     disabled={loading.signIn}
                   />
                 </div>
@@ -139,7 +143,7 @@ const CustomerSignInModal = ({
                     }}
                     placeholder="Enter your password"
                     required
-                    className={`enhanced-signin-input ${errors.password ? 'error' : ''}`}
+                    className={`enhanced-signin-input ${errors.password ? "error" : ""}`}
                     disabled={loading.signIn}
                   />
                   <IconButton
@@ -156,7 +160,9 @@ const CustomerSignInModal = ({
               <button
                 type="submit"
                 className="enhanced-signin-submit-btn"
-                disabled={loading.signIn || !signInPhoneNumber || !signInPassword}
+                disabled={
+                  loading.signIn || !signInPhoneNumber || !signInPassword
+                }
               >
                 {loading.signIn ? (
                   <div>
@@ -176,4 +182,3 @@ const CustomerSignInModal = ({
 };
 
 export default CustomerSignInModal;
-

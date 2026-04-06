@@ -26,7 +26,6 @@ import SimpleCalendar from "../common/SimpleCalendar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useProfile } from "../../ProfileContext";
-import "../../styles/booking.css";
 
 import PaymentForm from "./PaymentForm";
 import Modal from "react-modal";

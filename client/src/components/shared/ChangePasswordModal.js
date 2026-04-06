@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import http from "../../utils/httpClient";
-import "../../styles/changePasswordModal.css";
 
 const ChangePasswordModal = ({ isOpen, onClose, userId }) => {
   const [passwords, setPasswords] = useState({

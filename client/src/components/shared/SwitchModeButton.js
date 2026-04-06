@@ -1,7 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useProfile } from "../../ProfileContext";
-import "../../styles/SwitchModeButton.css";
 
 const SwitchModeButton = ({ className }) => {
   const navigate = useNavigate();
