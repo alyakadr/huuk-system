@@ -816,12 +816,11 @@ const ManagerDashboard = () => {
               { img: summ2, label: "Reschedule", value: rescheduleCount },
               { img: summ4, label: "Cancelled", value: cancelledCount },
             ].map(({ img, label, value }) => (
-              <div key={label} className="card-dark rounded-huuk-lg flex items-center gap-2 min-h-[45px]">
-                <img
-                  src={img}
-                  alt={label}
-                  className="w-8 h-8 object-contain"
-                />
+              <div
+                key={label}
+                className="card-dark rounded-huuk-lg flex items-center gap-2 min-h-[45px]"
+              >
+                <img src={img} alt={label} className="w-8 h-8 object-contain" />
                 <div>
                   <p className="text-sm font-bold m-0">{label}</p>
                   <p className="text-sm font-bold m-0">{value}</p>
@@ -836,9 +835,7 @@ const ManagerDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="card-dark rounded-huuk-lg min-h-[115px] flex flex-col justify-between">
               <div className="flex justify-between items-center gap-2 mb-2">
-                <span className="text-sm font-semibold">
-                  Total Revenue
-                </span>
+                <span className="text-sm font-semibold">Total Revenue</span>
                 <MaintenanceViewAllButton />
               </div>
               <p className="text-3xl font-bold text-center my-2 text-white">
@@ -875,15 +872,15 @@ const ManagerDashboard = () => {
                   {revenueDiff > 0 ? "+" : revenueDiff < 0 ? "-" : ""}
                   RM{Math.abs(revenueDiff).toLocaleString()}
                 </span>{" "}
-                <span className="font-normal text-white">compared to yesterday</span>
+                <span className="font-normal text-white">
+                  compared to yesterday
+                </span>
               </p>
             </div>
 
             <div className="card-dark rounded-huuk-lg min-h-[115px] flex flex-col justify-between">
               <div className="flex justify-between items-center gap-2 mb-2">
-                <span className="text-sm font-semibold">
-                  Total Appointment
-                </span>
+                <span className="text-sm font-semibold">Total Appointment</span>
                 <MaintenanceViewAllButton />
               </div>
               <p className="text-3xl font-bold text-center my-2 text-white">
@@ -920,7 +917,9 @@ const ManagerDashboard = () => {
                   {appointmentDiff > 0 ? "+" : appointmentDiff < 0 ? "-" : ""}
                   {Math.abs(appointmentDiff)}
                 </span>{" "}
-                <span className="font-normal text-white">compared to yesterday</span>
+                <span className="font-normal text-white">
+                  compared to yesterday
+                </span>
               </p>
             </div>
 
@@ -1195,7 +1194,10 @@ const ManagerDashboard = () => {
                     : "-";
                   const finalFormatted = `${formattedDate}, ${formattedTime}`;
                   return (
-                    <div key={index} className="grid grid-cols-2 text-sm py-2 border-b border-white/10">
+                    <div
+                      key={index}
+                      className="grid grid-cols-2 text-sm py-2 border-b border-white/10"
+                    >
                       <div>{staff.username || "(No username)"}</div>
                       <div className="text-right">{finalFormatted}</div>
                     </div>
@@ -1297,18 +1299,15 @@ const ManagerDashboard = () => {
                   { outlet: "ONU", onDuty: 4, offDuty: 3 },
                   { outlet: "SWP", onDuty: 6, offDuty: 0 },
                 ].map(({ outlet, onDuty, offDuty }) => (
-                  <div key={outlet} className="grid grid-cols-3 text-sm py-2 border-b border-white/10">
+                  <div
+                    key={outlet}
+                    className="grid grid-cols-3 text-sm py-2 border-b border-white/10"
+                  >
                     <div>{outlet}</div>
-                    <div
-                      className="text-center"
-                      style={{ color: "#90d14f" }}
-                    >
+                    <div className="text-center" style={{ color: "#90d14f" }}>
                       {onDuty}
                     </div>
-                    <div
-                      className="text-right"
-                      style={{ color: "#ec1f23" }}
-                    >
+                    <div className="text-right" style={{ color: "#ec1f23" }}>
                       {offDuty}
                     </div>
                   </div>
@@ -1321,40 +1320,30 @@ const ManagerDashboard = () => {
                     { outlet: "ONU", onDuty: 4, offDuty: 3 },
                     { outlet: "SWP", onDuty: 6, offDuty: 0 },
                   ].map(({ outlet, onDuty, offDuty }) => (
-                    <div key={outlet} className="grid grid-cols-3 text-sm py-2 border-b border-white/10">
-                      <div>
-                        {outlet}
-                      </div>
-                      <div
-                        className="text-center"
-                        style={{ color: "#90d14f" }}
-                      >
+                    <div
+                      key={outlet}
+                      className="grid grid-cols-3 text-sm py-2 border-b border-white/10"
+                    >
+                      <div>{outlet}</div>
+                      <div className="text-center" style={{ color: "#90d14f" }}>
                         {onDuty}
                       </div>
-                      <div
-                        className="text-right"
-                        style={{ color: "#ec1f23" }}
-                      >
+                      <div className="text-right" style={{ color: "#ec1f23" }}>
                         {offDuty}
                       </div>
                     </div>
                   ))
                 : // Show actual data if available
                   staffStatus.map(({ outlet, onDuty, offDuty }) => (
-                    <div key={outlet} className="grid grid-cols-3 text-sm py-2 border-b border-white/10">
-                      <div>
-                        {outlet}
-                      </div>
-                      <div
-                        className="text-center"
-                        style={{ color: "#90d14f" }}
-                      >
+                    <div
+                      key={outlet}
+                      className="grid grid-cols-3 text-sm py-2 border-b border-white/10"
+                    >
+                      <div>{outlet}</div>
+                      <div className="text-center" style={{ color: "#90d14f" }}>
                         {onDuty}
                       </div>
-                      <div
-                        className="text-right"
-                        style={{ color: "#ec1f23" }}
-                      >
+                      <div className="text-right" style={{ color: "#ec1f23" }}>
                         {offDuty}
                       </div>
                     </div>
@@ -1375,4 +1364,3 @@ const ManagerDashboard = () => {
 };
 
 export default ManagerDashboard;
-

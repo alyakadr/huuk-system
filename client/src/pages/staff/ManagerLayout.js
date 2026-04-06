@@ -4,7 +4,6 @@ import Sidebar from "../../components/shared/Sidebar";
 import Header from "../../components/shared/Header";
 import SwitchModeButton from "../../components/shared/SwitchModeButton";
 import { useProfile } from "../../ProfileContext";
-import "../../styles/managerLayout.css";
 import logo from "../../assets/logo.PNG"; // Import logo
 
 const managerNavItems = [
@@ -135,17 +134,36 @@ const ManagerLayout = () => {
     }
   }, [navigate]);
 
-  if (!user) return <div>Loading user data...</div>;
+  if (!user) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center text-white">
+        Loading user data...
+      </div>
+    );
+  }
+
+  const isMobile = window.innerWidth <= 768;
+  const managerContentStyles = {
+    flexGrow: 1,
+    overflow: "auto",
+    backgroundColor: "#0e0d0f",
+    paddingTop: "170px",
+    marginLeft: isMobile ? "72px" : (isSidebarMinimized ? "72px" : "270px"),
+    width: isMobile ? "calc(100% - 72px)" : (isSidebarMinimized ? "calc(100% - 72px)" : "calc(100% - 270px)"),
+    boxSizing: "border-box",
+    transition: "margin-left 0.3s ease, width 0.3s ease",
+    zIndex: 1000,
+  };
 
   return (
-    <div className="manager-layout">
+    <div className="flex h-screen overflow-hidden box-border bg-transparent">
       <Sidebar
         user={user}
         navItems={managerNavItems}
         minimized={isSidebarMinimized}
         toggleSidebar={toggleSidebar}
       />
-      <div className="manager-content">
+      <div style={managerContentStyles}>
         <Header
           minimized={isSidebarMinimized}
           logoSrc={logo}
@@ -158,7 +176,7 @@ const ManagerLayout = () => {
           onNotificationToggle={toggleNotifications}
           unreadCount={unreadCount}
         />
-        <main className="main-content manager-main-content">
+        <main className="w-full h-full">
           <Outlet />
         </main>
       </div>

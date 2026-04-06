@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import "../../styles/ManagerAppointmentManagement.css";
 import http from "../../utils/httpClient";
 import moment from "moment";
 import { API_BASE_URL } from "../../utils/constants";
@@ -554,9 +553,9 @@ const ManagerAppointmentManagement = () => {
       )
     ) {
       return (
-        <div className="action-buttons">
+        <div className="flex items-center justify-center">
           <span
-            className={`status-text ${appointment.status.toLowerCase()}`}
+            className="italic font-normal text-xs"
             style={{
               fontStyle: "italic",
               fontFamily: "Quicksand, sans-serif",
@@ -577,69 +576,16 @@ const ManagerAppointmentManagement = () => {
     }
 
     return (
-      <div className="action-buttons">
+        <div className="flex gap-1 justify-center items-center flex-wrap m-0">
         <button
-          className="btn-reschedule-text"
+            className="bg-white text-huuk-card border border-[#ddd] px-3 py-1.5 rounded text-[13px] font-bold font-quicksand cursor-pointer mr-2 min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block hover:bg-[#f5f5f5] hover:border-[#999]"
           onClick={() => handleReschedule(appointment.id)}
-          style={{
-            backgroundColor: "white",
-            color: "#1a1a1a",
-            border: "1px solid #ddd",
-            padding: "6px 12px",
-            borderRadius: "4px",
-            fontSize: "13px",
-            fontWeight: "bold",
-            fontFamily: "Quicksand, sans-serif",
-            cursor: "pointer",
-            marginRight: "8px",
-            minWidth: "100px",
-            maxWidth: "100px",
-            height: "34px",
-            transition: "all 0.2s ease",
-            boxSizing: "border-box",
-            textAlign: "center",
-            display: "inline-block",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = "#f5f5f5";
-            e.target.style.borderColor = "#999";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = "white";
-            e.target.style.borderColor = "#ddd";
-          }}
         >
           Reschedule
         </button>
         <button
-          className="btn-cancel-text"
+            className="bg-[#d32f2f] text-white border border-[#d32f2f] px-3 py-1.5 rounded text-[13px] font-bold font-quicksand cursor-pointer min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block hover:bg-[#b71c1c] hover:border-[#b71c1c]"
           onClick={() => handleOpenCancelDialog(appointment.id)}
-          style={{
-            backgroundColor: "#d32f2f",
-            color: "white",
-            border: "1px solid #d32f2f",
-            padding: "6px 12px",
-            borderRadius: "4px",
-            fontSize: "13px",
-            fontWeight: "bold",
-            fontFamily: "Quicksand, sans-serif",
-            cursor: "pointer",
-            minWidth: "100px",
-            maxWidth: "100px",
-            height: "34px",
-            transition: "all 0.2s ease",
-            boxSizing: "border-box",
-            textAlign: "center",
-            display: "inline-block",
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = "#b71c1c";
-            e.target.style.borderColor = "#b71c1c";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = "#d32f2f";
-            e.target.style.borderColor = "#d32f2f";
-          }}
         >
           Cancel
         </button>
@@ -675,12 +621,12 @@ const ManagerAppointmentManagement = () => {
   );
 
   return (
-    <div className="manager-appointment-management">
+    <div className="bg-transparent text-white h-[calc(100vh-160px)] p-4 font-quicksand relative overflow-hidden flex flex-col gap-4 box-border">
       {/* Location Tabs */}
       {/* 2. Outlet filter bar: show all unique outlets as filter buttons */}
       {/* Use locations array for outlet filter bar, so all outlets are shown even if they have no bookings */}
       <div
-        className="location-tabs"
+        className="flex gap-1 flex-nowrap shrink-0 p-0 mb-0 rounded-huuk-sm box-border w-full overflow-hidden"
         style={{
           background: "#1a1a1a",
           color: "white",
@@ -695,7 +641,7 @@ const ManagerAppointmentManagement = () => {
         }}
       >
         <button
-          className={`location-tab ${selectedLocation === "" ? "active" : ""}`}
+          className="font-bold font-quicksand border-none whitespace-nowrap min-w-0 flex-1 py-2.5 rounded-[6px] cursor-pointer transition-all duration-200"
           style={{
             background: selectedLocation === "" ? "#ffa500" : "#232323",
             color: selectedLocation === "" ? "#1a1a1a" : "#fff",
@@ -717,7 +663,7 @@ const ManagerAppointmentManagement = () => {
         {outlets.map((outlet) => (
           <button
             key={outlet.shortform || outlet.id || outlet.name}
-            className={`location-tab ${selectedLocation === (outlet.shortform || outlet.name) ? "active" : ""}`}
+            className="font-bold font-quicksand border-none whitespace-nowrap min-w-0 flex-1 py-2.5 rounded-[6px] cursor-pointer transition-all duration-200"
             style={{
               background:
                 selectedLocation === (outlet.shortform || outlet.name)
@@ -748,7 +694,7 @@ const ManagerAppointmentManagement = () => {
       {/* Selected Location Header */}
       {/* In location-header, move the date filter to the right side, next to the appointment count badge */}
       <div
-        className="location-header"
+        className="flex justify-between items-center w-full"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -758,7 +704,7 @@ const ManagerAppointmentManagement = () => {
       >
         {/* Header text container: only as wide as needed */}
         <div
-          className="location-title"
+          className="inline-flex flex-col items-start min-w-0"
           style={{
             display: "inline-flex",
             flexDirection: "column",
@@ -771,8 +717,8 @@ const ManagerAppointmentManagement = () => {
               ? `${outlets.find((outlet) => (outlet.shortform || outlet.name) === selectedLocation)?.name || selectedLocation} (${selectedLocation})`
               : "All Locations"}
           </h2>
-          <div className="location-badge">
-            <span className="appointment-count">
+          <div className="flex items-center gap-2">
+            <span className="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-xs font-semibold border border-orange-500/30">
               {filteredAppointments.length} appointments
             </span>
           </div>
@@ -812,23 +758,23 @@ const ManagerAppointmentManagement = () => {
 
       {/* Loading State */}
       {loading && (
-        <div className="loading-state">
-          <div className="loading-spinner"></div>
+        <div className="flex flex-col items-center justify-center py-12 card-dark rounded-huuk-md">
+          <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
           <p>Loading appointments and outlets...</p>
         </div>
       )}
 
       {/* Error State */}
       {error && (
-        <div className="error-state">
-          <p className="error-message">⚠️ {error}</p>
+        <div className="bg-red-600/20 border border-red-500 text-red-300 px-4 py-3 rounded-huuk-sm">
+          <p>⚠️ {error}</p>
         </div>
       )}
 
       {/* Appointments Table */}
       {!loading && !error && (
         <div
-          className="appointments-table"
+          className="min-h-[340px] h-[340px] max-h-[340px] overflow-hidden box-border w-full mb-0 bg-[rgba(25,25,25,0.8)] rounded-huuk-sm border border-white/10 flex flex-col"
           style={{
             minHeight: "340px", // 4 rows * 80-85px per row + header
             height: "340px",
@@ -845,34 +791,34 @@ const ManagerAppointmentManagement = () => {
           }}
         >
           <div
-            className="table-header"
+            className="grid bg-orange-500/10 px-4 py-3 font-semibold text-[11px] text-white uppercase tracking-wide border-b border-orange-500/30 shrink-0 w-full max-w-full box-border"
             style={{
               gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
               overflow: "hidden",
             }}
           >
-            <div className="col-date">
+            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
               <CalendarIcon />
               <span>DATE</span>
             </div>
-            <div className="col-time">
+            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
               <ClockIcon />
               <span>TIME</span>
             </div>
-            <div className="col-staff">
+            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
               <UserIcon />
               <span>STAFF NAME</span>
             </div>
-            <div className="col-service">
+            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
               <ScissorsIcon />
               <span>SERVICE</span>
             </div>
-            <div className="col-actions">
+            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap justify-center">
               <span>ACTIONS</span>
             </div>
           </div>
           <div
-            className="table-body"
+            className="flex-1 overflow-hidden bg-transparent"
             style={{ flex: 1, overflow: "hidden", background: "transparent" }}
           >
             {Array.from({ length: 4 }).map((_, i) => {
@@ -882,7 +828,7 @@ const ManagerAppointmentManagement = () => {
                 return (
                   <div
                     key={appointment.id}
-                    className="table-row"
+                    className="grid px-4 py-3 border-b border-white/5 items-center transition-all duration-200 hover:bg-white/5 w-full max-w-full box-border relative"
                     style={{
                       gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
                       minHeight: 0,
@@ -891,7 +837,7 @@ const ManagerAppointmentManagement = () => {
                     }}
                   >
                     <div
-                      className="col-date"
+                      className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
                       style={{
                         whiteSpace: "nowrap",
                         overflow: "hidden",
@@ -903,7 +849,7 @@ const ManagerAppointmentManagement = () => {
                         : "N/A"}
                     </div>
                     <div
-                      className="col-time"
+                      className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
                       style={{
                         whiteSpace: "nowrap",
                         overflow: "hidden",
@@ -932,7 +878,7 @@ const ManagerAppointmentManagement = () => {
                       })()}
                     </div>
                     <div
-                      className="col-staff"
+                      className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
                       style={{
                         whiteSpace: "nowrap",
                         overflow: "hidden",
@@ -952,7 +898,7 @@ const ManagerAppointmentManagement = () => {
                           : "Unassigned"}
                     </div>
                     <div
-                      className="col-service"
+                      className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
                       style={{
                         whiteSpace: "nowrap",
                         overflow: "hidden",
@@ -961,7 +907,7 @@ const ManagerAppointmentManagement = () => {
                     >
                       {appointment.service}
                     </div>
-                    <div className="col-actions">
+                    <div className="text-[13px] text-white font-medium flex items-center justify-center text-center">
                       {getActionButtons(appointment)}
                     </div>
                   </div>
@@ -971,7 +917,7 @@ const ManagerAppointmentManagement = () => {
                 return (
                   <div
                     key={`empty-row-${i}`}
-                    className="table-row"
+                    className="grid px-4 py-3 border-b border-white/5 items-center w-full max-w-full box-border"
                     style={{
                       gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
                       minHeight: 0,
@@ -980,11 +926,11 @@ const ManagerAppointmentManagement = () => {
                       background: "transparent",
                     }}
                   >
-                    <div className="col-date" />
-                    <div className="col-time" />
-                    <div className="col-staff" />
-                    <div className="col-service" />
-                    <div className="col-actions" />
+                    <div className="text-[13px]" />
+                    <div className="text-[13px]" />
+                    <div className="text-[13px]" />
+                    <div className="text-[13px]" />
+                    <div className="text-[13px]" />
                   </div>
                 );
               }
@@ -995,7 +941,7 @@ const ManagerAppointmentManagement = () => {
 
       {/* Pagination */}
       <div
-        className="pagination"
+        className="w-full flex justify-center items-center mt-[-15px]"
         style={{
           width: "100%",
           display: "flex",
@@ -1005,7 +951,7 @@ const ManagerAppointmentManagement = () => {
         }}
       >
         <button
-          className="btn-prev"
+          className="px-3 py-1 rounded-huuk-sm bg-white/20 text-white disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={currentPage === 1}
           onClick={() => setCurrentPage(currentPage - 1)}
           style={{ marginRight: 12 }}
@@ -1013,7 +959,7 @@ const ManagerAppointmentManagement = () => {
           Prev
         </button>
         <span
-          className="page-info"
+          className="font-bold font-quicksand text-[15px]"
           style={{
             fontWeight: "bold",
             fontFamily: "Quicksand, sans-serif",
@@ -1023,7 +969,7 @@ const ManagerAppointmentManagement = () => {
           {currentPage}/{totalPages || 1}
         </span>
         <button
-          className="btn-next"
+          className="px-3 py-1 rounded-huuk-sm bg-white/20 text-white disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={currentPage >= totalPages}
           onClick={() => setCurrentPage(currentPage + 1)}
           style={{ marginLeft: 12 }}

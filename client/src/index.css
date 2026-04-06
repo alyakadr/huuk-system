@@ -2,23 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "./styles/bookingHistory.css";
+@import "./styles/customerHomepage.css";
+
 @layer base {
-  html, body {
+  html,
+  body {
     margin: 0;
     padding: 0;
-    font-family: 'Quicksand', sans-serif;
+    font-family: "Quicksand", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: #0e0d0f;
     color: white;
   }
 
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
   }
 
   code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-family:
+      source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
   }
 }
 
@@ -42,13 +49,697 @@
   }
 
   /* Status badges */
-  .badge-paid   { @apply bg-green-500 text-white text-xs rounded-full px-2 py-0.5 font-bold; }
-  .badge-pending{ @apply bg-yellow-400 text-huuk-card text-xs rounded-full px-2 py-0.5 font-bold; }
-  .badge-unpaid { @apply bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-bold; }
+  .badge-paid {
+    @apply bg-green-500 text-white text-xs rounded-full px-2 py-0.5 font-bold;
+  }
+  .badge-pending {
+    @apply bg-yellow-400 text-huuk-card text-xs rounded-full px-2 py-0.5 font-bold;
+  }
+  .badge-unpaid {
+    @apply bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-bold;
+  }
 
   /* Tables */
-  .huuk-table { @apply w-full border-collapse font-quicksand; }
-  .huuk-th    { @apply text-huuk-muted text-xs font-bold uppercase py-2 px-3 text-left; }
-  .huuk-td    { @apply text-white text-sm py-2 px-3; }
-  .huuk-tr:hover { @apply bg-white/5; }
+  .huuk-table {
+    @apply w-full border-collapse font-quicksand;
+  }
+  .huuk-th {
+    @apply text-huuk-muted text-xs font-bold uppercase py-2 px-3 text-left;
+  }
+  .huuk-td {
+    @apply text-white text-sm py-2 px-3;
+  }
+  .huuk-tr:hover {
+    @apply bg-white/5;
+  }
+
+  /* StaffSchedule migration bridge: scoped classes mapped to Tailwind utilities */
+  .staff-schedule {
+    @apply relative flex w-full flex-col overflow-hidden rounded-lg bg-[#0e0d0f] px-4 pb-4 pt-1 text-white;
+    height: calc(100vh - 20px);
+    max-height: calc(100vh - 20px);
+  }
+  .staff-schedule.weekly-schedule {
+    @apply h-auto max-h-none;
+  }
+  .staff-schedule .daily-controls,
+  .staff-schedule .weekly-controls {
+    @apply mb-2 flex items-center justify-between py-2;
+  }
+  .staff-schedule .view-toggle-container {
+    @apply mb-2 flex items-center justify-center gap-2 p-1;
+  }
+  .staff-schedule .view-toggle-btn {
+    @apply min-w-[100px] rounded-full bg-zinc-800 px-6 py-3 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-700;
+  }
+  .staff-schedule .view-toggle-btn.active {
+    @apply bg-huuk-accent text-black hover:bg-[#e6c043];
+  }
+  .staff-schedule .date-picker {
+    @apply flex items-center;
+  }
+  .staff-schedule .date-navigation {
+    @apply flex items-center gap-2;
+  }
+  .staff-schedule .nav-button {
+    @apply h-9 w-9 rounded-md border border-zinc-700 bg-zinc-900 text-lg text-white transition-colors hover:bg-zinc-800;
+  }
+  .staff-schedule .date-display {
+    @apply min-w-[120px] text-center text-sm font-semibold text-zinc-200;
+  }
+  .staff-schedule .daily-legend-items,
+  .staff-schedule .legend-items {
+    @apply mb-2 flex items-center gap-4 text-sm text-zinc-300;
+  }
+  .staff-schedule .daily-legend-item,
+  .staff-schedule .legend-item {
+    @apply flex items-center gap-2;
+  }
+  .staff-schedule .daily-legend-color,
+  .staff-schedule .legend-color {
+    @apply h-3.5 w-3.5 rounded-sm border border-white/20;
+  }
+  .staff-schedule .daily-legend-color.available,
+  .staff-schedule .legend-color.available {
+    @apply bg-[#85fa82];
+  }
+  .staff-schedule .daily-legend-color.booked,
+  .staff-schedule .legend-color.booked {
+    @apply bg-[#ff1723];
+  }
+  .staff-schedule .daily-legend-color.blocked,
+  .staff-schedule .legend-color.blocked {
+    @apply bg-zinc-800;
+  }
+  .staff-schedule .daily-schedule-container {
+    @apply flex-1 overflow-auto rounded-md border border-zinc-700 bg-black/20;
+  }
+  .staff-schedule .daily-grid {
+    @apply grid min-w-[920px] grid-cols-8 gap-px bg-zinc-700 p-px;
+  }
+  .staff-schedule .time-label-column {
+    @apply flex h-[60px] items-center justify-center bg-zinc-900 px-2 text-xs font-bold text-zinc-200;
+  }
+  .staff-schedule .booking-slot-column {
+    @apply relative h-[60px] overflow-hidden border border-zinc-700 bg-transparent p-2 transition-opacity hover:opacity-90;
+  }
+  .staff-schedule .booking-slot-column.empty-slot {
+    @apply border-zinc-700 bg-transparent;
+  }
+  .staff-schedule .booking-slot-column.available-slot {
+    @apply border-[#70d470] bg-[#85fa82] text-black;
+  }
+  .staff-schedule .booking-slot-column.booked-slot {
+    @apply border-[#e6141f] bg-[#ff1723] text-white;
+  }
+  .staff-schedule .booking-slot-column.blocked-slot {
+    @apply border-zinc-800 bg-zinc-900 text-white;
+  }
+  .staff-schedule .booking-slot-column.booked-slot.continuation {
+    @apply border-[#e35f57] bg-[#e74c3cb3];
+  }
+  .staff-schedule .booking-content {
+    @apply relative h-full w-full;
+  }
+  .staff-schedule .booked-info {
+    @apply relative h-full;
+  }
+  .staff-schedule .continuation-info {
+    @apply flex items-center justify-center;
+  }
+  .staff-schedule .continuation-indicator {
+    @apply text-base font-bold tracking-widest text-white/90;
+  }
+  .staff-schedule .blocked-label {
+    @apply absolute left-1 top-1 text-xs italic text-white/90;
+  }
+  .staff-schedule .customer-name {
+    @apply absolute left-1 top-0.5 text-xs font-bold leading-tight;
+  }
+  .staff-schedule .service-name {
+    @apply absolute left-1 top-[18px] text-[11px] leading-tight text-white/90;
+  }
+  .staff-schedule .duration-indicator {
+    @apply absolute bottom-1 right-1 rounded bg-black/30 px-1.5 py-0.5 text-[10px] font-semibold;
+  }
+  .staff-schedule .available-actions {
+    @apply flex h-full items-center justify-center gap-1;
+  }
+  .staff-schedule .add-btn,
+  .staff-schedule .block-btn {
+    @apply inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-semibold transition-colors;
+  }
+  .staff-schedule .add-btn {
+    @apply border-emerald-700 bg-emerald-600/90 text-white hover:bg-emerald-500;
+  }
+  .staff-schedule .block-btn {
+    @apply border-zinc-700 bg-zinc-900/90 text-white hover:bg-zinc-800;
+  }
+  .staff-schedule .btn-icon {
+    @apply text-xs;
+  }
+  .staff-schedule .modern-weekly-container {
+    @apply flex-1 overflow-auto rounded-md border border-zinc-700 bg-black/20;
+  }
+  .staff-schedule .schedule-grid-wrapper {
+    @apply min-w-[1120px] p-1;
+  }
+  .staff-schedule .schedule-header-grid {
+    @apply grid;
+    grid-template-columns: 120px repeat(24, minmax(34px, 1fr));
+    gap: 1px;
+  }
+  .staff-schedule .corner-cell {
+    @apply h-11 bg-zinc-900;
+  }
+  .staff-schedule .time-header-cell {
+    @apply flex h-11 items-center justify-center bg-zinc-900 px-1;
+  }
+  .staff-schedule .time-display {
+    @apply text-[11px] font-semibold text-zinc-300;
+  }
+  .staff-schedule .schedule-body-grid {
+    @apply mt-px;
+  }
+  .staff-schedule .day-row-grid {
+    @apply grid;
+    grid-template-columns: 120px repeat(24, minmax(34px, 1fr));
+    gap: 1px;
+  }
+  .staff-schedule .day-label-cell {
+    @apply flex h-[60px] flex-col items-center justify-center bg-zinc-900;
+  }
+  .staff-schedule .day-name {
+    @apply text-sm font-bold text-white;
+  }
+  .staff-schedule .day-date {
+    @apply text-xs text-zinc-400;
+  }
+  .staff-schedule .schedule-slot {
+    @apply relative h-[60px] cursor-pointer overflow-hidden border border-zinc-700 p-1;
+  }
+  .staff-schedule .schedule-slot.available {
+    @apply border-[#70d470] bg-[#85fa82];
+  }
+  .staff-schedule .schedule-slot.booked {
+    @apply border-[#e6141f] bg-[#ff1723];
+  }
+  .staff-schedule .schedule-slot.blocked {
+    @apply border-zinc-800 bg-zinc-900;
+  }
+  .staff-schedule .schedule-slot.booked.continuation {
+    @apply border-[#e35f57] bg-[#e74c3cb3];
+  }
+  .staff-schedule .slot-content {
+    @apply h-full w-full;
+  }
+  .staff-schedule .booking-details-modal {
+    @apply fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-2.5;
+  }
+  .staff-schedule .modal-content {
+    @apply relative z-[1001] mx-auto w-[90%] max-w-md rounded-lg bg-zinc-800 p-5 text-white;
+  }
+  .staff-schedule .booking-details {
+    @apply relative w-full text-center;
+  }
+  .staff-schedule .booking-details h3 {
+    @apply mb-3 text-xl font-bold text-huuk-accent;
+  }
+  .staff-schedule .close-button {
+    @apply absolute right-0 top-0 border-none bg-transparent text-2xl text-white hover:text-huuk-accent;
+  }
+  .staff-schedule .block-actions {
+    @apply mt-4 flex justify-center gap-2;
+  }
+  .staff-schedule .confirm-block-btn {
+    @apply rounded-md border-none bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-500;
+  }
+  .staff-schedule .cancel-block-btn {
+    @apply rounded-md border border-zinc-600 bg-transparent px-3 py-2 font-semibold text-zinc-200 hover:bg-zinc-700;
+  }
+  .staff-schedule .modal-overlay {
+    @apply absolute inset-0 -z-10;
+  }
+
+  /* Homepage styles migrated from homepage.module.css */
+  .homepage-module * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  .homepage-module {
+    font-family: "Oswald", sans-serif;
+    background-color: #1a1a1a;
+    color: #baa173;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-image: url("./assets/bghp.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .homepage-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .header-homepage {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    z-index: 10;
+  }
+  .logo-homepage {
+    width: 165px;
+    height: auto;
+    position: relative;
+    top: -30px;
+  }
+  .h1-wel-homepage,
+  .h1-wel2-homepage {
+    font-family: "Bebas Neue", sans-serif;
+    text-shadow: 5px 2px 0 rgba(231, 143, 11, 0.411);
+    font-weight: 400;
+    font-size: 6rem;
+    text-transform: uppercase;
+    line-height: 1;
+    color: #baa173;
+  }
+  .h1-wel2-homepage {
+    margin-top: 0;
+    gap: 0.2rem;
+  }
+  .p-homepage {
+    font-family: "Quicksand", sans-serif;
+    font-size: 1.45rem;
+    color: #baa173;
+    margin-top: 1rem;
+  }
+  .auth-buttons-homepage {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: 200px;
+    margin-top: 3rem;
+  }
+  .signup-btn-homepage,
+  .signin-btn-homepage {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px 30px;
+    margin: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-family: "Bebas Neue", sans-serif;
+    text-align: center;
+    text-transform: uppercase;
+    width: 200px;
+    transition: all 0.3s ease;
+  }
+  .signup-btn-homepage {
+    background-color: #baa173;
+    color: #1a1a1a;
+    border: 1px solid #1a1a1a;
+  }
+  .signin-btn-homepage {
+    background-color: #1a1a1a;
+    color: #baa173;
+    border: 1px solid #baa173;
+  }
+  .signup-btn-homepage:hover,
+  .signin-btn-homepage:hover {
+    width: 250px;
+  }
+  .signup-btn-homepage:after {
+    content: " (New staff)";
+    font-family: "Quicksand", sans-serif;
+    font-size: 0.7rem;
+    color: #1a1a1a;
+    position: absolute;
+    bottom: 5px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    text-transform: none;
+  }
+  .signin-btn-homepage:after {
+    content: " (Already have account)";
+    font-family: "Quicksand", sans-serif;
+    font-size: 0.7rem;
+    color: #baa173;
+    position: absolute;
+    bottom: 5px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    text-transform: none;
+  }
+  .signup-btn-homepage:hover:after,
+  .signin-btn-homepage:hover:after {
+    visibility: visible;
+  }
+  .signup-btn-homepage:hover:after {
+    opacity: 0.9;
+  }
+  .signin-btn-homepage:hover:after {
+    opacity: 0.5;
+  }
+  .left-side-homepage {
+    flex: 0 0 58%;
+    max-width: 58%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 12rem 2rem 0 3rem;
+    z-index: 2;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .right-side-homepage {
+    flex: 0 0 42%;
+    max-width: 42%;
+    height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .carousel-homepage {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+  .carousel-image-homepage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 1s ease-in-out, visibility 0s 1s;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .fadeIn-homepage {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 1s ease-in-out, visibility 0s;
+  }
+  .fadeOut-homepage {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 1s ease-in-out, visibility 0s 1s;
+  }
+  .homepage-signin-modal,
+  .homepage-signup-modal {
+    width: 840px !important;
+    height: 600px !important;
+    max-width: 840px;
+    max-height: 600px;
+    background-color: white;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1100;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    border-radius: 8px;
+  }
+  .homepage-signin-modal-container,
+  .homepage-signup-modal-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    flex-wrap: nowrap;
+    margin: 0;
+    padding: 0;
+  }
+  .homepage-signin-overlay,
+  .homepage-signup-overlay {
+    background: rgba(0, 0, 0, 0.5);
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+  }
+  .homepage-signin-left-section,
+  .homepage-signup-left-section {
+    flex: 1;
+    width: 50%;
+    min-width: 50%;
+    max-width: 50%;
+    height: 600px;
+    padding: 60px 80px 40px 50px;
+    color: #fff;
+    background-image: url("./assets/modal1.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #1a1a1a;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .h2-wrapper-homepage {
+    margin-bottom: 20px;
+  }
+  .h2he-homepage,
+  .h2he2-homepage {
+    text-shadow: 4px 3px 0 rgba(0, 0, 0, 0.3);
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 5.5rem;
+    font-weight: lighter;
+    margin: 0;
+    line-height: 0.9;
+  }
+  .label-left-homepage {
+    display: block;
+    margin-bottom: 0;
+  }
+  .text-field-homepage {
+    font-weight: bold;
+    color: white;
+    font-family: "Quicksand", sans-serif;
+    font-size: 1rem;
+    margin: 10px 0;
+  }
+  .homepage-signup-modal-container .select-field-homepage {
+    background-color: #fff;
+    border: 1px solid #fff;
+    color: black;
+    font-size: 1rem;
+    padding: 10px;
+    width: 80%;
+    margin: 10px 0;
+    font-family: "Quicksand", sans-serif;
+    height: 42px;
+    box-sizing: border-box;
+  }
+  .homepage-signin-modal-container .no-account-homepage,
+  .homepage-signup-modal-container .have-account-homepage {
+    font-family: "Quicksand", sans-serif;
+    font-size: 0.9rem;
+    color: #ffffff;
+    display: inline;
+  }
+  .homepage-signin-modal-container .sign-up-text-homepage,
+  .homepage-signup-modal-container .sign-in-text-homepage {
+    color: #ffffff;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 0.9rem;
+    display: inline;
+    font-weight: bold;
+  }
+  .modal-link-container {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    width: auto;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .sign-up-text-homepage:hover,
+  .sign-in-text-homepage:hover {
+    color: #baa173;
+  }
+  .homepage-signin-right-section,
+  .homepage-signup-right-section {
+    flex: 1;
+    width: 50%;
+    min-width: 50%;
+    max-width: 50%;
+    height: 600px;
+    min-height: 600px;
+    font-family: "Quicksand", sans-serif;
+    background-color: #baa173;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 40px 40px 60px;
+  }
+  .create-account-heading-homepage {
+    font-family: "Quicksand", sans-serif;
+    font-size: 1.2rem;
+    color: #ffffff;
+    margin: 5px 0 30px;
+    font-weight: bold;
+  }
+  .sign-up-heading-homepage {
+    font-family: "Special Gothic Expanded One", sans-serif;
+    font-size: 2.5rem;
+    color: #1a1a1a;
+    margin: 5px 0 10px;
+    text-align: center;
+  }
+  .sign-up-form-homepage {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 0;
+  }
+  .sign-up-form-homepage input {
+    font-family: "Quicksand", sans-serif !important;
+    color: #1a1a1a !important;
+    background-color: #ffffff !important;
+    padding: 12px 12px 12px 40px !important;
+    margin: 2px 0 8px !important;
+    width: 220px !important;
+    height: 40px !important;
+    border: 1px solid #1a1a1a !important;
+    border-radius: 1px !important;
+    font-size: 0.9rem !important;
+    box-shadow: 0 7px 8px rgba(0, 0, 0, 0.4) !important;
+    box-sizing: border-box !important;
+  }
+  .sign-up-form-homepage label {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #1a1a1a;
+    width: 220px;
+    text-align: left;
+    margin: 5px 0 2px;
+  }
+  .sign-up-btn-homepage {
+    font-family: "Quicksand", sans-serif;
+    padding: 8px;
+    background-color: #1a1a1a;
+    color: #baa173;
+    font-size: 1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 220px;
+    height: 35px;
+    margin-top: 20px;
+    box-sizing: border-box;
+  }
+  .sign-up-btn-homepage:hover,
+  .logout-btn-homepage:hover {
+    background-color: #333;
+  }
+  .close-btn-homepage {
+    background-color: transparent;
+    font-family: "Quicksand", sans-serif;
+    font-weight: 500;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 2rem;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    margin-right: 15px;
+  }
+  .forgot-password-homepage {
+    font-size: 0.9rem;
+    color: #1a1a1a;
+    text-align: center;
+  }
+  .remember-container-homepage {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 0;
+    cursor: pointer;
+    width: 220px;
+  }
+  .remember-checkbox-homepage {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #1a1a1a;
+    border-radius: 5px;
+    margin-right: 10px;
+    display: inline-block;
+    position: relative;
+    background-color: transparent;
+  }
+  .remember-checkbox-homepage:checked::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 6px;
+    width: 6px;
+    height: 10px;
+    border: solid #1a1a1a;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .remember-label-homepage {
+    font-family: "Quicksand", sans-serif;
+    font-size: 1rem;
+    color: #1a1a1a;
+    text-align: left;
+  }
+  .sign-up-form-homepage div[style*="position: relative"] {
+    display: flex;
+    align-items: center;
+  }
+  .error-homepage {
+    color: red;
+    font-size: 0.8rem;
+    margin: 2px 0 5px;
+    width: 220px;
+    text-align: left;
+  }
+  .logout-btn-homepage {
+    font-family: "Quicksand", sans-serif;
+    padding: 8px 16px;
+    background-color: #1a1a1a;
+    color: #baa173;
+    border: 1px solid #baa173;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    position: absolute;
+    top: 30px;
+    right: 30px;
+  }
 }

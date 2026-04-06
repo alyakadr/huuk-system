@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { IconButton } from "@mui/material";
 import Modal from "react-modal";
 import { MdPhone, MdLock, MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
-import "../../styles/customerModals.css";
+import "../../styles/enhancedModals.css";
 import modalImage from "../../assets/modalcust1.jpg";
 
 Modal.setAppElement("#root");
@@ -40,28 +40,28 @@ const CustomerSignInModal = ({
     <Modal
       isOpen={isOpen}
       contentLabel="Customer Sign In Modal"
-      className="customer-signin-modal"
-      overlayClassName="customer-signin-overlay"
+      className="enhanced-signin-modal"
+      overlayClassName="enhanced-signin-overlay"
       onRequestClose={onClose}
     >
-      <div className="customer-signin-modal-container">
-        <div className="customer-signin-left-section">
-          <div className="customer-signin-background-image">
+      <div className="enhanced-signin-modal-container">
+        <div className="enhanced-signin-left-section">
+          <div className="enhanced-signin-background-image">
             <img src={modalImage} alt="Background" />
           </div>
-          <div className="customer-signin-left-content">
-            <div className="customer-signin-welcome-text">
-              <h2 className="customer-signin-h2">WELCOME</h2>
-              <h2 className="customer-signin-h2">BACK!</h2>
-              <p className="customer-signin-description">
+          <div className="enhanced-signin-left-content">
+            <div className="enhanced-signin-welcome-text">
+              <h2 className="enhanced-signin-h2he">WELCOME</h2>
+              <h2 className="enhanced-signin-h2he2">BACK!</h2>
+              <p className="enhanced-signin-description">
                 Log in to your account
               </p>
             </div>
-            <div className="customer-signin-switch-text">
-              <span className="customer-signin-no-account">Don't have an account? </span>
+            <div className="enhanced-signin-switch-text">
+              <span className="enhanced-signin-no-account">Don't have an account? </span>
               <span
                 onClick={() => navigate("/signup")}
-                className="customer-signin-sign-up-text"
+                className="enhanced-signin-sign-up-text"
               >
                 Sign Up
               </span>
@@ -70,43 +70,43 @@ const CustomerSignInModal = ({
           
         </div>
        
-        <div className="customer-signin-right-section">
+        <div className="enhanced-signin-right-section">
           <IconButton
-            className="customer-signin-close-btn"
+            className="enhanced-signin-close-btn"
             onClick={onClose}
             aria-label="close"
           >
             <MdClose />
           </IconButton>
-          <div className="customer-signin-form-container">
-            <h2 className="customer-signin-heading">Sign In</h2>
+          <div className="enhanced-signin-form-container">
+            <h2 className="enhanced-signin-heading">Sign In</h2>
             {loading.signIn && (
-              <div className="customer-signin-loading">
-                <div className="customer-signin-spinner"></div>
+              <div className="enhanced-signin-loading">
+                <div className="enhanced-signin-spinner"></div>
                 <span>Signing you in...</span>
               </div>
             )}
             {(errors.phoneNumber || errors.password) && (
-              <div className="customer-signin-error-container">
+              <div className="enhanced-signin-error-container">
                 {errors.phoneNumber && (
-                  <div className="customer-signin-error">
+                  <div className="enhanced-signin-error">
                     {errors.phoneNumber}
                   </div>
                 )}
                 {errors.password && (
-                  <div className="customer-signin-error">
+                  <div className="enhanced-signin-error">
                     {errors.password}
                   </div>
                 )}
               </div>
             )}
-            <form onSubmit={handleSignIn} className="customer-signin-form">
-              <div className="customer-signin-input-group">
-                <label htmlFor="phoneNumber" className="customer-signin-label">
+            <form onSubmit={handleSignIn} className="enhanced-signin-form">
+              <div className="enhanced-signin-input-group">
+                <label htmlFor="phoneNumber" className="enhanced-signin-label">
                   Phone Number
                 </label>
-                <div className="customer-signin-input-container">
-                  <MdPhone className="customer-signin-input-icon" />
+                <div className="enhanced-signin-input-container">
+                  <MdPhone className="enhanced-signin-input-icon" />
                   <input
                     type="tel"
                     id="phoneNumber"
@@ -117,18 +117,18 @@ const CustomerSignInModal = ({
                     }}
                     placeholder="Enter your phone number"
                     required
-                    className={`customer-signin-input ${errors.phoneNumber ? 'error' : ''}`}
+                    className={`enhanced-signin-input ${errors.phoneNumber ? 'error' : ''}`}
                     disabled={loading.signIn}
                   />
                 </div>
               </div>
 
-              <div className="customer-signin-input-group">
-                <label htmlFor="password" className="customer-signin-label">
+              <div className="enhanced-signin-input-group">
+                <label htmlFor="password" className="enhanced-signin-label">
                   Password
                 </label>
-                <div className="customer-signin-input-container">
-                  <MdLock className="customer-signin-input-icon" />
+                <div className="enhanced-signin-input-container">
+                  <MdLock className="enhanced-signin-input-icon" />
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
@@ -139,11 +139,11 @@ const CustomerSignInModal = ({
                     }}
                     placeholder="Enter your password"
                     required
-                    className={`customer-signin-input ${errors.password ? 'error' : ''}`}
+                    className={`enhanced-signin-input ${errors.password ? 'error' : ''}`}
                     disabled={loading.signIn}
                   />
                   <IconButton
-                    className="customer-signin-password-toggle"
+                    className="enhanced-signin-password-toggle"
                     onClick={togglePasswordVisibility}
                     disabled={loading.signIn}
                     tabIndex={-1}
@@ -155,12 +155,12 @@ const CustomerSignInModal = ({
 
               <button
                 type="submit"
-                className="customer-signin-submit-btn"
+                className="enhanced-signin-submit-btn"
                 disabled={loading.signIn || !signInPhoneNumber || !signInPassword}
               >
                 {loading.signIn ? (
                   <div>
-                    <div className="customer-signin-btn-spinner"></div>
+                    <div className="enhanced-signin-btn-spinner"></div>
                     Signing In...
                   </div>
                 ) : (

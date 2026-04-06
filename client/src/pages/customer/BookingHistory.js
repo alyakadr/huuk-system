@@ -33,7 +33,6 @@ import http from "../../utils/httpClient";
 import { debugLog } from "../../utils/debugLog";
 import io from "socket.io-client";
 import { jsPDF } from "jspdf";
-import "../../styles/bookingHistory.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
@@ -420,12 +419,7 @@ const BookingHistory = () => {
       console.warn("Formatted date is empty for:", date);
       return true; // Disable if formatting fails
     }
-    debugLog(
-      "Checking date:",
-      formattedDate,
-      "in bookingDates:",
-      bookingDates,
-    ); // Debug log to verify function
+    debugLog("Checking date:", formattedDate, "in bookingDates:", bookingDates); // Debug log to verify function
     return !bookingDates.includes(formattedDate);
   };
 
@@ -1776,4 +1770,3 @@ const BookingHistory = () => {
 };
 
 export default BookingHistory;
-

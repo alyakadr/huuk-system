@@ -12,8 +12,6 @@ import {
   MdVisibilityOff,
   MdErrorOutline,
 } from "react-icons/md";
-import "../../styles/customerHomepage.css";
-import styles from "../../styles/homepage.module.css";
 import logo from "../../assets/logo.PNG";
 import heroImage from "../../assets/bannercust1.png";
 import modalImage from "../../assets/modalcust1.jpg";
@@ -32,6 +30,13 @@ Modal.setAppElement("#root");
 const API_BASE_URL = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
   : "http://localhost:5000/api";
+
+const styles = new Proxy(
+  {},
+  {
+    get: (_, prop) => String(prop),
+  },
+);
 
 const CustomerHomepage = () => {
   const { profile, setIsSignInOpen } = useProfile();

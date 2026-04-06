@@ -13,7 +13,9 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   const { profile, updateProfile, setIsLoggingOut } = useProfile();
   const baseURL = "http://localhost:5000";
 
-  useEffect(() => { setOpenDropdown(null); }, [location.pathname]);
+  useEffect(() => {
+    setOpenDropdown(null);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!user || !user.id) return;
@@ -26,8 +28,16 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       profile.profile_picture !== user.profile_picture;
     if (shouldSyncProfile) updateProfile(user);
   }, [
-    user?.id, user?.username, user?.role, user?.outlet, user?.profile_picture,
-    profile?.id, profile?.username, profile?.role, profile?.outlet, profile?.profile_picture,
+    user?.id,
+    user?.username,
+    user?.role,
+    user?.outlet,
+    user?.profile_picture,
+    profile?.id,
+    profile?.username,
+    profile?.role,
+    profile?.outlet,
+    profile?.profile_picture,
     updateProfile,
   ]);
 
@@ -38,13 +48,18 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
     if (profile?.outlet) return profile.outlet;
     if (user?.outlet) return user.outlet;
     try {
-      const stored = JSON.parse(localStorage.getItem("staff_loggedInUser") || "{}");
+      const stored = JSON.parse(
+        localStorage.getItem("staff_loggedInUser") || "{}",
+      );
       return stored?.outlet || "";
-    } catch { return ""; }
+    } catch {
+      return "";
+    }
   };
 
   const displayedOutlet = resolveDisplayedOutlet();
-  const shouldShowOutlet = normalizedRole === "staff" || normalizedRole === "manager";
+  const shouldShowOutlet =
+    normalizedRole === "staff" || normalizedRole === "manager";
 
   const [profileImageUrl, setProfileImageUrl] = useState(defaultProfile);
   const [imageLoading, setImageLoading] = useState(false);
@@ -52,7 +67,10 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
 
   useEffect(() => {
     const profilePicture = profile?.profile_picture || user?.profile_picture;
-    if (!profilePicture || profilePicture === "/Uploads/profile_pictures/default.jpg") {
+    if (
+      !profilePicture ||
+      profilePicture === "/Uploads/profile_pictures/default.jpg"
+    ) {
       if (profileImageUrl !== defaultProfile) {
         setProfileImageUrl(defaultProfile);
         setImageLoading(false);
@@ -60,10 +78,17 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       }
       return;
     }
-    const url = profilePicture.startsWith("http") ? profilePicture : `${baseURL}${profilePicture}`;
-    const profileChanged = profile?.profile_picture && profile.profile_picture !== user?.profile_picture;
+    const url = profilePicture.startsWith("http")
+      ? profilePicture
+      : `${baseURL}${profilePicture}`;
+    const profileChanged =
+      profile?.profile_picture &&
+      profile.profile_picture !== user?.profile_picture;
     if (profileChanged) setFailedUrls(new Set());
-    if (!profileChanged && failedUrls.has(url)) { setProfileImageUrl(defaultProfile); return; }
+    if (!profileChanged && failedUrls.has(url)) {
+      setProfileImageUrl(defaultProfile);
+      return;
+    }
     if (url !== profileImageUrl && !imageLoading) {
       setImageLoading(true);
       const img = new Image();
@@ -77,7 +102,11 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         clearTimeout(timeoutId);
         setProfileImageUrl(url);
         setImageLoading(false);
-        setFailedUrls((prev) => { const s = new Set(prev); s.delete(url); return s; });
+        setFailedUrls((prev) => {
+          const s = new Set(prev);
+          s.delete(url);
+          return s;
+        });
       };
       img.onerror = () => {
         clearTimeout(timeoutId);
@@ -88,27 +117,61 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       img.src = cacheBustedUrl;
     }
   }, [
-    profile?.profile_picture, user?.profile_picture, profileImageUrl,
-    imageLoading, failedUrls, baseURL,
+    profile?.profile_picture,
+    user?.profile_picture,
+    profileImageUrl,
+    imageLoading,
+    failedUrls,
+    baseURL,
   ]);
 
   const handleLogout = () => {
     localStorage.setItem("FORCE_LOGOUT_IN_PROGRESS", "true");
     if (setIsLoggingOut) setIsLoggingOut(true);
-    try { updateProfile(null); } catch (e) { console.error(e); }
-    try { Cookies.remove("email"); } catch (e) { console.error(e); }
+    try {
+      updateProfile(null);
+    } catch (e) {
+      console.error(e);
+    }
+    try {
+      Cookies.remove("email");
+    } catch (e) {
+      console.error(e);
+    }
     [
-      "staff_loggedInUser","staff_token","staff_userId","customer_loggedInUser",
-      "customer_token","customer_userId","loggedInUser","token","userId",
-      "isTimeInConfirmed","timeIn","lastVisitedPage","switchModeTimestamp",
+      "staff_loggedInUser",
+      "staff_token",
+      "staff_userId",
+      "customer_loggedInUser",
+      "customer_token",
+      "customer_userId",
+      "loggedInUser",
+      "token",
+      "userId",
+      "isTimeInConfirmed",
+      "timeIn",
+      "lastVisitedPage",
+      "switchModeTimestamp",
       "FORCE_LOGOUT_IN_PROGRESS",
-    ].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { console.error(e); } });
-    try { sessionStorage.clear(); } catch (e) { console.error(e); }
+    ].forEach((k) => {
+      try {
+        localStorage.removeItem(k);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+    try {
+      sessionStorage.clear();
+    } catch (e) {
+      console.error(e);
+    }
     setTimeout(() => {
       try {
         localStorage.removeItem("FORCE_LOGOUT_IN_PROGRESS");
         window.location.replace("/staff-login?fromLogout=true");
-      } catch { window.location.href = "/staff-login?fromLogout=true"; }
+      } catch {
+        window.location.href = "/staff-login?fromLogout=true";
+      }
     }, 250);
   };
 
@@ -121,14 +184,19 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   const navItemCls = (isActive, disabled) =>
     [
       "flex items-center px-5 py-1 mb-1 text-sm font-quicksand transition-all duration-200 list-none",
-      isActive ? "bg-huuk-accent text-huuk-card font-bold" : "bg-huuk-card text-white",
-      !disabled ? "hover:bg-huuk-accent hover:text-huuk-card hover:font-bold cursor-pointer" : "cursor-not-allowed",
+      isActive
+        ? "bg-huuk-accent text-huuk-card font-bold"
+        : "bg-huuk-card text-white",
+      !disabled
+        ? "hover:bg-huuk-accent hover:text-huuk-card hover:font-bold cursor-pointer"
+        : "cursor-not-allowed",
     ].join(" ");
 
   const footerItems = [
     { icon: "help_outline", label: "Help", onClick: undefined },
     {
-      icon: "settings", label: "Setting",
+      icon: "settings",
+      label: "Setting",
       onClick: () => {
         if (user?.role === "manager") navigate("/manager/settings");
         else if (user?.role === "staff") navigate("/staff/settings");
@@ -165,7 +233,10 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
             src={profileImageUrl}
             alt="Profile"
             className={`${minimized ? "w-12 h-12" : "w-[130px] h-[130px]"} rounded-full object-cover transition-transform duration-300 hover:scale-105`}
-            onError={(e) => { if (e.target.src !== defaultProfile) e.target.src = defaultProfile; }}
+            onError={(e) => {
+              if (e.target.src !== defaultProfile)
+                e.target.src = defaultProfile;
+            }}
           />
           <div className="absolute inset-0 bg-black/70 rounded-full flex flex-col items-center justify-center text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
             <span className="material-icons text-xl mb-1">edit</span>
@@ -178,10 +249,14 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
               {profile?.username || user?.username || "User"}
             </h2>
             <p className="text-white text-sm mb-4 mt-0">
-              {rawRole ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1) : "Role"}
+              {rawRole
+                ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1)
+                : "Role"}
             </p>
             {shouldShowOutlet && (
-              <p className="text-white text-sm">{displayedOutlet || "Outlet not assigned"}</p>
+              <p className="text-white text-sm">
+                {displayedOutlet || "Outlet not assigned"}
+              </p>
             )}
           </>
         )}
@@ -195,20 +270,32 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
             const isOpen = openDropdown === item.label;
             const isActive =
               item.path === location.pathname ||
-              (hasSubNav && item.subNav.some((s) => s.path === location.pathname));
+              (hasSubNav &&
+                item.subNav.some((s) => s.path === location.pathname));
             return (
               <li key={item.label} className="list-none">
                 <div
                   className={navItemCls(isActive, item.disabled)}
                   style={{ opacity: item.disabled ? 0.5 : 1 }}
-                  title={minimized ? (item.disabled ? `${item.label} (Disabled)` : item.label) : undefined}
+                  title={
+                    minimized
+                      ? item.disabled
+                        ? `${item.label} (Disabled)`
+                        : item.label
+                      : undefined
+                  }
                   onClick={() => {
                     if (item.disabled) return;
                     if (hasSubNav) setOpenDropdown(isOpen ? null : item.label);
-                    else if (item.path) { navigate(item.path); setOpenDropdown(null); }
+                    else if (item.path) {
+                      navigate(item.path);
+                      setOpenDropdown(null);
+                    }
                   }}
                 >
-                  <span className={`material-icons mr-2 text-xl transition-colors duration-200 ${isActive ? "text-huuk-card" : "text-white"}`}>
+                  <span
+                    className={`material-icons mr-2 text-xl transition-colors duration-200 ${isActive ? "text-huuk-card" : "text-white"}`}
+                  >
                     {item.icon}
                   </span>
                   {!minimized && item.label}
@@ -220,11 +307,19 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                         key={sub.label}
                         className={[
                           "text-sm py-1 list-none",
-                          sub.path === location.pathname ? "text-huuk-accent font-bold" : "text-white",
-                          !sub.disabled ? "cursor-pointer hover:text-huuk-accent" : "cursor-not-allowed opacity-50",
+                          sub.path === location.pathname
+                            ? "text-huuk-accent font-bold"
+                            : "text-white",
+                          !sub.disabled
+                            ? "cursor-pointer hover:text-huuk-accent"
+                            : "cursor-not-allowed opacity-50",
                         ].join(" ")}
                         style={{ opacity: sub.disabled ? 0.5 : 1 }}
-                        onClick={() => { if (sub.disabled) return; navigate(sub.path); setOpenDropdown(null); }}
+                        onClick={() => {
+                          if (sub.disabled) return;
+                          navigate(sub.path);
+                          setOpenDropdown(null);
+                        }}
                       >
                         {sub.label}
                       </li>

@@ -9,8 +9,14 @@ import http from "./utils/httpClient";
 import Modal from "react-modal";
 import { MdPhone, MdLock, MdVisibility, MdVisibilityOff } from "react-icons/md";
 import { useSpring, animated } from "@react-spring/web";
-import styles from "./styles/homepage.module.css";
 import { debugLog } from "./utils/debugLog";
+
+const styles = new Proxy(
+  {},
+  {
+    get: (_, prop) => String(prop),
+  },
+);
 
 const ProfileContext = createContext();
 
@@ -207,10 +213,7 @@ export const ProfileProvider = ({ children }) => {
                   .then(() => {
                     // Only log successful validation occasionally
                     if (Math.random() < 0.1)
-                      debugLog(
-                        "Token validated for user:",
-                        parsedProfile.id,
-                      );
+                      debugLog("Token validated for user:", parsedProfile.id);
                     debounceSetProfile(parsedProfile);
                   })
                   .catch((error) => {
@@ -716,4 +719,3 @@ export const ProfileProvider = ({ children }) => {
 export const useProfile = () => {
   return useContext(ProfileContext);
 };
-

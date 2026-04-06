@@ -6,7 +6,6 @@ import React, {
   useMemo,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import "../../styles/staffSchedule.css";
 import { io } from "socket.io-client";
 import { API_BASE_URL } from "../../utils/constants";
 import AddBookingModal from "../../components/AddBookingModal";
@@ -2325,4 +2324,3 @@ const StaffSchedule = () => {
 };
 
 export default StaffSchedule;
-

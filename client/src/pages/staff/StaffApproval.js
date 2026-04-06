@@ -128,9 +128,7 @@ const StaffApproval = () => {
         ) : (
           <>
             {successMessage && (
-              <p className="text-green-400 font-bold">
-                {successMessage}
-              </p>
+              <p className="text-green-400 font-bold">{successMessage}</p>
             )}
             {sortedApprovals.length === 0 ? (
               <p>No approval records.</p>
@@ -139,18 +137,35 @@ const StaffApproval = () => {
                 <table className="w-full border-collapse table-fixed flex-grow mb-1">
                   <thead>
                     <tr>
-                      <th className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]" style={{ PaddingLeft: "20px" }}>Name</th>
-                      <th className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]">Email</th>
-                      <th className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]">Outlet</th>
-                      <th className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]">Date/Time</th>
-                      <th className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]">Status</th>
+                      <th
+                        className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]"
+                        style={{ PaddingLeft: "20px" }}
+                      >
+                        Name
+                      </th>
+                      <th className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]">
+                        Email
+                      </th>
+                      <th className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]">
+                        Outlet
+                      </th>
+                      <th className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]">
+                        Date/Time
+                      </th>
+                      <th className="px-2 py-1 text-center font-extrabold uppercase border-b-2 border-[#1f1e1e]">
+                        Status
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentItems.map((staff, index) => (
                       <tr key={staff.id ?? staff.email ?? index}>
-                        <td className="px-2 py-1 text-center font-extrabold overflow-hidden">{staff.username || "(No username)"}</td>
-                        <td className="px-2 py-1 text-center font-extrabold overflow-hidden">{staff.email}</td>
+                        <td className="px-2 py-1 text-center font-extrabold overflow-hidden">
+                          {staff.username || "(No username)"}
+                        </td>
+                        <td className="px-2 py-1 text-center font-extrabold overflow-hidden">
+                          {staff.email}
+                        </td>
                         <td className="px-2 py-1 text-center font-extrabold overflow-hidden">
                           {outletShortforms[staff.outlet] ||
                             staff.outlet ||

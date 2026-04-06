@@ -57,13 +57,20 @@ const CustomerManagement = () => {
         <tbody>
           {customers.length === 0 ? (
             <tr>
-              <td colSpan="4" className="huuk-td text-center py-6">No customers found.</td>
+              <td colSpan="4" className="huuk-td text-center py-6">
+                No customers found.
+              </td>
             </tr>
           ) : (
             customers.map((customer) => (
-              <tr key={customer.id} className="huuk-tr border-b border-white/10">
+              <tr
+                key={customer.id}
+                className="huuk-tr border-b border-white/10"
+              >
                 <td className="huuk-td">{customer.fullname || "(No name)"}</td>
-                <td className="huuk-td">{customer.username || "(No username)"}</td>
+                <td className="huuk-td">
+                  {customer.username || "(No username)"}
+                </td>
                 <td className="huuk-td">{customer.email}</td>
                 <td className="huuk-td">
                   {new Date(customer.created_at).toLocaleDateString("en-GB", {

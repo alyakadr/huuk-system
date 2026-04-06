@@ -328,9 +328,7 @@ const AddBookingModal = ({
         // Check if day display matches and time matches
         const isMatch = slot.time === time && slot.day === dayDisplay;
         if (isMatch)
-          debugLog(
-            `Slot ${time} is blocked on ${dayDisplay} (time+day match)`,
-          );
+          debugLog(`Slot ${time} is blocked on ${dayDisplay} (time+day match)`);
         return isMatch;
       }
 
@@ -1870,4 +1868,3 @@ const AddBookingModal = ({
 };
 
 export default AddBookingModal;
-

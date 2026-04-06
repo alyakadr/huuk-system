@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { IconButton } from "@mui/material";
 import Modal from "react-modal";
-import { MdPhone, MdLock, MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
-import "../../styles/staffModals.css";
+import {
+  MdPhone,
+  MdLock,
+  MdClose,
+  MdVisibility,
+  MdVisibilityOff,
+} from "react-icons/md";
+import "../../styles/enhancedModals.css";
 import modalImage from "../../assets/modalcust1.jpg";
 import { debugLog } from "../../utils/debugLog";
 
@@ -27,15 +33,17 @@ const StaffSignInModal = ({
   debugLog("StaffSignInModal render - errors:", errors);
   debugLog("StaffSignInModal render - loading:", loading);
   debugLog("StaffSignInModal render - phoneNumber:", signInPhoneNumber);
-  debugLog("StaffSignInModal render - password:", signInPassword ? "[PRESENT]" : "[EMPTY]");
-  
+  debugLog(
+    "StaffSignInModal render - password:",
+    signInPassword ? "[PRESENT]" : "[EMPTY]",
+  );
+
   if (isOpen) {
     debugLog("🔴 STAFF SIGNIN MODAL IS OPEN - Should be visible!");
   } else {
     debugLog("⚪ STAFF SIGNIN MODAL IS CLOSED");
   }
   const [showPassword, setShowPassword] = useState(false);
-  
 
   // Reset loading state on unmount to prevent stuck loading
   useEffect(() => {
@@ -61,140 +69,153 @@ const StaffSignInModal = ({
     <Modal
       isOpen={isOpen}
       contentLabel="Staff Sign In Modal"
-      className="staff-enhanced-signin-modal"
-      overlayClassName="staff-enhanced-signin-overlay"
+      className="enhanced-signin-modal"
+      overlayClassName="enhanced-signin-overlay"
       onRequestClose={onClose}
       closeTimeoutMS={200}
     >
-      <div className="staff-enhanced-signin-modal-container">
-          <div className="staff-enhanced-signin-left-section">
-            <div className="staff-enhanced-signin-background-image">
-              <img src={modalImage} alt="Background" />
+      <div className="enhanced-signin-modal-container">
+        <div className="enhanced-signin-left-section">
+          <div className="enhanced-signin-background-image">
+            <img src={modalImage} alt="Background" />
+          </div>
+          <div className="enhanced-signin-left-content">
+            <div className="enhanced-signin-welcome-text">
+              <h2 className="enhanced-signin-h2he">WELCOME</h2>
+              <h2 className="enhanced-signin-h2he2">BACK!</h2>
+              <p className="enhanced-signin-description">
+                Staff Portal - Log in to your existing account
+              </p>
             </div>
-            <div className="staff-enhanced-signin-left-content">
-              <div className="staff-enhanced-signin-welcome-text">
-                <h2 className="staff-enhanced-signin-h2he">WELCOME</h2>
-                <h2 className="staff-enhanced-signin-h2he2">BACK!</h2>
-                <p className="staff-enhanced-signin-description">
-                  Staff Portal - Log in to your existing account
-                </p>
-              </div>
-              <div className="staff-enhanced-signin-switch-text">
-                <span className="staff-enhanced-signin-no-account">Don't have an account? </span>
-                <span
-                  onClick={() => navigate("/staff-login?signupRequired=true")}
-                  className="staff-enhanced-signin-sign-up-text"
-                >
-                  Sign Up
-                </span>
-              </div>
+            <div className="enhanced-signin-switch-text">
+              <span className="enhanced-signin-no-account">
+                Don't have an account?{" "}
+              </span>
+              <span
+                onClick={() => navigate("/staff-login?signupRequired=true")}
+                className="enhanced-signin-sign-up-text"
+              >
+                Sign Up
+              </span>
             </div>
           </div>
+        </div>
 
-          <div className="staff-enhanced-signin-right-section">
-            <IconButton
-              className="staff-enhanced-signin-close-btn"
-              onClick={onClose}
-              aria-label="close"
+        <div className="enhanced-signin-right-section">
+          <IconButton
+            className="enhanced-signin-close-btn"
+            onClick={onClose}
+            aria-label="close"
+          >
+            <MdClose />
+          </IconButton>
+
+          <div className="enhanced-signin-form-container">
+            <h2 className="enhanced-signin-heading">Staff Sign In</h2>
+
+            {loading.signIn && (
+              <div className="enhanced-signin-loading">
+                <div className="enhanced-signin-spinner"></div>
+                <span>Signing you in...</span>
+              </div>
+            )}
+
+            {(errors.phoneNumber || errors.password) && (
+              <div className="enhanced-signin-error-container">
+                {errors.phoneNumber && (
+                  <div className="enhanced-signin-error">
+                    {errors.phoneNumber}
+                  </div>
+                )}
+                {errors.password && (
+                  <div className="enhanced-signin-error">
+                    {errors.password}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <form
+              onSubmit={handleSignIn}
+              className="enhanced-signin-form"
             >
-              <MdClose />
-            </IconButton>
-            
-            <div className="staff-enhanced-signin-form-container">
-              <h2 className="staff-enhanced-signin-heading">Staff Sign In</h2>
-              
-              {loading.signIn && (
-                <div className="staff-enhanced-signin-loading">
-                  <div className="staff-enhanced-signin-spinner"></div>
-                  <span>Signing you in...</span>
-                </div>
-              )}
-              
-              {(errors.phoneNumber || errors.password) && (
-                <div className="staff-enhanced-signin-error-container">
-                  {errors.phoneNumber && (
-                    <div className="staff-enhanced-signin-error">
-                      {errors.phoneNumber}
-                    </div>
-                  )}
-                  {errors.password && (
-                    <div className="staff-enhanced-signin-error">
-                      {errors.password}
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <form onSubmit={handleSignIn} className="staff-enhanced-signin-form">
-                <div className="staff-enhanced-signin-input-group">
-                  <label htmlFor="phoneNumber" className="staff-enhanced-signin-label">
-                    Phone Number
-                  </label>
-                  <div className="staff-enhanced-signin-input-container">
-                    <MdPhone className="staff-enhanced-signin-input-icon" />
-                    <input
-                      type="tel"
-                      id="phoneNumber"
-                      value={signInPhoneNumber}
-                      onChange={(e) => {
-                        setSignInPhoneNumber(e.target.value);
-                        setSignInErrors((prev) => ({ ...prev, phoneNumber: "" }));
-                      }}
-                      placeholder="Enter your phone number"
-                      required
-                      className={`staff-enhanced-signin-input ${errors.phoneNumber ? 'error' : ''}`}
-                      disabled={loading.signIn}
-                    />
-                  </div>
-                </div>
-
-                <div className="staff-enhanced-signin-input-group">
-                  <label htmlFor="password" className="staff-enhanced-signin-label">
-                    Password
-                  </label>
-                  <div className="staff-enhanced-signin-input-container">
-                    <MdLock className="staff-enhanced-signin-input-icon" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      id="password"
-                      value={signInPassword}
-                      onChange={(e) => {
-                        setSignInPassword(e.target.value);
-                        setSignInErrors((prev) => ({ ...prev, password: "" }));
-                      }}
-                      placeholder="Enter your password"
-                      required
-                      className={`staff-enhanced-signin-input ${errors.password ? 'error' : ''}`}
-                      disabled={loading.signIn}
-                    />
-                    <IconButton
-                      className="staff-enhanced-signin-password-toggle"
-                      onClick={togglePasswordVisibility}
-                      disabled={loading.signIn}
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
-                    </IconButton>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="staff-enhanced-signin-submit-btn"
-                  disabled={loading.signIn || !signInPhoneNumber || !signInPassword}
+              <div className="enhanced-signin-input-group">
+                <label
+                  htmlFor="phoneNumber"
+                  className="enhanced-signin-label"
                 >
-                  {loading.signIn ? (
-                    <div>
-                      <div className="staff-enhanced-signin-btn-spinner"></div>
-                      Signing In...
-                    </div>
-                  ) : (
-                    "Sign In"
-                  )}
-                </button>
-              </form>
-            </div>
+                  Phone Number
+                </label>
+                <div className="enhanced-signin-input-container">
+                  <MdPhone className="enhanced-signin-input-icon" />
+                  <input
+                    type="tel"
+                    id="phoneNumber"
+                    value={signInPhoneNumber}
+                    onChange={(e) => {
+                      setSignInPhoneNumber(e.target.value);
+                      setSignInErrors((prev) => ({ ...prev, phoneNumber: "" }));
+                    }}
+                    placeholder="Enter your phone number"
+                    required
+                    className={`enhanced-signin-input ${errors.phoneNumber ? "error" : ""}`}
+                    disabled={loading.signIn}
+                  />
+                </div>
+              </div>
+
+              <div className="enhanced-signin-input-group">
+                <label
+                  htmlFor="password"
+                  className="enhanced-signin-label"
+                >
+                  Password
+                </label>
+                <div className="enhanced-signin-input-container">
+                  <MdLock className="enhanced-signin-input-icon" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    value={signInPassword}
+                    onChange={(e) => {
+                      setSignInPassword(e.target.value);
+                      setSignInErrors((prev) => ({ ...prev, password: "" }));
+                    }}
+                    placeholder="Enter your password"
+                    required
+                    className={`enhanced-signin-input ${errors.password ? "error" : ""}`}
+                    disabled={loading.signIn}
+                  />
+                  <IconButton
+                    className="enhanced-signin-password-toggle"
+                    onClick={togglePasswordVisibility}
+                    disabled={loading.signIn}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                  </IconButton>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="enhanced-signin-submit-btn"
+                disabled={
+                  loading.signIn || !signInPhoneNumber || !signInPassword
+                }
+              >
+                {loading.signIn ? (
+                  <div>
+                    <div className="enhanced-signin-btn-spinner"></div>
+                    Signing In...
+                  </div>
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+            </form>
           </div>
+        </div>
       </div>
     </Modal>
   );

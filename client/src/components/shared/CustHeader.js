@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../ProfileContext";
 import logo from "../../assets/logo.PNG";
 import defaultProfilePic from "../../assets/default-picture-cust.jpg";
-import "../../styles/customerHomepage.css";
 
 const CustHeader = ({
   isLoggedIn,

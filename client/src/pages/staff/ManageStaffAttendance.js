@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/api"; // Updated import
 import moment from "moment";
-import "../../styles/staffAttendance.css";
 
 const ManageStaffAttendance = () => {
   // Show alert when component is accessed
@@ -114,7 +113,7 @@ const ManageStaffAttendance = () => {
       return (
         <a
           href={`http://localhost:5000${data.document_path}`}
-          className="document-link"
+          className="text-huuk-blue underline hover:opacity-80"
           download
           title="Click to download document"
         >
@@ -126,13 +125,13 @@ const ManageStaffAttendance = () => {
   };
 
   return (
-    <div className="attendance-container">
-      <h1>Manage Staff Attendance</h1>
-      {isLoading && <p>Loading...</p>}
-      {error && <p className="error">{error}</p>}
-      <div className="input-container">
-        <label>Outlet: </label>
-        <select value={outlet} onChange={handleOutletChange}>
+    <div className="card-dark rounded-huuk-lg min-h-[60vh]">
+      <h1 className="text-2xl font-bold mb-4">Manage Staff Attendance</h1>
+      {isLoading && <p className="text-huuk-muted">Loading...</p>}
+      {error && <p className="text-red-400">{error}</p>}
+      <div className="flex items-center gap-2 mb-3">
+        <label className="text-sm font-semibold">Outlet:</label>
+        <select value={outlet} onChange={handleOutletChange} className="bg-white/10 border border-white/20 rounded-huuk-sm px-3 py-2 text-sm text-white">
           <option value="">Select Outlet</option>
           {outlets.map((outletOption) => (
             <option key={outletOption} value={outletOption}>
@@ -141,49 +140,50 @@ const ManageStaffAttendance = () => {
           ))}
         </select>
       </div>
-      <div className="input-container">
-        <label>Date: </label>
+      <div className="flex items-center gap-2 mb-4">
+        <label className="text-sm font-semibold">Date:</label>
         <input
           type="date"
           value={date}
           onChange={handleDateChange}
           max={moment().format("YYYY-MM-DD")}
+          className="bg-white/10 border border-white/20 rounded-huuk-sm px-3 py-2 text-sm text-white"
         />
       </div>
 
       <div>
-        <h2>Staff Attendance Records</h2>
+        <h2 className="text-lg font-bold mb-2">Staff Attendance Records</h2>
         {!outlet || !date ? (
-          <p className="placeholder">-SELECT OUTLET FIRST-</p>
+          <p className="text-huuk-muted">-SELECT OUTLET FIRST-</p>
         ) : attendanceData.length === 0 && !isLoading ? (
-          <p>No attendance records found.</p>
+          <p className="text-huuk-muted">No attendance records found.</p>
         ) : (
-          <table>
+          <table className="huuk-table">
             <thead>
               <tr>
-                <th>Staff Name</th>
-                <th>Time In</th>
-                <th>Time Out</th>
-                <th>Remarks</th>
-                <th>Document</th>
+                <th className="huuk-th">Staff Name</th>
+                <th className="huuk-th">Time In</th>
+                <th className="huuk-th">Time Out</th>
+                <th className="huuk-th">Remarks</th>
+                <th className="huuk-th">Document</th>
               </tr>
             </thead>
             <tbody>
               {attendanceData.map((data, index) => (
-                <tr key={index}>
-                  <td>{data.fullname}</td>
-                  <td>
+                <tr key={index} className="huuk-tr border-b border-white/10">
+                  <td className="huuk-td">{data.fullname}</td>
+                  <td className="huuk-td">
                     {data.time_in
                       ? moment(data.time_in).format("HH:mm")
                       : "--:--"}
                   </td>
-                  <td>
+                  <td className="huuk-td">
                     {data.time_out
                       ? moment(data.time_out).format("HH:mm")
                       : "--:--"}
                   </td>
-                  <td>{getRemarksDisplay(data)}</td>
-                  <td>{getDocumentDisplay(data)}</td>
+                  <td className="huuk-td">{getRemarksDisplay(data)}</td>
+                  <td className="huuk-td">{getDocumentDisplay(data)}</td>
                 </tr>
               ))}
             </tbody>
@@ -192,19 +192,21 @@ const ManageStaffAttendance = () => {
       </div>
 
       {attendanceData.length > 0 && (
-        <div className="pagination">
+        <div className="mt-4 flex items-center justify-center gap-3">
           <button
             disabled={pagination.page === 1 || isLoading}
             onClick={() => handlePageChange(pagination.page - 1)}
+            className="px-3 py-1 rounded-huuk-sm bg-white/20 text-white disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Previous
           </button>
-          <span>
+          <span className="text-sm text-huuk-muted">
             Page {pagination.page} of {pagination.totalPages}
           </span>
           <button
             disabled={pagination.page === pagination.totalPages || isLoading}
             onClick={() => handlePageChange(pagination.page + 1)}
+            className="px-3 py-1 rounded-huuk-sm bg-white/20 text-white disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next
           </button>

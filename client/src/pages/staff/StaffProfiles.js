@@ -148,7 +148,11 @@ const StaffProfiles = () => {
   console.log("Profile:", profile, "Profile loading:", profileLoading);
 
   if (profileLoading) {
-    return <div className="min-h-[50vh] flex items-center justify-center text-white">Loading profile...</div>;
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center text-white">
+        Loading profile...
+      </div>
+    );
   }
 
   if (profileError) {
@@ -167,11 +171,19 @@ const StaffProfiles = () => {
   console.log("Profile role:", profile.role);
 
   if (profile.role !== "manager") {
-    return <div className="text-white">You do not have permission to view this page.</div>;
+    return (
+      <div className="text-white">
+        You do not have permission to view this page.
+      </div>
+    );
   }
 
   if (loading) {
-    return <div className="min-h-[50vh] flex items-center justify-center text-white">Loading staff list...</div>;
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center text-white">
+        Loading staff list...
+      </div>
+    );
   }
 
   if (err) {
@@ -230,7 +242,10 @@ const StaffProfiles = () => {
           <p>No staff members found.</p>
         ) : (
           currentItems.map((staff) => (
-            <div className="bg-huuk-card rounded-huuk-md p-5 w-[280px] relative shadow-lg" key={staff.id}>
+            <div
+              className="bg-huuk-card rounded-huuk-md p-5 w-[280px] relative shadow-lg"
+              key={staff.id}
+            >
               <div
                 className="absolute top-3 right-3 cursor-pointer text-white z-20"
                 onClick={() => handleToggleMenu(staff.id)}
@@ -241,10 +256,16 @@ const StaffProfiles = () => {
               {/* Make sure menuOpen is set correctly */}
               {menuOpen === staff.id && (
                 <div className="absolute top-11 right-3 bg-huuk-bg rounded-huuk-sm overflow-hidden shadow-xl z-10">
-                  <button onClick={() => viewProfile(staff.id)} className="block w-full px-4 py-2 bg-transparent border-none text-white text-left cursor-pointer hover:bg-white/20">
+                  <button
+                    onClick={() => viewProfile(staff.id)}
+                    className="block w-full px-4 py-2 bg-transparent border-none text-white text-left cursor-pointer hover:bg-white/20"
+                  >
                     View full profile
                   </button>
-                  <button onClick={() => deleteProfile(staff.id)} className="block w-full px-4 py-2 bg-transparent border-none text-white text-left cursor-pointer hover:bg-white/20">
+                  <button
+                    onClick={() => deleteProfile(staff.id)}
+                    className="block w-full px-4 py-2 bg-transparent border-none text-white text-left cursor-pointer hover:bg-white/20"
+                  >
                     Delete profile
                   </button>
                 </div>

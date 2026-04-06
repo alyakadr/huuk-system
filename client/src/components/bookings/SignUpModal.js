@@ -3,7 +3,6 @@ import { IconButton } from "@mui/material";
 import Modal from "react-modal";
 import { MdPhone, MdLock, MdPerson, MdClose, MdVisibility, MdVisibilityOff } from "react-icons/md";
 import "../../styles/booking.css";
-import "../../styles/customerHomepage.css";
 import "../../styles/enhancedModals.css";
 import modalImage from "../../assets/modalcust1.jpg";
 

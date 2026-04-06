@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Modal from "react-modal";
 import { useSpring, animated } from "@react-spring/web";
-import styles from "../../styles/homepage.module.css"; // Ensure this path is correct relative to client/src/pages/staff/
 import logo from "../../assets/logo.PNG";
 import banner1 from "../../assets/banner1.png";
 import banner2 from "../../assets/banner2.png";
@@ -27,6 +26,14 @@ Modal.setAppElement("#root");
 const API_BASE_URL = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
   : "http://localhost:5000/api";
+
+// Use plain class names while preserving existing styles["..."] references.
+const styles = new Proxy(
+  {},
+  {
+    get: (_, prop) => String(prop),
+  },
+);
 
 const Homepage = () => {
   const navigate = useNavigate();

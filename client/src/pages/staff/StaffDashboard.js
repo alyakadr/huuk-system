@@ -86,12 +86,8 @@ const PaymentManagementTable = ({ loadingPayment, paymentData }) => {
                 key={payment.id || index}
                 className="huuk-tr border-b border-white/10"
               >
-                <td className="huuk-td">
-                  {payment.customer_name}
-                </td>
-                <td className="huuk-td">
-                  {payment.payment_method}
-                </td>
+                <td className="huuk-td">{payment.customer_name}</td>
+                <td className="huuk-td">{payment.payment_method}</td>
                 <td
                   className={`huuk-td font-semibold ${payment.payment_status === "Paid" ? "text-green-400" : "text-yellow-300"}`}
                 >
@@ -821,7 +817,10 @@ const StaffDashboard = () => {
                       : summaryData.rescheduled.toString(),
                   },
                 ].map(({ img, label, value }) => (
-                  <div key={label} className="card-dark rounded-huuk-lg flex items-center gap-3">
+                  <div
+                    key={label}
+                    className="card-dark rounded-huuk-lg flex items-center gap-3"
+                  >
                     <img
                       src={img}
                       alt={label}
@@ -915,9 +914,7 @@ const StaffDashboard = () => {
                         <th className="huuk-th">PHONE NUMBER</th>
                         <th className="huuk-th">SERVICE</th>
                         <th className="huuk-th">TIME</th>
-                        <th className="huuk-th text-center">
-                          ACTION
-                        </th>
+                        <th className="huuk-th text-center">ACTION</th>
                       </tr>
                     </thead>
 
@@ -1030,9 +1027,7 @@ const StaffDashboard = () => {
             {/* Right side - Booking Time Slot */}
             <div className="xl:col-span-4 space-y-4 mt-5 xl:mt-0">
               <div className="card-dark rounded-huuk-lg">
-                <h3 className="text-lg font-bold">
-                  Appointment Management
-                </h3>
+                <h3 className="text-lg font-bold">Appointment Management</h3>
                 <p className="text-sm text-huuk-muted mt-1">
                   View Time Slots Status
                 </p>
@@ -1185,12 +1180,8 @@ const StaffDashboard = () => {
 
       {/* Minimal Payment Confirmation Popup */}
       {showPaymentConfirmation && (
-        <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]"
-        >
-          <div
-            className="bg-white rounded-huuk-sm p-5 w-[90%] max-w-[400px] shadow-xl relative z-[10000]"
-          >
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-huuk-sm p-5 w-[90%] max-w-[400px] shadow-xl relative z-[10000]">
             {/* Close button */}
             <button
               className="absolute top-2.5 right-2.5 bg-transparent border-none text-xl cursor-pointer"
@@ -1207,9 +1198,7 @@ const StaffDashboard = () => {
             </button>
 
             {/* Header */}
-            <div
-              className="text-center mb-5"
-            >
+            <div className="text-center mb-5">
               <i
                 className="bi bi-credit-card"
                 style={{
@@ -1229,12 +1218,8 @@ const StaffDashboard = () => {
             </div>
 
             {/* Content */}
-            <div
-              className="mb-5"
-            >
-              <div
-                className="text-center"
-              >
+            <div className="mb-5">
+              <div className="text-center">
                 <p
                   className="text-base m-0 mb-1"
                   style={{
@@ -1268,9 +1253,7 @@ const StaffDashboard = () => {
             </div>
 
             {/* Action Buttons */}
-            <div
-              className="flex justify-between gap-2.5"
-            >
+            <div className="flex justify-between gap-2.5">
               <button
                 className="flex-1 p-3 bg-emerald-500 text-white border-none rounded-huuk-sm font-bold cursor-pointer flex items-center justify-center gap-1"
                 onClick={() => handlePaymentPaid(paymentConfirmationData)}

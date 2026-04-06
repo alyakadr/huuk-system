@@ -33,29 +33,34 @@ const StaffAttendance = () => {
   const validateAttendance = async (userId) => {
     console.log("Validating attendance for staff_id:", userId);
     const storedTimeInConfirmed = localStorage.getItem("isTimeInConfirmed");
-    
+
     // Ensure we have a valid userId
     if (!userId) {
       console.error("Missing staff_id for attendance validation");
       return false;
     }
-    
+
     try {
       // Get the most reliable staff token and userId
-      const staffUser = JSON.parse(localStorage.getItem("staff_loggedInUser") || "{}");
-      const token = staffUser.token || localStorage.getItem("staff_token") || localStorage.getItem("token");
+      const staffUser = JSON.parse(
+        localStorage.getItem("staff_loggedInUser") || "{}",
+      );
+      const token =
+        staffUser.token ||
+        localStorage.getItem("staff_token") ||
+        localStorage.getItem("token");
       const staffId = staffUser.id || userId;
-      
+
       if (!token) {
         console.error("No authentication token available");
         return false;
       }
-      
+
       // Set authorization header manually to ensure token is sent
       const headers = {
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       };
-      
+
       // Make direct API call with retry
       const response = await fetchWithRetry(() =>
         api.get("/users/attendance", {
@@ -64,24 +69,28 @@ const StaffAttendance = () => {
             staff_id: staffId,
             page: 1,
           },
-          headers
-        })
+          headers,
+        }),
       );
-      
+
       // Log the full response for debugging
       console.log("Attendance API response:", response);
-      
+
       const data = response.data.attendance || [];
       console.log("Attendance validation data:", data);
-      
+
       // If no records found but we should have some, create a new day record
       if (data.length === 0) {
         console.log("No attendance records found for staff_id:", userId);
         try {
           console.log("Attempting to create a new day record");
-          await api.post("/users/attendance/new-day", { staff_id: userId }, { headers });
+          await api.post(
+            "/users/attendance/new-day",
+            { staff_id: userId },
+            { headers },
+          );
           console.log("New day record created successfully");
-          
+
           // Fetch the newly created record
           const newResponse = await api.get("/users/attendance", {
             params: {
@@ -89,13 +98,13 @@ const StaffAttendance = () => {
               staff_id: userId,
               page: 1,
             },
-            headers
+            headers,
           });
-          
+
           // Update data with new record
           const newData = newResponse.data.attendance || [];
           console.log("New attendance data after record creation:", newData);
-          
+
           if (newData.length > 0) {
             data.push(...newData);
           }
@@ -103,15 +112,16 @@ const StaffAttendance = () => {
           console.error("Failed to create new day record:", createError);
         }
       }
-      
+
       const todayRecord = data.find(
         (record) =>
           String(record.staff_id) === String(userId) &&
-          moment(record.created_date || record.created_at).format("YYYY-MM-DD") ===
-            moment().format("YYYY-MM-DD") &&
-          record.time_in
+          moment(record.created_date || record.created_at).format(
+            "YYYY-MM-DD",
+          ) === moment().format("YYYY-MM-DD") &&
+          record.time_in,
       );
-      
+
       if (todayRecord) {
         console.log("Found today record:", todayRecord);
         setIsTimeInConfirmed(true);
@@ -135,23 +145,31 @@ const StaffAttendance = () => {
       }
     } catch (error) {
       console.error("Attendance validation error:", error.response || error);
-      
+
       // Check if error is due to 404 (no records found)
       if (error.response && error.response.status === 404) {
-        console.log("No attendance records found (404), attempting to create new day record");
+        console.log(
+          "No attendance records found (404), attempting to create new day record",
+        );
         try {
-          const token = localStorage.getItem("staff_token") || localStorage.getItem("token");
-          await api.post("/users/attendance/new-day", 
+          const token =
+            localStorage.getItem("staff_token") ||
+            localStorage.getItem("token");
+          await api.post(
+            "/users/attendance/new-day",
             { staff_id: userId },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` } },
           );
           console.log("New day record created after 404");
           setTimeout(() => refreshAttendance(), 500);
         } catch (createError) {
-          console.error("Failed to create new day record after 404:", createError);
+          console.error(
+            "Failed to create new day record after 404:",
+            createError,
+          );
         }
       }
-      
+
       if (storedTimeInConfirmed === "true") {
         console.log("Keeping isTimeInConfirmed true despite error");
         setIsTimeInConfirmed(true);
@@ -190,7 +208,9 @@ const StaffAttendance = () => {
 
   useEffect(() => {
     // If staff, redirect to dashboard immediately
-    const staffUser = JSON.parse(localStorage.getItem("staff_loggedInUser") || "{}");
+    const staffUser = JSON.parse(
+      localStorage.getItem("staff_loggedInUser") || "{}",
+    );
     if (staffUser.role === "staff") {
       navigate("/staff");
       return;
@@ -224,7 +244,7 @@ const StaffAttendance = () => {
           setIsApproved(status === "approved");
           if (!["staff", "manager"].includes(role) || status !== "approved") {
             setError(
-              "Access denied. Only approved staff or managers can access this page."
+              "Access denied. Only approved staff or managers can access this page.",
             );
             navigate("/staff-login");
             return;
@@ -234,7 +254,7 @@ const StaffAttendance = () => {
         .catch((error) => {
           console.error(
             "Profile fetch error:",
-            error.response?.data || error.message
+            error.response?.data || error.message,
           );
           setError("Failed to load user profile. Please try again or log in.");
           navigate("/staff-login");
@@ -286,31 +306,38 @@ const StaffAttendance = () => {
   useEffect(() => {
     const checkOrCreateTodayRecord = async () => {
       // Use consistent token and user data retrieval
-      const token = localStorage.getItem("staff_token") || localStorage.getItem("token");
-      const userJson = localStorage.getItem("staff_loggedInUser") || localStorage.getItem("loggedInUser");
-      
+      const token =
+        localStorage.getItem("staff_token") || localStorage.getItem("token");
+      const userJson =
+        localStorage.getItem("staff_loggedInUser") ||
+        localStorage.getItem("loggedInUser");
+
       if (!token || !userJson || !userRole || !isApproved) return;
-      
+
       const userData = JSON.parse(userJson);
       const userId = userData.id;
-      
+
       if (!userId) return;
 
       const today = moment().format("YYYY-MM-DD");
       const existingRecord = attendanceData.find(
-        record => 
+        (record) =>
           record.staff_id === userId &&
-          moment(record.created_date).format("YYYY-MM-DD") === today
+          moment(record.created_date).format("YYYY-MM-DD") === today,
       );
 
       if (!existingRecord && attendanceData.length > 0) {
         try {
           console.log("Generating new day record for:", today);
-          await api.post("/users/attendance/new-day", {
-            staff_id: userId
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          await api.post(
+            "/users/attendance/new-day",
+            {
+              staff_id: userId,
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
           console.log("New day record generated for today.");
           setTimeout(() => refreshAttendance(), 500);
         } catch (error) {
@@ -341,13 +368,15 @@ const StaffAttendance = () => {
             staff_id: storedUserId,
             page: 1,
           },
-        })
+        }),
       );
 
       const data = response.data.attendance || [];
       console.log("Attendance refresh data:", data);
       setAttendanceData(
-        data.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+        data.sort(
+          (a, b) => new Date(b.created_date) - new Date(a.created_date),
+        ),
       );
 
       const today = moment().format("YYYY-MM-DD");
@@ -355,7 +384,7 @@ const StaffAttendance = () => {
         (record) =>
           record.staff_id === storedUserId &&
           moment(record.created_date).format("YYYY-MM-DD") === today &&
-          record.time_in
+          record.time_in,
       );
 
       console.log("Today record:", todayRecord);
@@ -393,22 +422,22 @@ const StaffAttendance = () => {
         (record) =>
           record.time_in &&
           record.time_out &&
-          moment(record.created_date).isAfter(moment().subtract(30, "days"))
+          moment(record.created_date).isAfter(moment().subtract(30, "days")),
       );
       const totalHours = validRecords.reduce(
         (acc, record) =>
           acc +
           moment(record.time_out).diff(moment(record.time_in), "hours", true),
-        0
+        0,
       );
       setAverageWorkingHours(
-        validRecords.length ? totalHours / validRecords.length : 0
+        validRecords.length ? totalHours / validRecords.length : 0,
       );
 
       const validInTimes = data.filter(
         (record) =>
           record.time_in &&
-          moment(record.created_date).isAfter(moment().subtract(30, "days"))
+          moment(record.created_date).isAfter(moment().subtract(30, "days")),
       );
       if (validInTimes.length > 0) {
         const totalInMinutes = validInTimes.reduce((acc, record) => {
@@ -421,7 +450,7 @@ const StaffAttendance = () => {
         setAverageInTime(
           `${averageInHour.toString().padStart(2, "0")}:${averageInMinute
             .toString()
-            .padStart(2, "0")}`
+            .padStart(2, "0")}`,
         );
       } else {
         setAverageInTime("N/A");
@@ -430,7 +459,7 @@ const StaffAttendance = () => {
       const validOutTimes = data.filter(
         (record) =>
           record.time_out &&
-          moment(record.created_date).isAfter(moment().subtract(30, "days"))
+          moment(record.created_date).isAfter(moment().subtract(30, "days")),
       );
       if (validOutTimes.length > 0) {
         const totalOutMinutes = validOutTimes.reduce((acc, record) => {
@@ -443,7 +472,7 @@ const StaffAttendance = () => {
         setAverageOutTime(
           `${averageOutHour.toString().padStart(2, "0")}:${averageOutMinute
             .toString()
-            .padStart(2, "0")}`
+            .padStart(2, "0")}`,
         );
       } else {
         setAverageOutTime("N/A");
@@ -451,16 +480,17 @@ const StaffAttendance = () => {
     } catch (error) {
       console.error(
         "Fetch attendance error:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
       setError(
         error.response?.status === 400
           ? error.response.data.message || "Invalid staff ID."
           : error.response?.status === 401
-          ? "Session expired. Please log in again."
-          : error.response?.status === 404
-          ? null
-          : error.response?.data?.message || "Failed to load attendance data."
+            ? "Session expired. Please log in again."
+            : error.response?.status === 404
+              ? null
+              : error.response?.data?.message ||
+                "Failed to load attendance data.",
       );
       if (error.response?.status === 404) {
         setAttendanceData([]);
@@ -480,7 +510,7 @@ const StaffAttendance = () => {
 
     if (!["staff", "manager"].includes(userRole) || !isApproved) {
       setError(
-        "Access denied. Only approved staff or managers can log attendance."
+        "Access denied. Only approved staff or managers can log attendance.",
       );
       return;
     }
@@ -500,13 +530,13 @@ const StaffAttendance = () => {
             staff_id: userId,
             page: 1,
           },
-        })
+        }),
       );
 
       setAttendanceData(
         response.data.attendance.sort(
-          (a, b) => new Date(b.created_date) - new Date(a.created_date)
-        )
+          (a, b) => new Date(b.created_date) - new Date(a.created_date),
+        ),
       );
 
       const data = response.data.attendance || [];
@@ -516,7 +546,7 @@ const StaffAttendance = () => {
           record.staff_id === userId &&
           moment(record.created_date).format("YYYY-MM-DD") ===
             moment().format("YYYY-MM-DD") &&
-          record.time_in
+          record.time_in,
       );
 
       if (todayRecord) {
@@ -548,7 +578,7 @@ const StaffAttendance = () => {
       console.log("POST data:", postData);
 
       const postResponse = await fetchWithRetry(() =>
-        api.post("/users/attendance", postData)
+        api.post("/users/attendance", postData),
       );
       console.log("Time In API response:", postResponse.data);
       const formattedTimeIn = moment(postResponse.data.time_in).format("HH:mm");
@@ -578,14 +608,14 @@ const StaffAttendance = () => {
         setError(
           error.response?.status === 401
             ? "Session expired. Please log in again."
-            : error.response?.data?.message || "Failed to log Time In."
+            : error.response?.data?.message || "Failed to log Time In.",
         );
       }
     } finally {
       setIsLoading(false);
       console.log(
         "confirmTimeIn finished, isTimeInConfirmed:",
-        isTimeInConfirmed
+        isTimeInConfirmed,
       );
     }
   };
@@ -600,7 +630,7 @@ const StaffAttendance = () => {
 
     if (!["staff", "manager"].includes(userRole) || !isApproved) {
       setError(
-        "Access denied. Only approved staff or managers can log attendance."
+        "Access denied. Only approved staff or managers can log attendance.",
       );
       return;
     }
@@ -625,7 +655,7 @@ const StaffAttendance = () => {
       };
 
       const response = await fetchWithRetry(() =>
-        api.post("/users/attendance", data)
+        api.post("/users/attendance", data),
       );
       console.log("Time Out response:", response.data);
       setIsTimeOutConfirmed(true);
@@ -642,7 +672,7 @@ const StaffAttendance = () => {
       setError(
         error.response?.status === 401
           ? "Session expired. Please log in again."
-          : error.response?.data?.message || "Failed to log Time Out."
+          : error.response?.data?.message || "Failed to log Time Out.",
       );
     } finally {
       setIsLoading(false);
@@ -683,7 +713,7 @@ const StaffAttendance = () => {
     if (
       file &&
       ["image/png", "image/jpeg", "image/jpg", "application/pdf"].includes(
-        file.type
+        file.type,
       )
     ) {
       setSelectedFile(file);
@@ -716,7 +746,7 @@ const StaffAttendance = () => {
       const response = await fetchWithRetry(() =>
         api.post("/users/upload", formData, {
           headers: { "Content-Type": "multipart/form-data" },
-        })
+        }),
       );
       console.log("File Upload successful:", response.data);
       alert("Document uploaded successfully.");
@@ -728,8 +758,8 @@ const StaffAttendance = () => {
                 document_path: response.data.filePath,
                 remarks: `Absent with notice (${remark})`,
               }
-            : record
-        )
+            : record,
+        ),
       );
       setUploadCount((prev) => ({
         ...prev,
@@ -739,7 +769,7 @@ const StaffAttendance = () => {
     } catch (error) {
       console.error(
         "File upload error:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
       setError(error.response?.data?.message || "Failed to upload document.");
     } finally {
@@ -772,7 +802,7 @@ const StaffAttendance = () => {
       const hours = moment(data.time_out).diff(
         moment(data.time_in),
         "hours",
-        true
+        true,
       );
       return hours.toFixed(1) === "0.0" ? "0" : hours.toFixed(1);
     }
@@ -787,7 +817,9 @@ const StaffAttendance = () => {
         <div className="card-dark rounded-huuk-lg max-w-xl w-full">
           <h1 className="text-xl font-bold mb-2">Staff Attendance</h1>
           <p className="text-red-400 mb-3">{error}</p>
-          <a href="/staff-login" className="btn-ghost">Log in again</a>
+          <a href="/staff-login" className="btn-ghost">
+            Log in again
+          </a>
         </div>
       </div>
     );
@@ -801,7 +833,10 @@ const StaffAttendance = () => {
           <i className="fas fa-exclamation-triangle"></i>
           {error}
           {error.includes("Session expired") && (
-            <a href="/staff-login" className="underline text-white"> Log in again</a>
+            <a href="/staff-login" className="underline text-white">
+              {" "}
+              Log in again
+            </a>
           )}
         </div>
       )}
@@ -809,29 +844,33 @@ const StaffAttendance = () => {
       {/* Time In/Out Section */}
       <div className="flex gap-8 mb-6 justify-start items-center bg-huuk-card p-5 rounded-huuk-lg flex-wrap">
         <div className="flex items-center gap-4">
-          <label className="text-sm font-bold text-white min-w-20 uppercase">TIME-IN</label>
-          <input 
-            type="time" 
-            value={timeIn} 
-            onChange={(e) => setTimeIn(e.target.value)} 
+          <label className="text-sm font-bold text-white min-w-20 uppercase">
+            TIME-IN
+          </label>
+          <input
+            type="time"
+            value={timeIn}
+            onChange={(e) => setTimeIn(e.target.value)}
             className="px-5 py-3 border border-white rounded-[24px] bg-[#2a2a2a] text-white text-base w-[120px] text-center outline-none font-bold"
             disabled={isTimeInConfirmed || isLoading}
           />
           <button
             onClick={confirmTimeIn}
             disabled={isTimeInConfirmed || isLoading}
-            className={`px-6 py-3 rounded-huuk-md text-sm font-bold min-w-[90px] ${isTimeInConfirmed ? 'bg-green-600' : 'bg-huuk-blue'} text-white disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={`px-6 py-3 rounded-huuk-md text-sm font-bold min-w-[90px] ${isTimeInConfirmed ? "bg-green-600" : "bg-huuk-blue"} text-white disabled:opacity-40 disabled:cursor-not-allowed`}
           >
-            {isTimeInConfirmed ? 'Confirmed' : 'Confirm'}
+            {isTimeInConfirmed ? "Confirmed" : "Confirm"}
           </button>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          <label className="text-sm font-bold text-white min-w-20 uppercase">TIME-OUT</label>
-          <input 
-            type="time" 
-            value={timeOut} 
-            onChange={(e) => setTimeOut(e.target.value)} 
+          <label className="text-sm font-bold text-white min-w-20 uppercase">
+            TIME-OUT
+          </label>
+          <input
+            type="time"
+            value={timeOut}
+            onChange={(e) => setTimeOut(e.target.value)}
             className="px-5 py-3 border border-white rounded-[24px] bg-[#2a2a2a] text-white text-base w-[120px] text-center outline-none font-bold"
             disabled={!isTimeInConfirmed || isTimeOutConfirmed || isLoading}
           />
@@ -839,9 +878,9 @@ const StaffAttendance = () => {
             type="button"
             onClick={confirmTimeOut}
             disabled={!isTimeInConfirmed || isTimeOutConfirmed || isLoading}
-            className={`px-6 py-3 rounded-huuk-md text-sm font-bold min-w-[90px] ${isTimeOutConfirmed ? 'bg-green-600' : 'bg-huuk-blue'} text-white disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={`px-6 py-3 rounded-huuk-md text-sm font-bold min-w-[90px] ${isTimeOutConfirmed ? "bg-green-600" : "bg-huuk-blue"} text-white disabled:opacity-40 disabled:cursor-not-allowed`}
           >
-            {isTimeOutConfirmed ? 'Confirmed' : 'Confirm'}
+            {isTimeOutConfirmed ? "Confirmed" : "Confirm"}
           </button>
         </div>
       </div>
@@ -853,27 +892,33 @@ const StaffAttendance = () => {
             <i className="fas fa-clock"></i>
           </div>
           <div className="flex-1">
-            <div className="text-2xl font-semibold text-white">{averageWorkingHours.toFixed(1)}</div>
+            <div className="text-2xl font-semibold text-white">
+              {averageWorkingHours.toFixed(1)}
+            </div>
             <div className="text-sm text-gray-400">Average Working Hour</div>
           </div>
         </div>
-        
+
         <div className="card-dark rounded-huuk-md flex items-center gap-4 min-h-[80px]">
           <div className="w-[45px] h-[45px] rounded-full bg-huuk-blue flex items-center justify-center text-white text-lg shrink-0">
             <i className="fas fa-sign-in-alt"></i>
           </div>
           <div className="flex-1">
-            <div className="text-2xl font-semibold text-white">{averageInTime}</div>
+            <div className="text-2xl font-semibold text-white">
+              {averageInTime}
+            </div>
             <div className="text-sm text-gray-400">Average In Time</div>
           </div>
         </div>
-        
+
         <div className="card-dark rounded-huuk-md flex items-center gap-4 min-h-[80px]">
           <div className="w-[45px] h-[45px] rounded-full bg-huuk-blue flex items-center justify-center text-white text-lg shrink-0">
             <i className="fas fa-sign-out-alt"></i>
           </div>
           <div className="flex-1">
-            <div className="text-2xl font-semibold text-white">{averageOutTime}</div>
+            <div className="text-2xl font-semibold text-white">
+              {averageOutTime}
+            </div>
             <div className="text-sm text-gray-400">Average Out Time</div>
           </div>
         </div>
@@ -903,12 +948,24 @@ const StaffAttendance = () => {
             <table className="w-full border-collapse font-quicksand bg-transparent">
               <thead>
                 <tr>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">DATE</th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">TIME-IN</th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">TIME-OUT</th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">TOTAL HOUR</th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">REMARK</th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">UPLOAD</th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
+                    DATE
+                  </th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
+                    TIME-IN
+                  </th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
+                    TIME-OUT
+                  </th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
+                    TOTAL HOUR
+                  </th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
+                    REMARK
+                  </th>
+                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
+                    UPLOAD
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -916,11 +973,11 @@ const StaffAttendance = () => {
                   const uploadEnabled = isUploadEnabled(
                     data.created_date,
                     data.time_in,
-                    data.time_out
+                    data.time_out,
                   );
                   const viewEnabled = isViewButtonEnabled(data.id);
                   const isOnDuty = data.time_in && data.time_out;
-                  
+
                   return (
                     <tr key={data.id || index} className="hover:bg-white/5">
                       <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
@@ -939,7 +996,9 @@ const StaffAttendance = () => {
                           : "--:--"}
                       </td>
                       <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
-                        {getTotalHours(data) ? `${getTotalHours(data)}` : "--:--"}
+                        {getTotalHours(data)
+                          ? `${getTotalHours(data)}`
+                          : "--:--"}
                       </td>
                       <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
                         {data.document_path ? (
@@ -948,7 +1007,8 @@ const StaffAttendance = () => {
                           "-"
                         ) : (
                           <span className="text-xs text-huuk-muted">
-                            Upload relevant supporting documents (valid for 3 working days)
+                            Upload relevant supporting documents (valid for 3
+                            working days)
                           </span>
                         )}
                       </td>
@@ -963,7 +1023,7 @@ const StaffAttendance = () => {
                               openViewModal(
                                 data.id,
                                 data.document_path,
-                                data.remarks
+                                data.remarks,
                               )
                             }
                           >
@@ -993,7 +1053,9 @@ const StaffAttendance = () => {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
           <div className="bg-white rounded-huuk-md p-5 w-[92%] max-w-xl shadow-xl text-huuk-card">
-            <h2 className="text-lg font-bold mb-4">{isViewMode ? "View Document" : "Upload Document"}</h2>
+            <h2 className="text-lg font-bold mb-4">
+              {isViewMode ? "View Document" : "Upload Document"}
+            </h2>
             {isViewMode ? (
               <>
                 <div className="w-full h-[300px] bg-gray-100 rounded-huuk-sm overflow-hidden mb-3">
@@ -1011,7 +1073,12 @@ const StaffAttendance = () => {
                     />
                   )}
                 </div>
-                <input type="text" value={viewRemark || "--"} disabled className="w-full border border-gray-300 rounded-huuk-sm px-3 py-2 mb-2" />
+                <input
+                  type="text"
+                  value={viewRemark || "--"}
+                  disabled
+                  className="w-full border border-gray-300 rounded-huuk-sm px-3 py-2 mb-2"
+                />
                 <input
                   type="file"
                   accept=".png,.jpg,.jpeg,.pdf"
@@ -1034,7 +1101,11 @@ const StaffAttendance = () => {
                 >
                   Upload
                 </button>
-                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-huuk-sm bg-gray-200 text-huuk-card font-semibold">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 rounded-huuk-sm bg-gray-200 text-huuk-card font-semibold"
+                >
                   Close
                 </button>
               </>
@@ -1062,7 +1133,11 @@ const StaffAttendance = () => {
                 >
                   Upload
                 </button>
-                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-huuk-sm bg-gray-200 text-huuk-card font-semibold">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 rounded-huuk-sm bg-gray-200 text-huuk-card font-semibold"
+                >
                   Cancel
                 </button>
               </>

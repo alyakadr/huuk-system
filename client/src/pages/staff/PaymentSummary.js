@@ -120,7 +120,9 @@ const PaymentSummary = () => {
     <div className="w-full text-white font-quicksand space-y-4">
       <div className="card-dark rounded-huuk-lg">
         <h1 className="text-2xl font-bold">Payment Management</h1>
-        <p className="text-sm text-huuk-muted mt-1">Monitor and manage all payment transactions</p>
+        <p className="text-sm text-huuk-muted mt-1">
+          Monitor and manage all payment transactions
+        </p>
       </div>
 
       {error && (
@@ -234,7 +236,10 @@ const PaymentSummary = () => {
               </tr>
             ) : (
               payments.map((payment) => (
-                <tr key={payment.booking_id} className="huuk-tr border-b border-white/10">
+                <tr
+                  key={payment.booking_id}
+                  className="huuk-tr border-b border-white/10"
+                >
                   <td className="huuk-td">
                     #{String(payment.booking_id).padStart(7, "0")}
                   </td>

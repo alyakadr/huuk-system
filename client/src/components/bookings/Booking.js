@@ -27,8 +27,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useProfile } from "../../ProfileContext";
 import "../../styles/booking.css";
-import "../../styles/customerHomepage.css";
-import styles from "../../styles/homepage.module.css";
 
 import PaymentForm from "./PaymentForm";
 import Modal from "react-modal";
@@ -67,6 +65,13 @@ const DEBUG = false;
 function debugLog(...args) {
   if (DEBUG) console.log(...args);
 }
+
+const styles = new Proxy(
+  {},
+  {
+    get: (_, prop) => String(prop),
+  },
+);
 
 function Booking({ scrollToSection, bookingHistoryRef }) {
   const steps = [

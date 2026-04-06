@@ -1,19 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
-import './AddBookingModal.css';
-import api from '../utils/api';
-import moment from 'moment';
-import { debugLog } from '../utils/debugLog';
+import React, { useState, useRef, useEffect } from "react";
+import "./AddBookingModal.css";
+import api from "../utils/api";
+import moment from "moment";
+import { debugLog } from "../utils/debugLog";
 
-const RescheduleBookingModal = ({ 
-  isOpen, 
-  onClose, 
+const RescheduleBookingModal = ({
+  isOpen,
+  onClose,
   selectedBooking,
-  onSubmit
+  onSubmit,
 }) => {
   const modalRef = useRef();
   const [formData, setFormData] = useState({
-    newDate: '',
-    newTime: ''
+    newDate: "",
+    newTime: "",
   });
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ const RescheduleBookingModal = ({
     totalBookings: 0,
     blockedSlots: 0,
     unavailableSlots: [],
-    availableSlots: []
+    availableSlots: [],
   });
 
   // Generate all possible time slots from 09:00 to 21:30
@@ -30,126 +30,151 @@ const RescheduleBookingModal = ({
     const slots = [];
     const startTime = moment().hour(9).minute(0);
     const endTime = moment().hour(21).minute(30);
-    
+
     while (startTime.isSameOrBefore(endTime)) {
-      slots.push(startTime.format('HH:mm'));
-      startTime.add(30, 'minutes');
+      slots.push(startTime.format("HH:mm"));
+      startTime.add(30, "minutes");
     }
-    
+
     return slots;
   };
 
   // Fetch available time slots for the selected date
   const fetchAvailableTimeSlots = async (date) => {
     if (!date) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       // Get staff token or regular token
-      const token = localStorage.getItem("staff_token") || localStorage.getItem("token");
-      
+      const token =
+        localStorage.getItem("staff_token") || localStorage.getItem("token");
+
       // Get current user data
-      const userJson = localStorage.getItem("staff_loggedInUser") || localStorage.getItem("loggedInUser");
+      const userJson =
+        localStorage.getItem("staff_loggedInUser") ||
+        localStorage.getItem("loggedInUser");
       if (!userJson) {
         setError("User data not found");
         setLoading(false);
         return;
       }
-      
+
       const userData = JSON.parse(userJson);
       const staffId = userData.id;
-      
+
       debugLog(`Fetching bookings for date: ${date}, staff ID: ${staffId}`);
-      
+
       // Fetch bookings for the selected date
       const bookingsResponse = await api.get("/bookings/staff/appointments", {
         params: {
           date: date,
-          staff_id: staffId
+          staff_id: staffId,
         },
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       // Fetch blocked slots for the selected date
-      const blockedSlotsResponse = await api.get('/staff/blocked-slots', {
+      const blockedSlotsResponse = await api.get("/staff/blocked-slots", {
         params: {
           staff_id: staffId,
-          date: date
+          date: date,
         },
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       // Extract bookings and blocked slots
       const bookings = bookingsResponse.data.appointments || [];
       const blockedSlots = blockedSlotsResponse.data.blocked_slots || [];
-      
-      debugLog(`Found ${bookings.length} bookings and ${blockedSlots.length} blocked slots for ${date}`);
-      
+
+      debugLog(
+        `Found ${bookings.length} bookings and ${blockedSlots.length} blocked slots for ${date}`,
+      );
+
       if (bookings.length > 0) {
-        debugLog('First booking:', bookings[0]);
+        debugLog("First booking:", bookings[0]);
       }
-      
+
       if (blockedSlots.length > 0) {
-        debugLog('First blocked slot:', blockedSlots[0]);
+        debugLog("First blocked slot:", blockedSlots[0]);
       }
-      
+
       // Generate all time slots
       const allTimeSlots = generateAllTimeSlots();
-      
+
       // Filter out booked and blocked slots
       const unavailableTimes = new Set();
-      
+
       // Mark booked slots as unavailable
-      bookings.forEach(booking => {
+      bookings.forEach((booking) => {
         // Skip cancelled bookings or the booking being rescheduled
-        if (booking.status?.toLowerCase() === 'cancelled' || booking.id === selectedBooking.id) {
-          debugLog(`Skipping booking ID ${booking.id} - ${booking.status === 'cancelled' ? 'cancelled' : 'current booking'}`);
+        if (
+          booking.status?.toLowerCase() === "cancelled" ||
+          booking.id === selectedBooking.id
+        ) {
+          debugLog(
+            `Skipping booking ID ${booking.id} - ${booking.status === "cancelled" ? "cancelled" : "current booking"}`,
+          );
           return;
         }
-        
-        const startTime = moment(booking.start_time, 'HH:mm');
-        const endTime = moment(booking.end_time || booking.start_time, 'HH:mm');
-        
-        debugLog(`Processing booking: ${booking.customer_name}, start: ${booking.start_time}, end: ${booking.end_time}`);
-        
+
+        const startTime = moment(booking.start_time, "HH:mm");
+        const endTime = moment(booking.end_time || booking.start_time, "HH:mm");
+
+        debugLog(
+          `Processing booking: ${booking.customer_name}, start: ${booking.start_time}, end: ${booking.end_time}`,
+        );
+
         // If valid times
         if (startTime.isValid() && endTime.isValid()) {
           // Calculate duration in 30-minute slots
-          const durationSlots = Math.ceil(endTime.diff(startTime, 'minutes') / 30);
-          
-          debugLog(`Booking duration: ${durationSlots} slots (${endTime.diff(startTime, 'minutes')} minutes)`);
-          
+          const durationSlots = Math.ceil(
+            endTime.diff(startTime, "minutes") / 30,
+          );
+
+          debugLog(
+            `Booking duration: ${durationSlots} slots (${endTime.diff(startTime, "minutes")} minutes)`,
+          );
+
           // Mark all slots within the booking as unavailable
           for (let i = 0; i < durationSlots; i++) {
-            const slotTime = startTime.clone().add(i * 30, 'minutes').format('HH:mm');
+            const slotTime = startTime
+              .clone()
+              .add(i * 30, "minutes")
+              .format("HH:mm");
             unavailableTimes.add(slotTime);
             debugLog(`Marking slot ${slotTime} as unavailable`);
           }
         } else {
-          debugLog(`Invalid booking times: start=${booking.start_time}, end=${booking.end_time}`);
+          debugLog(
+            `Invalid booking times: start=${booking.start_time}, end=${booking.end_time}`,
+          );
         }
       });
-      
+
       // Mark blocked slots as unavailable
-      blockedSlots.forEach(slot => {
+      blockedSlots.forEach((slot) => {
         unavailableTimes.add(slot.time);
         debugLog(`Marking blocked slot ${slot.time} as unavailable`);
       });
-      
+
       // Filter available time slots
-      const available = allTimeSlots.filter(time => !unavailableTimes.has(time));
-      
-      debugLog(`Total time slots: ${allTimeSlots.length}, Unavailable: ${unavailableTimes.size}, Available: ${available.length}`);
-      debugLog('Available slots:', available);
-      
+      const available = allTimeSlots.filter(
+        (time) => !unavailableTimes.has(time),
+      );
+
+      debugLog(
+        `Total time slots: ${allTimeSlots.length}, Unavailable: ${unavailableTimes.size}, Available: ${available.length}`,
+      );
+      debugLog("Available slots:", available);
+
       setAvailableTimeSlots(available);
       setDebugInfo({
         totalBookings: bookings.length,
         blockedSlots: blockedSlots.length,
         unavailableSlots: Array.from(unavailableTimes),
-        availableSlots: available
+        availableSlots: available,
       });
     } catch (error) {
       console.error("Error fetching available time slots:", error);
@@ -171,15 +196,16 @@ const RescheduleBookingModal = ({
   // Initialize form data when selected booking changes
   useEffect(() => {
     if (selectedBooking) {
-      const initialDate = selectedBooking.booking_date || moment().format('YYYY-MM-DD');
+      const initialDate =
+        selectedBooking.booking_date || moment().format("YYYY-MM-DD");
       setFormData({
         newDate: initialDate,
-        newTime: selectedBooking.start_time || ''
+        newTime: selectedBooking.start_time || "",
       });
-      
-      debugLog('Selected booking:', selectedBooking);
-      debugLog('Setting initial date:', initialDate);
-      
+
+      debugLog("Selected booking:", selectedBooking);
+      debugLog("Setting initial date:", initialDate);
+
       // Fetch available slots for the initial date
       fetchAvailableTimeSlots(initialDate);
     }
@@ -188,7 +214,7 @@ const RescheduleBookingModal = ({
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };  
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -196,7 +222,7 @@ const RescheduleBookingModal = ({
       onSubmit({
         ...selectedBooking,
         newDate: formData.newDate,
-        newTime: formData.newTime
+        newTime: formData.newTime,
       });
     }
   };
@@ -204,10 +230,10 @@ const RescheduleBookingModal = ({
   if (!isOpen || !selectedBooking) return null;
 
   return (
-    <div 
-      className="booking-details-modal" 
-      role="dialog" 
-      aria-labelledby="modal-title" 
+    <div
+      className="booking-details-modal"
+      role="dialog"
+      aria-labelledby="modal-title"
       aria-modal="true"
       tabIndex="-1"
       ref={modalRef}
@@ -220,18 +246,31 @@ const RescheduleBookingModal = ({
           </button>
           <form onSubmit={handleSubmit} className="booking-form">
             {/* Customer Name */}
-            <div className="form-group info-display" style={{ textAlign: 'center', marginBottom: '20px', padding: '0 20px' }}>
-              <div style={{ 
-                fontSize: '16px', 
-                fontWeight: 'bold', 
-                color: '#333',
-                lineHeight: '1.4',
-                wordWrap: 'break-word'
-              }}>
-                Confirm {selectedBooking?.customer_name || selectedBooking?.customerName || 'Customer'}'s new booking time before proceeding.
+            <div
+              className="form-group info-display"
+              style={{
+                textAlign: "center",
+                marginBottom: "20px",
+                padding: "0 20px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  color: "#333",
+                  lineHeight: "1.4",
+                  wordWrap: "break-word",
+                }}
+              >
+                Confirm{" "}
+                {selectedBooking?.customer_name ||
+                  selectedBooking?.customerName ||
+                  "Customer"}
+                's new booking time before proceeding.
               </div>
             </div>
-            
+
             {/* Select New Date */}
             <div className="form-group input-field">
               <input
@@ -241,21 +280,27 @@ const RescheduleBookingModal = ({
                 onChange={handleFormChange}
                 required
                 style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px'
+                  width: "100%",
+                  padding: "12px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  fontSize: "14px",
                 }}
               />
             </div>
-            
+
             {/* Select Time */}
             <div className="form-group input-field">
               {loading ? (
-                <div style={{ textAlign: 'center', padding: '12px' }}>Loading available times...</div>
+                <div style={{ textAlign: "center", padding: "12px" }}>
+                  Loading available times...
+                </div>
               ) : error ? (
-                <div style={{ color: 'red', textAlign: 'center', padding: '12px' }}>{error}</div>
+                <div
+                  style={{ color: "red", textAlign: "center", padding: "12px" }}
+                >
+                  {error}
+                </div>
               ) : (
                 <select
                   name="newTime"
@@ -263,44 +308,67 @@ const RescheduleBookingModal = ({
                   onChange={handleFormChange}
                   required
                   style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    backgroundColor: 'white'
+                    width: "100%",
+                    padding: "12px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    fontSize: "14px",
+                    backgroundColor: "white",
                   }}
                 >
                   <option value="">Select Time</option>
                   {availableTimeSlots.length === 0 ? (
-                    <option value="" disabled>No available slots for this date</option>
+                    <option value="" disabled>
+                      No available slots for this date
+                    </option>
                   ) : (
-                    availableTimeSlots.map(time => (
-                      <option key={time} value={time}>{time}</option>
+                    availableTimeSlots.map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
                     ))
                   )}
                 </select>
               )}
               {availableTimeSlots.length === 0 && !loading && !error && (
-                <div style={{ color: '#ff6b6b', fontSize: '12px', marginTop: '5px' }}>
-                  No available time slots for this date. Please select another date.
+                <div
+                  style={{
+                    color: "#ff6b6b",
+                    fontSize: "12px",
+                    marginTop: "5px",
+                  }}
+                >
+                  No available time slots for this date. Please select another
+                  date.
                 </div>
               )}
             </div>
-            
+
             {/* Debug Info */}
-            <div className="debug-info" style={{ fontSize: '11px', color: '#999', margin: '10px 0', padding: '5px', border: '1px dashed #ddd' }}>
-              <p>Bookings: {debugInfo.totalBookings}, Blocked: {debugInfo.blockedSlots}</p>
-              <p>Unavailable: {debugInfo.unavailableSlots.join(', ')}</p>
+            <div
+              className="debug-info"
+              style={{
+                fontSize: "11px",
+                color: "#999",
+                margin: "10px 0",
+                padding: "5px",
+                border: "1px dashed #ddd",
+              }}
+            >
+              <p>
+                Bookings: {debugInfo.totalBookings}, Blocked:{" "}
+                {debugInfo.blockedSlots}
+              </p>
+              <p>Unavailable: {debugInfo.unavailableSlots.join(", ")}</p>
               <p>Available: {debugInfo.availableSlots.length} slots</p>
             </div>
-            
-            <button 
-              type="submit" 
+
+            <button
+              type="submit"
               className="submit-button compact"
               disabled={loading || availableTimeSlots.length === 0}
             >
-              {loading ? 'Loading...' : 'Confirm'}
+              {loading ? "Loading..." : "Confirm"}
             </button>
           </form>
         </div>
@@ -311,5 +379,3 @@ const RescheduleBookingModal = ({
 };
 
 export default RescheduleBookingModal;
-
-
