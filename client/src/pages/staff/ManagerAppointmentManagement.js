@@ -2,12 +2,10 @@ import React, { useState, useEffect } from "react";
 import http from "../../utils/httpClient";
 import moment from "moment";
 import { API_BASE_URL } from "../../utils/constants";
-import api from "../../utils/api";
 import RescheduleBookingModal from "../../components/RescheduleBookingModal";
 import { io } from "socket.io-client";
 import { fetchOutlets } from "../../utils/bookingUtils";
 import {
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -79,81 +77,20 @@ const ScissorsIcon = () => (
   </svg>
 );
 
-const StatusIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <polyline points="9,11 12,14 22,4" />
-    <path d="M21,12v7a2,2 0 0,1 -2,2H5a2,2 0 0,1 -2,-2V5a2,2 0 0,1 2,-2h11" />
-  </svg>
-);
-
-const RefreshIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <polyline points="23,4 23,10 17,10" />
-    <polyline points="1,20 1,14 7,14" />
-    <path d="M20.49,9A9,9 0 0,0 5.64,5.64L1,10m22,4a9,9 0 0,1 -14.85,3.36L23,14" />
-  </svg>
-);
-
-const CancelIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="15" y1="9" x2="9" y2="15" />
-    <line x1="9" y1="9" x2="15" y2="15" />
-  </svg>
-);
-
-const SearchIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.35-4.35" />
-  </svg>
-);
-
 const ManagerAppointmentManagement = () => {
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [dateFilter, setDateFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [appointments, setAppointments] = useState([]);
-  const [locations, setLocations] = useState([]);
   const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   // 1. Add a new state for the date picker
   const [selectedDate, setSelectedDate] = useState("");
   const [outlets, setOutlets] = useState([]);
-  const [outletLoading, setOutletLoading] = useState(false);
-  const [outletError, setOutletError] = useState("");
+  const [, setOutletLoading] = useState(false);
+  const [, setOutletError] = useState("");
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
 
@@ -315,22 +252,6 @@ const ManagerAppointmentManagement = () => {
     }
   };
 
-  // Function to refresh all data
-  const refreshData = async () => {
-    setRefreshing(true);
-    setError(null);
-
-    try {
-      await Promise.all([fetchAppointments()]);
-      console.log("Data refreshed successfully");
-    } catch (error) {
-      console.error("Error refreshing data:", error);
-      setError(error.message || "Failed to load data");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
@@ -396,7 +317,6 @@ const ManagerAppointmentManagement = () => {
 
       // Dynamic date filtering
       if (selectedDate) {
-        const today = moment();
         const beforeFilter = filtered.length;
 
         filtered = filtered.filter((appointment) => {
@@ -504,7 +424,7 @@ const ManagerAppointmentManagement = () => {
     if (!appointmentToCancel) return;
 
     try {
-      const response = await http.put(
+      await http.put(
         `${API_BASE_URL}/bookings/staff/appointment/${appointmentToCancel.id}/status`,
         {
           status: "cancelled",
@@ -530,19 +450,6 @@ const ManagerAppointmentManagement = () => {
       setShowCancelConfirmation(false);
     } catch (error) {
       alert("Failed to cancel the appointment. Please try again.");
-    }
-  };
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "Overdue":
-        return "status-overdue";
-      case "Completed":
-        return "status-completed";
-      case "In Progress":
-        return "status-in-progress";
-      default:
-        return "";
     }
   };
 
@@ -603,22 +510,6 @@ const ManagerAppointmentManagement = () => {
     const [year, month, day] = dateString.split("-");
     return `${day}-${month}-${year}`;
   };
-
-  // 1. Compute unique dates and unique outlets from appointments
-  const uniqueDates = Array.from(
-    new Set(
-      appointments
-        .map((a) => (a.date ? a.date.split("T")[0] : null))
-        .filter(Boolean),
-    ),
-  ).sort();
-  const uniqueOutlets = Array.from(
-    new Set(
-      appointments
-        .map((a) => a.outlet || a.outlet_shortform || a.shortform || a.branch)
-        .filter(Boolean),
-    ),
-  );
 
   return (
     <div className="bg-transparent text-white h-[calc(100vh-160px)] p-4 font-quicksand relative overflow-hidden flex flex-col gap-4 box-border">

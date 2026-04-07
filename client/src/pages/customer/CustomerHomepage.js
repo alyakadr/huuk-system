@@ -10,11 +10,9 @@ import {
   MdPerson,
   MdVisibility,
   MdVisibilityOff,
-  MdErrorOutline,
 } from "react-icons/md";
 import logo from "../../assets/logo.PNG";
 import heroImage from "../../assets/bannercust1.png";
-import modalImage from "../../assets/modalcust1.jpg";
 import CustHeader from "../../components/shared/CustHeader";
 import AboutUs from "./AboutUs";
 import Gallery from "./Gallery";
@@ -314,11 +312,6 @@ const CustomerHomepage = () => {
     setSignUpOpen(false); // Close sign-up modal first
     setIsSignInOpen(true);
   };
-  const closeSignInModal = () => setIsSignInOpen(false);
-
-  const openSignUpModal = () => {
-    setSignUpOpen(true);
-  };
   const closeSignUpModal = () => {
     setSignUpOpen(false);
     setSignUpEmail("");
@@ -516,7 +509,6 @@ const CustomerHomepage = () => {
                   }}
                   required
                   style={{
-                    paddingLeft: "40px",
                     color: "#1a1a1a",
                     backgroundColor: "#ffffff",
                     border: "1px solid #1a1a1a",
@@ -565,7 +557,6 @@ const CustomerHomepage = () => {
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
-                    paddingLeft: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",

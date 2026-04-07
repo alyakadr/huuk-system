@@ -10,9 +10,6 @@ import { useFetch } from "../../hooks/useFetch";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 const PROFILE_IMAGE_CANVAS_SIZE = 130;
-const IMAGE_SCALE_STEP = 0.1;
-const IMAGE_SCALE_MIN = 0.5;
-const IMAGE_SCALE_MAX = 3;
 
 const EditProfile = () => {
   const { profile: globalProfile, updateProfile } = useProfile();
@@ -100,40 +97,6 @@ const EditProfile = () => {
       setImageScale(1);
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleMouseDown = (e) => {
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const startX = e.clientX - rect.left;
-    const startY = e.clientY - rect.top;
-    const initialPos = { ...imagePosition };
-
-    const handleMouseMove = (moveEvent) => {
-      const newX = initialPos.x + (moveEvent.clientX - rect.left - startX);
-      const newY = initialPos.y + (moveEvent.clientY - rect.top - startY);
-      setImagePosition({ x: newX, y: newY });
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
-
-  const handleWheel = (e) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? IMAGE_SCALE_STEP : -IMAGE_SCALE_STEP;
-    const newScale = Math.min(
-      Math.max(imageScale + delta, IMAGE_SCALE_MIN),
-      IMAGE_SCALE_MAX,
-    );
-    setImageScale(newScale);
   };
 
   useEffect(() => {

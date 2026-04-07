@@ -2,7 +2,6 @@ import React, {
   useState,
   useEffect,
   useRef,
-  useMemo,
   useCallback,
 } from "react";
 import {
@@ -10,11 +9,7 @@ import {
   Step,
   StepLabel,
   Button,
-  Select,
-  MenuItem,
-  CircularProgress,
   Typography,
-  TextField,
   Snackbar,
   Alert,
 } from "@mui/material";
@@ -23,25 +18,20 @@ import EnhancedBarberDropdown from "./EnhancedBarberDropdown";
 import EnhancedServiceDropdown from "./EnhancedServiceDropdown";
 import EnhancedTimeSlotDropdown from "./EnhancedTimeSlotDropdown";
 import SimpleCalendar from "../common/SimpleCalendar";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useProfile } from "../../ProfileContext";
 
-import PaymentForm from "./PaymentForm";
 import Modal from "react-modal";
 import { useSpring, animated } from "@react-spring/web";
 import {
   MdPhone,
   MdLock,
-  MdBadge,
   MdPerson,
   MdEmail,
   MdVisibility,
   MdVisibilityOff,
-  MdOutlineInfo,
-  MdErrorOutline,
 } from "react-icons/md";
-import modalImage from "../../assets/modalcust1.jpg";
 import http from "../../utils/httpClient";
 import PaymentModal from "./PaymentModal";
 import BookingDetailsModal from "./BookingDetailsModal";
@@ -52,7 +42,7 @@ import SwitchModeButton from "../shared/SwitchModeButton";
 // DEBUG: Add this to check DatePicker
 
 import * as bookingUtils from "../../utils/bookingUtils";
-import { API_BASE_URL, stripePromise } from "../../utils/constants";
+import { API_BASE_URL } from "../../utils/constants";
 import client from "../../api/client";
 
 // Import getAuthToken at the top of the file
@@ -226,12 +216,6 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
   const [clientSecret, setClientSecret] = useState("");
   const [bookingDetails, setBookingDetails] = useState(null);
   const [paymentError, setPaymentError] = useState("");
-  const [signInPhoneNumber, setSignInPhoneNumber] = useState("");
-  const [signInPassword, setSignInPassword] = useState("");
-  const [signInErrors, setSignInErrors] = useState({
-    phoneNumber: "",
-    password: "",
-  });
   const [signUpPhoneNumber, setSignUpPhoneNumber] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
@@ -251,7 +235,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
 
   // Booking cleanup related state
   const [incompleteBookingId, setIncompleteBookingId] = useState(null);
-  const [bookingCleanupTimer, setBookingCleanupTimer] = useState(null);
+  const [, setBookingCleanupTimer] = useState(null);
   const [isBookingActive, setIsBookingActive] = useState(false);
 
   const clientSecretRef = useRef(null);
@@ -259,10 +243,8 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
   const bookingStartTimeRef = useRef(null);
   const latestRealtimeRefreshRef = useRef(null);
 
-  const navigate = useNavigate();
   const {
     profile,
-    updateProfile,
     loading: profileLoading,
     setIsSignInOpen,
     isSignInOpen,
@@ -437,12 +419,6 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
     };
   }, []);
 
-  // Validation functions
-  const validateFullName = (fullname) => {
-    const regex = /^[A-Za-z\s\-'/]+$/;
-    return regex.test(fullname);
-  };
-
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
@@ -601,7 +577,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
 
       debugLog(`🧹 [CLEANUP] Attempting to delete draft booking: ${bookingId}`);
 
-      const response = await client.delete(`/bookings/${bookingId}`, {
+      await client.delete(`/bookings/${bookingId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -856,7 +832,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
   }, [bookingId, isBookingDetailsOpen]);
 
   // Add a new state to track if edit lock should be applied
-  const [isEditLocked, setIsEditLocked] = useState(false);
+  const [isEditLocked] = useState(false);
 
   // In handleEditBooking, after setting all fields, set activeStep to last step and lock edit after all three fields are set
   const handleEditBooking = (
@@ -1182,25 +1158,6 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
     }
   };
 
-  // Defensive dropdown logic: always allow current value when editing
-  const getDropdownOptions = (options, currentValue, key = "id") => {
-    if (
-      !options.some((opt) => String(opt[key]) === String(currentValue)) &&
-      currentValue
-    ) {
-      // If current value is not in options, add a placeholder option
-      return [
-        ...options,
-        { [key]: currentValue, name: "[Current Selection]", disabled: true },
-      ];
-    }
-    return options;
-  };
-  // Use getDropdownOptions for staff, service, and time dropdowns
-  // Example: <EnhancedServiceDropdown ... options={getDropdownOptions(services, serviceId)} ... />
-  // Example: <EnhancedBarberDropdown ... options={getDropdownOptions(staff, staffId)} ... />
-  // Example: <EnhancedTimeSlotDropdown ... options={getDropdownOptions(timeSlots, time)} ... />
-
   // On form submit, always check isEditingBooking and currentBookingId
   const handleFormSubmit = async () => {
     // Add detailed token and profile debugging
@@ -1259,6 +1216,8 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
       setErrors(validationErrors);
       return;
     }
+    let resolvedStaffId = staffId;
+
     if (staffId === "any" && time) {
       debugLog(
         "�� [FORM DEBUG] Resolving 'any' staff to specific staff member",
@@ -1278,8 +1237,8 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
           const selectedStaff = response.data[0];
           debugLog("✅ [FORM DEBUG] Selected staff:", selectedStaff);
           setStaffId(selectedStaff.id);
-          // Update the staffId variable for the booking submission
-          staffId = selectedStaff.id;
+          // Use the resolved ID for this submission flow.
+          resolvedStaffId = selectedStaff.id;
         } else {
           debugLog("❌ [FORM DEBUG] No staff available for this time");
           setErrors({ 2: "No barbers available for this time" });
@@ -1310,7 +1269,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
       const formData = {
         selectedDate: selectedDate ? selectedDate.toISOString() : null,
         outletId,
-        staffId,
+        staffId: resolvedStaffId,
         serviceId,
         time,
         clientName,
@@ -1345,7 +1304,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
             await bookingUtils.checkSlotAvailabilityBeforeSubmission(
               outletId,
               serviceId,
-              staffId,
+              resolvedStaffId,
               selectedDate,
               time,
               setTimeSlots,
@@ -1372,7 +1331,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
         await bookingUtils.handleBookingSubmit(
           outletId,
           serviceId,
-          staffId,
+          resolvedStaffId,
           selectedDate,
           time,
           clientName,
@@ -1407,7 +1366,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
         // If we're editing a booking, update it in the modal list as well
         if (isEditingBooking && currentBookingId) {
           // Find the staff member by ID to get the name
-          const selectedStaff = staff.find((s) => s.id === staffId);
+          const selectedStaff = staff.find((s) => s.id === resolvedStaffId);
           const staffName = selectedStaff
             ? selectedStaff.name || selectedStaff.username
             : "N/A";
@@ -1419,7 +1378,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
             outlet: outlets.find((o) => o.id === outletId)?.name || "N/A",
             outlet_id: outletId,
             staff_name: staffName,
-            staff_id: staffId,
+            staff_id: resolvedStaffId,
             service: services.find((s) => s.id === serviceId)?.name || "N/A",
             service_id: serviceId,
             date: selectedDate.toISOString().split("T")[0],
@@ -2047,7 +2006,6 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
   };
 
   // Add these states at the top of the component:
-  const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] =
     useState(false);
@@ -2483,7 +2441,6 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
                   }}
                   required
                   style={{
-                    paddingLeft: "40px",
                     color: signUpErrors.email ? "red" : "#1a1a1a",
                     backgroundColor: "#ffffff",
                     border: signUpErrors.email
@@ -2530,7 +2487,6 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
                   }}
                   required
                   style={{
-                    paddingLeft: "40px",
                     color: signUpErrors.username ? "red" : "#1a1a1a",
                     backgroundColor: "#ffffff",
                     border: signUpErrors.username
@@ -2626,7 +2582,6 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
                     setSignUpErrors((prev) => ({ ...prev, password: "" }));
                   }}
                   style={{
-                    paddingLeft: "40px",
                     color: signUpErrors.password ? "red" : "#1a1a1a",
                     backgroundColor: "#ffffff",
                     border: signUpErrors.password
@@ -2697,7 +2652,6 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
                     }));
                   }}
                   style={{
-                    paddingLeft: "40px",
                     color: signUpErrors.confirmPassword ? "red" : "#1a1a1a",
                     backgroundColor: "#ffffff",
                     border: signUpErrors.confirmPassword

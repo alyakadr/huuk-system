@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -27,7 +27,6 @@ import ManagerSalesReport from "./pages/staff/ManagerSalesReport";
 import StaffProfiles from "./pages/staff/StaffProfiles";
 import ManageStaffAttendance from "./pages/staff/ManageStaffAttendance";
 import StaffLayout from "./pages/staff/StaffLayout";
-import api from "./utils/api"; // Updated import
 import Booking from "./components/bookings/Booking";
 import { useAuthSession, INTERFACE_ROLE } from "./hooks/useAuthSession";
 
@@ -71,23 +70,10 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const App = () => {
-  const [searchResults, setSearchResults] = useState({
+  const searchResults = {
     clients: [],
     appointments: [],
     services: [],
-  });
-
-  const handleSearch = async (query) => {
-    if (!query) {
-      setSearchResults({ clients: [], appointments: [], services: [] });
-      return;
-    }
-    try {
-      const response = await api.get("/users/search", { params: { q: query } });
-      setSearchResults(response.data);
-    } catch (error) {
-      console.error("Search error:", error);
-    }
   };
 
   return (

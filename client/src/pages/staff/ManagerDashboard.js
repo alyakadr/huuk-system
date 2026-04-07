@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
-import { migrateTokens, checkAuthStatus } from "../../utils/tokenMigration";
 import summ1 from "../../assets/summ1.png";
 import summ2 from "../../assets/summ2.png";
 import summ3 from "../../assets/summ3.png";
@@ -9,20 +8,9 @@ import summ4 from "../../assets/summ4.png";
 import SwitchModeButton from "../../components/shared/SwitchModeButton";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import {
-  fetchCustomerData,
-  fetchAttendanceData,
-  fetchDashboardData,
-} from "../../utils/dashboardUtils";
-import {
   OUTLET_NAMES_UPPER,
   OUTLET_SHORTCUTS_UPPER,
 } from "../../constants/outlets";
-import {
-  getUsersList,
-  getTodayTransactionsByOutlet,
-  getCustomerSatisfactionRatings,
-  approveStaff,
-} from "../../api/client";
 import {
   BarChart,
   Bar,
@@ -163,7 +151,6 @@ const ManagerDashboard = () => {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalRevenueYesterday, setTotalRevenueYesterday] = useState(0);
   const [totalAppointments, setTotalAppointments] = useState(0);
-  const [totalSatisfaction, setTotalSatisfaction] = useState(0);
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [allAppointments, setAllAppointments] = useState([]);
@@ -181,18 +168,17 @@ const ManagerDashboard = () => {
   const socketRef = useRef(null);
 
   const [customerSatisfactionData, setCustomerSatisfactionData] = useState([]);
-  const [satisfactionError, setSatisfactionError] = useState(null);
 
   const [transactionData, setTransactionData] = useState([]);
-  const [transactionError, setTransactionError] = useState(null);
-  const [transactionLoading, setTransactionLoading] = useState(true);
+  const [, setTransactionError] = useState(null);
+  const [, setTransactionLoading] = useState(true);
 
   // Add token validation
-  const [tokenValidated, setTokenValidated] = useState(false);
+  const [, setTokenValidated] = useState(false);
 
-  const [customerSatisfactionLoading, setCustomerSatisfactionLoading] =
+  const [, setCustomerSatisfactionLoading] =
     useState(true);
-  const [customerSatisfactionError, setCustomerSatisfactionError] =
+  const [, setCustomerSatisfactionError] =
     useState(null);
 
   const outletListRef = useRef(null);
@@ -227,8 +213,7 @@ const ManagerDashboard = () => {
 
   const [selectedOutlets, setSelectedOutlets] = useState([]);
   const itemWidth = 120;
-  const [scrollIndex, setScrollIndex] = useState(0);
-  const maxScrollIndex = outlets.length - 3 >= 0 ? outlets.length - 3 : 0;
+  const [scrollIndex] = useState(0);
 
   const filteredData =
     selectedOutlets.length > 0
@@ -240,27 +225,6 @@ const ManagerDashboard = () => {
     const { scrollLeft, scrollWidth, clientWidth } = outletListRef.current;
     setCanScrollLeft(scrollLeft > 5);
     setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 5);
-  };
-
-  const handleApproveStaff = async (staffId) => {
-    const token = localStorage.getItem("staff_token");
-    if (!token) {
-      console.error("No token for approveStaff, redirecting to staff-login");
-      navigate("/staff-login");
-      return;
-    }
-    try {
-      await approveStaff(staffId);
-      setPendingApprovals((prev) => prev.filter((s) => s.id !== staffId));
-    } catch (error) {
-      console.error("Error approving staff:", error);
-      if (error.response?.status === 401) {
-        localStorage.removeItem("staff_loggedInUser");
-        localStorage.removeItem("staff_token");
-        localStorage.removeItem("staff_userId");
-        navigate("/staff-login");
-      }
-    }
   };
 
   // Add back the initializeSocketAndData function
@@ -374,7 +338,7 @@ const ManagerDashboard = () => {
   };
 
   // Add the missing attendanceLoading state
-  const [attendanceLoading, setAttendanceLoading] = useState(true);
+  const [, setAttendanceLoading] = useState(true);
 
   // Fix the fetchAttendanceData function to handle the response data correctly
   const fetchAttendanceData = async () => {
@@ -779,9 +743,6 @@ const ManagerDashboard = () => {
   ).length;
   const rescheduleCount = allAppointments.filter(
     (appt) => appt.status === "Rescheduled" || appt.status === "Reschedule",
-  ).length;
-  const absentCount = allAppointments.filter(
-    (appt) => appt.status === "Absent",
   ).length;
 
   // Helper for maintenance View All button

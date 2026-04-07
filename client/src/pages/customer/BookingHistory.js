@@ -20,7 +20,6 @@ import {
   MenuItem,
   Tooltip,
   FormHelperText,
-  IconButton,
 } from "@mui/material";
 import SimpleCalendar from "../../components/common/SimpleCalendar";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -46,7 +45,7 @@ const BookingHistory = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [countdowns, setCountdowns] = useState({});
-  const [slotInfo, setSlotInfo] = useState({});
+  const [, setSlotInfo] = useState({});
   const [rating, setRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState("");
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
@@ -408,21 +407,6 @@ const BookingHistory = () => {
     setCurrentPage(1);
   }, [selectedDate]);
 
-  // Function to disable dates not in bookingDates
-  const shouldDisableDate = (date) => {
-    if (!date || isNaN(date.getTime())) {
-      console.warn("Invalid DatePicker date:", date);
-      return true; // Disable invalid dates
-    }
-    const formattedDate = formatDate(date);
-    if (!formattedDate) {
-      console.warn("Formatted date is empty for:", date);
-      return true; // Disable if formatting fails
-    }
-    debugLog("Checking date:", formattedDate, "in bookingDates:", bookingDates); // Debug log to verify function
-    return !bookingDates.includes(formattedDate);
-  };
-
   // Logic to determine if Reschedule and Cancel buttons should be disabled
   const getButtonDisableStatus = (booking) => {
     if (!booking) return { rescheduleDisabled: true, cancelDisabled: true };
@@ -595,13 +579,6 @@ const BookingHistory = () => {
 
   // Handle reschedule date change
   const handleRescheduleDateChange = (newDate) => {
-    // Adjust date to Malaysia timezone (UTC+8)
-    if (newDate) {
-      // Create a date that's properly set to Malaysia timezone
-      const malaysiaDate = new Date(newDate);
-      // No need to adjust hours since we only care about the date part
-    }
-
     setRescheduleDate(newDate);
     setRescheduleTime("");
     setRescheduleStaffId("");

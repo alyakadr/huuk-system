@@ -319,7 +319,6 @@ const PaymentModal = ({
             {(() => {
               const combinedData = window.combinedBookingData;
               if (combinedData) {
-                const count = Math.min(combinedData.bookings.length, 5);
                 const total = combinedData.bookings
                   .slice(0, 5)
                   .reduce((sum, b) => sum + (Number(b.price) || 0), 0);

@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import {
   Select,
   MenuItem,
-  FormControl,
-  InputLabel,
   Box,
   Typography,
   Paper,
@@ -24,7 +22,6 @@ import {
   AccessTime,
   LocalOffer,
   Star,
-  TrendingUp,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import { debugLog } from "../../utils/debugLog";

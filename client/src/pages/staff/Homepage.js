@@ -19,7 +19,6 @@ import {
   MdVisibilityOff,
 } from "react-icons/md";
 import { useProfile } from "../../ProfileContext";
-import { getUserSession, clearUserSession } from "../../utils/sessionUtils";
 
 Modal.setAppElement("#root");
 
@@ -49,7 +48,6 @@ const Homepage = () => {
   const [isChecked, setIsChecked] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [userType, setUserType] = useState("staff");
   const [currentBanner, setCurrentBanner] = useState(0);
@@ -59,7 +57,6 @@ const Homepage = () => {
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [signInErrors, setSignInErrors] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({
     fullname: "",
@@ -240,7 +237,6 @@ const Homepage = () => {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    setIsSubmitted(true);
     setLoading(true);
     let newErrors = {
       fullname: "",
@@ -616,7 +612,6 @@ const Homepage = () => {
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
-                    paddingLeft: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",
@@ -660,7 +655,6 @@ const Homepage = () => {
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
-                    paddingLeft: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",
@@ -863,7 +857,6 @@ const Homepage = () => {
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
-                    paddingLeft: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",
@@ -907,7 +900,6 @@ const Homepage = () => {
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
-                    paddingLeft: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",
@@ -951,7 +943,6 @@ const Homepage = () => {
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
-                    paddingLeft: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",
@@ -995,7 +986,6 @@ const Homepage = () => {
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
-                    paddingLeft: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",
@@ -1058,7 +1048,6 @@ const Homepage = () => {
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
-                    paddingLeft: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",

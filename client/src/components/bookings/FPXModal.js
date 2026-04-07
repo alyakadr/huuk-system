@@ -46,7 +46,14 @@ const FPXModal = ({
             <h2 style={{ textAlign: "center", marginBottom: "8px" }}>
               Online Payment (FPX)
             </h2>
-            <Typography variant="subtitle2" style={{ textAlign: "center", color: '#666', fontSize: '0.85rem' }}>
+            <Typography
+              variant="subtitle2"
+              style={{
+                textAlign: "center",
+                color: "#666",
+                fontSize: "0.85rem",
+              }}
+            >
               Secure • Instant • Encrypted
             </Typography>
           </div>
@@ -66,7 +73,7 @@ const FPXModal = ({
                       spacingUnit: "4px",
                       borderRadius: "5px",
                       colorBackground: "#f5f5f5",
-                      colorTextPlaceholder: "#888888"
+                      colorTextPlaceholder: "#888888",
                     },
                   },
                 }}
@@ -95,8 +102,9 @@ const FPXModal = ({
             )}
           </div>
           <div className="fpx-info" style={{ marginTop: "20px" }}>
-            <Typography variant="body2" style={{ color: '#666' }}>
-              By proceeding, you agree to our terms and conditions and confirm that all payment details entered are correct.
+            <Typography variant="body2" style={{ color: "#666" }}>
+              By proceeding, you agree to our terms and conditions and confirm
+              that all payment details entered are correct.
             </Typography>
           </div>
           <button className="fpx-close-btn" onClick={onClose}>

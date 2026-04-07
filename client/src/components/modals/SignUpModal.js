@@ -20,7 +20,13 @@ const SignUpModal = ({
   username,
   setUsername,
   handleSignUp,
-  errors = { phone: "", password: "", confirmPassword: "", fullname: "", username: "" },
+  errors = {
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    fullname: "",
+    username: "",
+  },
   setErrors = () => {},
   loading,
   navigate,
@@ -36,14 +42,27 @@ const SignUpModal = ({
   // Reset loading state on unmount to prevent stuck loading
   useEffect(() => {
     return () => {
-      setErrors({ phone: "", password: "", confirmPassword: "", fullname: "", username: "" });
+      setErrors({
+        phone: "",
+        password: "",
+        confirmPassword: "",
+        fullname: "",
+        username: "",
+      });
       setSignUpPhone("");
       setSignUpPassword("");
       setSignUpConfirmPassword("");
       setFullname("");
       setUsername("");
     };
-  }, [setErrors, setSignUpPhone, setSignUpPassword, setSignUpConfirmPassword, setFullname, setUsername]);
+  }, [
+    setErrors,
+    setSignUpPhone,
+    setSignUpPassword,
+    setSignUpConfirmPassword,
+    setFullname,
+    setUsername,
+  ]);
 
   return (
     <Modal
@@ -59,11 +78,10 @@ const SignUpModal = ({
           <h2 className="sign-in-h2">Newcomer!</h2>
           <p className="sign-in-subheading">Create your own account</p>
           <p>
-            <span className="sign-in-no-account">Already have an account? </span>
-            <span
-              onClick={openSignInModal}
-              className="sign-in-sign-up-text"
-            >
+            <span className="sign-in-no-account">
+              Already have an account?{" "}
+            </span>
+            <span onClick={openSignInModal} className="sign-in-sign-up-text">
               Sign In
             </span>
           </p>
@@ -89,7 +107,7 @@ const SignUpModal = ({
                 startAdornment: (
                   <MdBadge
                     style={{
-                      color: (isSubmitted && errors.fullname) ? "red" : "#1a1a1a",
+                      color: isSubmitted && errors.fullname ? "red" : "#1a1a1a",
                       fontSize: "1.2rem",
                       marginRight: "8px",
                     }}
@@ -115,7 +133,7 @@ const SignUpModal = ({
                 startAdornment: (
                   <MdPerson
                     style={{
-                      color: (isSubmitted && errors.username) ? "red" : "#1a1a1a",
+                      color: isSubmitted && errors.username ? "red" : "#1a1a1a",
                       fontSize: "1.2rem",
                       marginRight: "8px",
                     }}
@@ -141,7 +159,7 @@ const SignUpModal = ({
                 startAdornment: (
                   <MdPhone
                     style={{
-                      color: (isSubmitted && errors.phone) ? "red" : "#1a1a1a",
+                      color: isSubmitted && errors.phone ? "red" : "#1a1a1a",
                       fontSize: "1.2rem",
                       marginRight: "8px",
                     }}
@@ -167,7 +185,7 @@ const SignUpModal = ({
                 startAdornment: (
                   <MdLock
                     style={{
-                      color: (isSubmitted && errors.password) ? "red" : "#1a1a1a",
+                      color: isSubmitted && errors.password ? "red" : "#1a1a1a",
                       fontSize: "1.2rem",
                       marginRight: "8px",
                     }}
@@ -193,7 +211,10 @@ const SignUpModal = ({
                 startAdornment: (
                   <MdLock
                     style={{
-                      color: (isSubmitted && errors.confirmPassword) ? "red" : "#1a1a1a",
+                      color:
+                        isSubmitted && errors.confirmPassword
+                          ? "red"
+                          : "#1a1a1a",
                       fontSize: "1.2rem",
                       marginRight: "8px",
                     }}

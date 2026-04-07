@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { Box, Typography, Paper, IconButton, Fade, Button } from '@mui/material';
-import { ChevronLeft, ChevronRight, Close } from '@mui/icons-material';
+import { Box, Typography, Paper, Fade } from '@mui/material';
 
 const SimpleCalendar = ({ value, onChange, open, onClose, minDate, shouldDisableDate }) => {
   const [currentDate, setCurrentDate] = useState(value ? new Date(value) : new Date());
   
   if (!open) return null;
 
-  const today = new Date();
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   
@@ -99,22 +97,12 @@ const SimpleCalendar = ({ value, onChange, open, onClose, minDate, shouldDisable
            selectedDate.getFullYear() === year;
   };
   
-  const isToday = (dayObj) => {
-    if (!dayObj.isCurrentMonth) return false;
-    const dateToCheck = new Date(year, month, dayObj.day);
-    return dateToCheck.toDateString() === today.toDateString();
-  };
-  
   const goToPreviousMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
   };
   
   const goToNextMonth = () => {
     setCurrentDate(new Date(year, month + 1, 1));
-  };
-  
-  const goToPreviousYear = () => {
-    setCurrentDate(new Date(year - 1, month, 1));
   };
   
   const goToNextYear = () => {

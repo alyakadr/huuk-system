@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import {
   Select,
   MenuItem,
-  FormControl,
-  InputLabel,
   Box,
   Typography,
   Paper,
@@ -18,7 +16,6 @@ import {
   Alert,
 } from "@mui/material";
 import {
-  AccessTime,
   Search,
   KeyboardArrowDown,
   Clear,
@@ -26,8 +23,6 @@ import {
   WbSunny,
   WbTwilight,
   NightsStay,
-  Favorite,
-  TrendingUp,
   Close,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
@@ -400,7 +395,7 @@ const EnhancedTimeSlotDropdown = ({
     return { isPastTenPM, isToday, currentHour, currentMinute };
   };
 
-  const { isPastTenPM, isToday } = getCurrentTimeStatus();
+  const { isPastTenPM } = getCurrentTimeStatus();
 
   // Check if we have no time slots available
   const noSlotsAvailable = !Array.isArray(timeSlots) || timeSlots.length === 0;

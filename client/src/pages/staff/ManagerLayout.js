@@ -55,8 +55,8 @@ const managerNavItems = [
 const ManagerLayout = () => {
   const [user, setUser] = useState(null);
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const [isNotiOpen, setIsNotiOpen] = useState(false);
+  const [, setSearchText] = useState("");
+  const [, setIsNotiOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { profile } = useProfile();

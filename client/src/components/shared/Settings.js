@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import http from "../../utils/httpClient";
 import { useProfile } from "../../ProfileContext";
 import { useNavigate } from "react-router-dom";
 import client from "../../api/client";

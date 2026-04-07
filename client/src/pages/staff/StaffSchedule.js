@@ -5,7 +5,6 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { API_BASE_URL } from "../../utils/constants";
 import AddBookingModal from "../../components/AddBookingModal";
@@ -18,7 +17,6 @@ import { debugLog } from "../../utils/debugLog";
 // Helper to get current date in Malaysia timezone
 const getMalaysiaToday = () => moment.tz("Asia/Kuala_Lumpur").toDate();
 const CACHE_DURATION_MS = 60000;
-const DEFAULT_DATE_RANGE = "29/6/2025 - 5/7/2025";
 
 const StaffSchedule = () => {
   // Helper function to format date consistently (avoiding timezone issues)
@@ -30,10 +28,9 @@ const StaffSchedule = () => {
   const [view, setView] = useState("Weekly"); // 'Daily' or 'Weekly' view
   const [detailsBooking, setDetailsBooking] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [dateRange, setDateRange] = useState(DEFAULT_DATE_RANGE);
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [lastFetchTimestamp, setLastFetchTimestamp] = useState(0);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = getMalaysiaToday();
@@ -45,27 +42,18 @@ const StaffSchedule = () => {
   });
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [blockedSlots, setBlockedSlots] = useState([]);
-  const navigate = useNavigate();
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [slotToBlock, setSlotToBlock] = useState(null);
   // Set currentDate to today's date in local timezone
   const [currentDate, setCurrentDate] = useState(getMalaysiaToday);
-  const [formData, setFormData] = useState({
+  const [, setFormData] = useState({
     service: "",
     customerName: "",
     phoneNumber: "",
   });
-  const [customerSuggestions, setCustomerSuggestions] = useState([]);
-  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
-  const [recentCustomers, setRecentCustomers] = useState([]);
-  const [todayCustomers, setTodayCustomers] = useState([]);
-  const [frequentCustomers, setFrequentCustomers] = useState([]);
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipData, setTooltipData] = useState(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [longPressTimer, setLongPressTimer] = useState(null);
-  const [pressStartTime, setPressStartTime] = useState(null);
-  const [selectedBookedSlot, setSelectedBookedSlot] = useState(null);
+  const [, setRecentCustomers] = useState([]);
+  const [, setTodayCustomers] = useState([]);
+  const [, setFrequentCustomers] = useState([]);
   // Services are now handled by AddBookingModal - no need for local state
   const [currentUser, setCurrentUser] = useState(null);
   const { token: authToken, user: authUser } = useAuthSession(
@@ -74,9 +62,8 @@ const StaffSchedule = () => {
 
   // Cache for API responses
   const [bookingsCache, setBookingsCache] = useState(new Map());
-  const [blockedSlotsCache, setBlockedSlotsCache] = useState(new Map());
-  const [lastFetchTime, setLastFetchTime] = useState(0);
-  const [requestError, setRequestError] = useState(null);
+  const [, setBlockedSlotsCache] = useState(new Map());
+  const [, setRequestError] = useState(null);
 
   // WebSocket connection
   const socketRef = useRef();
@@ -148,41 +135,6 @@ const StaffSchedule = () => {
     return getWeekDates(currentWeekStart);
   };
 
-  // Helper function to check if two dates are the same day (local time)
-  const isSameDay = (date1, date2) => {
-    return (
-      date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() === date2.getDate()
-    );
-  };
-
-  // Helper function to parse booking date as local date (properly handling timezone)
-  const parseBookingDateLocal = (dateString) => {
-    // For UTC timestamps from backend, extract the date part directly to avoid timezone issues
-    if (dateString.includes("T")) {
-      // Split the UTC timestamp and use only the date part (YYYY-MM-DD)
-      // This avoids timezone conversion issues that can cause date to shift
-      const datePart = dateString.split("T")[0];
-      const [year, month, day] = datePart.split("-").map(Number);
-
-      // Create date with local timezone handling
-      const date = new Date(year, month - 1, day);
-
-      // No timezone adjustment needed when parsing from YYYY-MM-DD format
-      // as we're explicitly setting year, month, day in the constructor
-      return date;
-    }
-
-    // If it's already in YYYY-MM-DD format, parse it directly
-    const [year, month, day] = dateString.split("-").map(Number);
-
-    // Create date with local timezone handling
-    const date = new Date(year, month - 1, day);
-
-    return date;
-  };
-
   // Fetch bookings from API with caching
   const fetchBookings = useCallback(async () => {
     try {
@@ -211,7 +163,6 @@ const StaffSchedule = () => {
       // Determine date range based on current view
       let startDate, endDate;
       if (view === "Daily") {
-        const dateString = formatDateForAPI(currentDate);
         // Create date range for the selected day in local timezone
         const expandedStart = new Date(currentDate);
         expandedStart.setHours(0, 0, 0, 0);
@@ -470,45 +421,6 @@ const StaffSchedule = () => {
     }
   };
 
-  // Search customers based on input
-  const searchCustomers = async (query) => {
-    if (query.length < 2) {
-      setCustomerSuggestions([]);
-      setShowCustomerSuggestions(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/customers/search?q=${encodeURIComponent(query)}`,
-        {
-          headers: getRequestHeaders(false),
-        },
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setCustomerSuggestions(data);
-        setShowCustomerSuggestions(true);
-      }
-    } catch (error) {
-      console.error("Error searching customers:", error);
-      setCustomerSuggestions([]);
-      setShowCustomerSuggestions(false);
-    }
-  };
-
-  // Handle customer selection from suggestions
-  const handleCustomerSelect = (customer) => {
-    setFormData((prev) => ({
-      ...prev,
-      customerName: customer.name,
-      phoneNumber: customer.phone || "",
-    }));
-    setShowCustomerSuggestions(false);
-    setCustomerSuggestions([]);
-  };
-
   // Detect sidebar state from DOM
   useEffect(() => {
     const checkSidebarState = () => {
@@ -713,22 +625,6 @@ const StaffSchedule = () => {
     return formattedBookings;
   };
 
-  // Get booking status color
-  const getBookingColor = (status) => {
-    switch (status) {
-      case "confirmed":
-        return "#dc3545"; // Red for booked
-      case "pending":
-        return "#dc3545"; // Red for pending
-      case "upcoming":
-        return "#dc3545"; // Red for upcoming
-      case "blocked":
-        return "#1a1a1a"; // Dark gray for blocked
-      default:
-        return "#28a745"; // Green for available
-    }
-  };
-
   // Check if slot is blocked
   const isSlotBlocked = (day, time) => {
     return blockedSlots.some((slot) => slot.day === day && slot.time === time);
@@ -797,67 +693,6 @@ const StaffSchedule = () => {
 
     setIsBlockModalOpen(false);
     setSlotToBlock(null);
-  };
-
-  // Unblock a slot
-  const unblockSlot = async (day, time) => {
-    try {
-      if (!sessionStaffId) {
-        console.error("Staff ID not found in localStorage");
-        alert("Staff ID not found. Please login again.");
-        return;
-      }
-
-      // Convert day display to date string for API call
-      const dayData = daysOfWeek.find((d) => d.display === day);
-      const dateString = dayData ? dayData.date : formatDateForAPI(new Date());
-
-      const response = await fetch(
-        `${API_BASE_URL}/staff/toggle-slot-blocking`,
-        {
-          method: "POST",
-          headers: getRequestHeaders(),
-          body: JSON.stringify({
-            staff_id: sessionStaffId,
-            date: dateString,
-            time: time,
-            action: "unblock",
-          }),
-        },
-      );
-
-      if (response.ok) {
-        // Update local state only if API call succeeds
-        setBlockedSlots((prev) =>
-          prev.filter((slot) => !(slot.day === day && slot.time === time)),
-        );
-        debugLog(`Slot ${time} on ${day} unblocked successfully`);
-      } else {
-        const errorData = await response.json();
-        console.error("Failed to unblock slot:", errorData.message);
-        alert("Failed to unblock slot. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error unblocking slot:", error);
-      alert("Failed to unblock slot. Please try again.");
-    }
-  };
-
-  // Handle block slot click
-  const handleBlockSlot = (day, time) => {
-    setSlotToBlock({ day, time });
-    setIsBlockModalOpen(true);
-  };
-
-  // Handle form input changes
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // Trigger customer search when typing in customer name
-    if (name === "customerName") {
-      searchCustomers(value);
-    }
   };
 
   // Submit booking form
@@ -1115,62 +950,6 @@ const StaffSchedule = () => {
     setDetailsBooking(fullBooking); // Use React state/modal for display
   };
 
-  // Long press functionality
-  const handleLongPressStart = (e, booking, day, time) => {
-    e.preventDefault();
-    setPressStartTime(Date.now());
-
-    const timer = setTimeout(() => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top - 10;
-
-      setTooltipPosition({ x, y });
-      setTooltipData({
-        booking,
-        day,
-        time,
-        isAvailable: !booking,
-        isBlocked: isSlotBlocked(day, time),
-      });
-      setShowTooltip(true);
-    }, 500); // 500ms long press duration
-
-    setLongPressTimer(timer);
-  };
-
-  const handleLongPressEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
-    setPressStartTime(null);
-  };
-
-  const handleTooltipClose = () => {
-    setShowTooltip(false);
-    setTooltipData(null);
-  };
-
-  // Handle tooltip action buttons
-  const handleTooltipAction = (action) => {
-    if (!tooltipData) return;
-
-    switch (action) {
-      case "add":
-        handleAddBooking(tooltipData.day, tooltipData.time);
-        break;
-      case "block":
-        handleBlockSlot(tooltipData.day, tooltipData.time);
-        break;
-      case "viewMore":
-        handleBookingClick(tooltipData.booking);
-        break;
-    }
-
-    handleTooltipClose();
-  };
-
   // Close booking details modal
   const closeDetailsModal = () => {
     setDetailsBooking(null);
@@ -1196,106 +975,6 @@ const StaffSchedule = () => {
       setLastFetchTimestamp(Date.now() + 1);
     });
     fetchBlockedSlots();
-  };
-
-  // Mark booking as done
-  const markBookingDone = async (bookingId) => {
-    try {
-      debugLog(`Marking booking ${bookingId} as done`);
-
-      const response = await fetch(`${API_BASE_URL}/bookings/staff/mark-done`, {
-        method: "POST",
-        headers: getRequestHeaders(),
-        body: JSON.stringify({ booking_id: bookingId }),
-      });
-
-      if (response.ok) {
-        alert("Booking marked as done successfully!");
-        // Refresh bookings data instead of reloading page
-        await fetchBookings();
-      } else {
-        const errorData = await response.json();
-        alert(`Error: ${errorData.message}`);
-      }
-      closeDetailsModal();
-    } catch (error) {
-      console.error("Error marking booking as done:", error);
-      alert("Failed to mark booking as done. Please try again.");
-    }
-  };
-
-  // Mark booking as absent
-  const markBookingAbsent = async (bookingId) => {
-    try {
-      debugLog(`Marking booking ${bookingId} as absent`);
-      const response = await fetch(
-        `${API_BASE_URL}/bookings/staff/mark-absent`,
-        {
-          method: "POST",
-          headers: getRequestHeaders(),
-          body: JSON.stringify({ booking_id: bookingId }),
-        },
-      );
-
-      if (response.ok) {
-        alert("Booking marked as absent successfully!");
-        // Refresh bookings data instead of reloading page
-        await fetchBookings();
-      } else {
-        const errorData = await response.json();
-        alert(`Error: ${errorData.message}`);
-      }
-      closeDetailsModal();
-    } catch (error) {
-      console.error("Error marking booking as absent:", error);
-      alert("Failed to mark booking as absent. Please try again.");
-    }
-  };
-
-  // Get booking for specific day and time
-  const getBookingForSlot = (day, time) => {
-    const bookings = getFormattedBookings();
-
-    // For daily view, we need to match by date string instead of day display
-    if (view === "Daily") {
-      // Get the date string for the current day
-      const dateString = formatDateForAPI(currentDate);
-
-      return bookings.find((booking) => {
-        const normalizedBookingTime = normalizeTime(booking.time);
-        const normalizedSearchTime = normalizeTime(time);
-
-        // Match by exact date string and time
-        return (
-          booking.date === dateString &&
-          normalizedBookingTime === normalizedSearchTime
-        );
-      });
-    } else {
-      // For weekly view, match by day display and time
-      return bookings.find((booking) => {
-        const normalizedBookingTime = normalizeTime(booking.time);
-        const normalizedSearchTime = normalizeTime(time);
-        const matches =
-          booking.day === day && normalizedBookingTime === normalizedSearchTime;
-        return matches;
-      });
-    }
-  };
-
-  // Check if time slot should be rendered (not covered by a longer booking)
-  const shouldRenderSlot = (day, time) => {
-    const timeIndex = timeSlots.indexOf(time);
-
-    // Check if there's a booking that starts before this time and covers it
-    for (let i = 0; i < timeIndex; i++) {
-      const earlierTime = timeSlots[i];
-      const earlierBooking = getBookingForSlot(day, earlierTime);
-      if (earlierBooking && earlierBooking.duration > timeIndex - i) {
-        return false;
-      }
-    }
-    return true;
   };
 
   // Check if a slot is covered by a multi-slot booking
@@ -2019,7 +1698,6 @@ const StaffSchedule = () => {
                   );
 
                   const actualBooking = booking || coveringBooking;
-                  const isAvailable = !actualBooking && !isBlocked;
 
                   // Don't render slots that are covered by multi-slot bookings (except the first slot)
                   if (coveringBooking && !booking) {

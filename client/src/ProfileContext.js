@@ -587,7 +587,6 @@ export const ProfileProvider = ({ children }) => {
                   placeholder="Enter your phone number"
                   required
                   style={{
-                    paddingLeft: "40px",
                     color: signInErrors.phoneNumber ? "red" : "#1a1a1a",
                     backgroundColor: "#ffffff",
                     border: signInErrors.phoneNumber
@@ -635,7 +634,6 @@ export const ProfileProvider = ({ children }) => {
                   placeholder="Enter your password"
                   required
                   style={{
-                    paddingLeft: "40px",
                     color: signInErrors.password ? "red" : "#1a1a1a",
                     backgroundColor: "#ffffff",
                     border: signInErrors.password

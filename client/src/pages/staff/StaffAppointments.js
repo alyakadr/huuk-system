@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import api from "../../utils/api";
 import moment from "moment";
 import {
@@ -14,37 +14,27 @@ import {
 } from "@mui/material";
 import AddBookingModal from "../../components/AddBookingModal";
 import RescheduleBookingModal from "../../components/RescheduleBookingModal";
-import {
-  TIME_SLOTS,
-  calculateAvailableSlotDuration,
-  getAvailableServicesForSlot,
-} from "../../utils/timeSlotUtils";
+import { TIME_SLOTS } from "../../utils/timeSlotUtils";
 import { io } from "socket.io-client";
 import { API_BASE_URL } from "../../utils/constants";
 
 const StaffAppointments = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const initialBooking = location.state?.booking || null;
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [processingIds, setProcessingIds] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [blockedSlots, setBlockedSlots] = useState([]);
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [, setAvailableSlots] = useState([]);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [rescheduleDate, setRescheduleDate] = useState("");
-  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [, setRescheduleDate] = useState("");
+  const [, setRescheduleTime] = useState("");
   const [todaySlots, setTodaySlots] = useState([]);
-  const [showTimeSlots, setShowTimeSlots] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
   const [showAddBookingModal, setShowAddBookingModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -226,19 +216,6 @@ const StaffAppointments = () => {
     }
   };
 
-  const retryApiCall = async (apiCall, maxRetries = 3, delay = 1000) => {
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        return await apiCall();
-      } catch (error) {
-        if (i === maxRetries - 1) throw error;
-        await new Promise((resolve) =>
-          setTimeout(resolve, delay * Math.pow(2, i)),
-        );
-      }
-    }
-  };
-
   // Use the centralized time slots from utils
   const generateTimeSlots = () => {
     return TIME_SLOTS;
@@ -247,108 +224,40 @@ const StaffAppointments = () => {
   // Generate time slots for the selected date (or today if no date selected)
   const generateTodaySlots = () => {
     const slots = [];
-    const startTime = moment().hour(10).minute(0);
-    const endTime = moment().hour(21).minute(30);
     const targetDate = selectedDate || moment().format("YYYY-MM-DD");
+    const timeSlots = generateTimeSlots();
 
-    // Debug: Log today's date and appointments
-    console.log("Generating today slots for date:", targetDate);
-    console.log("Total appointments:", appointments.length);
-    console.log("Blocked slots:", blockedSlots.length);
-
-    // Filter today's appointments for debugging
-    const todayAppointments = appointments.filter((apt) => {
-      const aptDate = extractDateOnly(apt.booking_date);
-      const isToday = aptDate === targetDate;
-      if (isToday) {
-        console.log("Today appointment:", {
-          id: apt.id,
-          customer: apt.customer_name,
-          start_time: apt.start_time,
-          end_time: apt.end_time,
-          status: apt.status,
-          booking_date: apt.booking_date,
-          extracted_date: aptDate,
-        });
-      }
-      return isToday;
-    });
-
-    console.log("Today appointments count:", todayAppointments.length);
-
-    while (startTime.isSameOrBefore(endTime)) {
-      const timeSlot = startTime.format("HH:mm");
-
-      // Enhanced booking check that matches StaffDashboard.js logic
+    timeSlots.forEach((timeSlot) => {
       const isBooked = appointments.some((apt) => {
-        // Skip appointments with invalid status or times - match StaffDashboard.js conditions
-        if (
-          !apt ||
-          extractDateOnly(apt.booking_date) !== targetDate ||
-          apt.status === "-" ||
-          apt.start_time === "-" ||
-          apt.end_time === "-" ||
-          (apt.status && apt.status.toLowerCase() === "cancelled") ||
-          false
-        ) {
+        if (!apt?.booking_date || !apt?.start_time || !apt?.end_time) {
           return false;
         }
 
-        // Calculate booking duration in slots - exact same logic as StaffDashboard.js
-        const bookingStartTime = moment(apt.start_time, "HH:mm");
-        const bookingEndTime = moment(apt.end_time, "HH:mm");
-
-        // Validate moment objects
-        if (!bookingStartTime.isValid() || !bookingEndTime.isValid()) {
+        const aptDate = apt.booking_date.includes("T")
+          ? apt.booking_date.split("T")[0]
+          : apt.booking_date;
+        if (aptDate !== targetDate) {
           return false;
         }
 
-        const durationSlots =
-          moment.duration(bookingEndTime.diff(bookingStartTime)).asMinutes() /
-          30;
+        const slotMoment = moment(timeSlot, "HH:mm");
+        const startMoment = moment(apt.start_time.slice(0, 5), "HH:mm");
+        const endMoment = moment(apt.end_time.slice(0, 5), "HH:mm");
 
-        // Check if the current slot is within the booking period - exact same logic as StaffDashboard.js
-        for (let i = 0; i < durationSlots; i++) {
-          if (
-            bookingStartTime
-              .clone()
-              .add(i * 30, "minutes")
-              .format("HH:mm") === timeSlot
-          ) {
-            console.log("Slot", timeSlot, "is BOOKED by appointment:", {
-              customer: apt.customer_name,
-              start: apt.start_time,
-              end: apt.end_time,
-              status: apt.status,
-            });
-            return true;
-          }
-        }
-        return false;
+        return slotMoment.isSameOrAfter(startMoment) && slotMoment.isBefore(endMoment);
       });
 
-      const isBlocked = blockedSlots.some((slot) => slot.time === timeSlot);
-
-      const slotStatus = isBooked
-        ? "booked"
-        : isBlocked
-          ? "blocked"
-          : "available";
-
-      console.log("Slot", timeSlot, "- Status:", slotStatus);
+      const isBlocked = blockedSlots.some((slot) => {
+        const slotDate = slot.date || targetDate;
+        return slot.time === timeSlot && slotDate === targetDate;
+      });
 
       slots.push({
         time: timeSlot,
-        status: slotStatus,
+        status: isBooked ? "booked" : isBlocked ? "blocked" : "available",
       });
+    });
 
-      startTime.add(30, "minutes");
-    }
-
-    console.log(
-      "Generated slots summary:",
-      slots.map((s) => `${s.time}:${s.status}`),
-    );
     return slots;
   };
 
@@ -532,39 +441,6 @@ const StaffAppointments = () => {
 
       alert(errorMessage);
     }
-  };
-
-  const handleAddNewBooking = async () => {
-    try {
-      const response = await api.post(
-        "/bookings/staff/appointment",
-        newBooking,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("staff_token") || localStorage.getItem("token")}`,
-          },
-        },
-      );
-
-      setAppointments((prev) => [...prev, response.data]);
-      setShowAddBookingModal(false);
-      setNewBooking({
-        customer_name: "",
-        phone_number: "",
-        service_name: "",
-        booking_date: selectedDate || moment().format("YYYY-MM-DD"),
-        start_time: "",
-        end_time: "",
-      });
-      // Note: todaySlots will be updated automatically via useEffect when appointments change
-    } catch (error) {
-      console.error("Error adding new booking:", error);
-      alert("Failed to add new booking. Please try again.");
-    }
-  };
-
-  const handleTimeSlotSelect = (time) => {
-    setNewBooking((prev) => ({ ...prev, start_time: time }));
   };
 
   // Customer detection by phone number
@@ -1434,35 +1310,6 @@ const StaffAppointments = () => {
     return `${day}-${month}-${year}`;
   };
 
-  // Get unique dates with bookings for date filter
-  const getBookingDates = () => {
-    const dates = new Set();
-    appointments.forEach((apt) => {
-      if (apt.booking_date) {
-        const normalizedDate = extractDateOnly(apt.booking_date);
-        if (normalizedDate) {
-          dates.add(normalizedDate);
-        }
-      }
-    });
-    return Array.from(dates).sort();
-  };
-
-  const bookingDates = getBookingDates();
-
-  // Function to check if a date should be disabled in the date picker
-  const shouldDisableDate = (date) => {
-    if (!date) return true;
-    const dateString = date.format("YYYY-MM-DD");
-    const today = moment().format("YYYY-MM-DD");
-
-    // Always allow today
-    if (dateString === today) return false;
-
-    // Only allow dates that have existing bookings
-    return !bookingDates.includes(dateString);
-  };
-
   // Get today's date string for highlighting
   const todayString = moment().format("YYYY-MM-DD");
   const isToday = (date) => {
@@ -1488,48 +1335,6 @@ const StaffAppointments = () => {
     }
 
     return false;
-  };
-
-  // Custom day renderer to show visual indicators
-  const renderDay = (date, selectedDate, pickersDayProps) => {
-    const dateString = date.format("YYYY-MM-DD");
-    const hasBookings = bookingDates.includes(dateString);
-    const isCurrentDay = isToday(date);
-
-    return (
-      <div
-        {...pickersDayProps}
-        style={{
-          ...pickersDayProps.style,
-          position: "relative",
-          backgroundColor: isCurrentDay
-            ? "#007bff"
-            : hasBookings
-              ? "#2a2a2a"
-              : "transparent",
-          color: isCurrentDay ? "white" : hasBookings ? "#90d14f" : "#666",
-          borderRadius: "50%",
-          fontWeight: isCurrentDay ? "bold" : hasBookings ? "600" : "normal",
-          border: hasBookings && !isCurrentDay ? "1px solid #90d14f" : "none",
-        }}
-      >
-        {date.format("D")}
-        {hasBookings && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: "2px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "4px",
-              height: "4px",
-              backgroundColor: isCurrentDay ? "white" : "#90d14f",
-              borderRadius: "50%",
-            }}
-          />
-        )}
-      </div>
-    );
   };
 
   // Filter appointments based on selected date
@@ -1580,10 +1385,6 @@ const StaffAppointments = () => {
   });
 
   // Debug logging for filteredAppointments
-
-  const handleViewDetails = (appointment) => {
-    setSelectedAppointment(appointment);
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";

@@ -2,14 +2,11 @@ import React, { useState } from "react";
 import {
   Select,
   MenuItem,
-  FormControl,
-  InputLabel,
   Box,
   Typography,
   Paper,
   ListItemIcon,
   ListItemText,
-  Chip,
   TextField,
   InputAdornment,
   IconButton,
@@ -18,12 +15,10 @@ import {
   Divider,
 } from "@mui/material";
 import {
-  Person,
   Search,
   KeyboardArrowDown,
   Clear,
   PersonOutline,
-  Star,
   Group,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";

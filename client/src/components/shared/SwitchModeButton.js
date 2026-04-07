@@ -8,54 +8,55 @@ const SwitchModeButton = ({ className }) => {
   const { profile } = useProfile();
 
   // Only show the button if user is a manager
-  if (!profile || profile.role !== 'manager') {
+  if (!profile || profile.role !== "manager") {
     return null;
   }
 
-  const isInStaffMode = location.pathname.startsWith('/staff');
-  const isInManagerMode = location.pathname.startsWith('/manager');
-  
-  const modeText = isInStaffMode ? 'Switch to Manager Mode' : 'Switch to Staff Mode';
-  
+  const isInStaffMode = location.pathname.startsWith("/staff");
+
+  const modeText = isInStaffMode
+    ? "Switch to Manager Mode"
+    : "Switch to Staff Mode";
+
   const handleModeSwitch = () => {
     // Store current page context in localStorage
     const currentPath = location.pathname;
     const currentSearch = location.search;
     const currentHash = location.hash;
     const fullCurrentPath = `${currentPath}${currentSearch}${currentHash}`;
-    
-    localStorage.setItem('lastVisitedPage', fullCurrentPath);
-    localStorage.setItem('switchModeTimestamp', Date.now().toString());
-    
+
+    localStorage.setItem("lastVisitedPage", fullCurrentPath);
+    localStorage.setItem("switchModeTimestamp", Date.now().toString());
+
     if (isInStaffMode) {
       // Switch to manager mode
       // Try to find equivalent manager page, otherwise go to dashboard
       const managerEquivalentPaths = {
-        '/staff': '/manager',
-        '/staff/attendance': '/manager',
-        '/staff/schedule': '/manager',
-        '/staff/appointments': '/manager/appointment-management',
-        '/staff/payments': '/manager/payment-summary',
-        '/staff/reports': '/manager/sales-report',
-        '/staff/settings': '/manager/settings',
-        '/staff/edit-profile': '/manager/edit-profile'
+        "/staff": "/manager",
+        "/staff/attendance": "/manager",
+        "/staff/schedule": "/manager",
+        "/staff/appointments": "/manager/appointment-management",
+        "/staff/payments": "/manager/payment-summary",
+        "/staff/reports": "/manager/sales-report",
+        "/staff/settings": "/manager/settings",
+        "/staff/edit-profile": "/manager/edit-profile",
       };
-      
-      const targetPath = managerEquivalentPaths[currentPath] || '/manager';
+
+      const targetPath = managerEquivalentPaths[currentPath] || "/manager";
       navigate(targetPath);
     } else {
       // Switch to staff mode
       // Try to find equivalent staff page, otherwise go to dashboard
       const staffEquivalentPaths = {
-        '/manager': '/staff',
-        '/manager/appointment-management': '/staff/appointments',
-        '/manager/payment-summary': '/staff/payments',
-        '/manager/sales-report': '/staff/reports',
-        '/manager/settings': '/staff/settings',
-        '/manager/edit-profile': '/staff/edit-profile'
+        "/manager": "/staff",
+        "/manager/appointment-management": "/staff/appointments",
+        "/manager/payment-summary": "/staff/payments",
+        "/manager/sales-report": "/staff/reports",
+        "/manager/settings": "/staff/settings",
+        "/manager/edit-profile": "/staff/edit-profile",
       };
-      
-      const targetPath = staffEquivalentPaths[currentPath] || '/staff';
+
+      const targetPath = staffEquivalentPaths[currentPath] || "/staff";
       navigate(targetPath);
     }
   };
