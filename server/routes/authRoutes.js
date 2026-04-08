@@ -7,12 +7,70 @@ const {
   PASSWORD_POLICY_MESSAGE,
   isPasswordValid,
 } = require("../utils/passwordPolicy");
+const { sendStaffPasswordResetEmail } = require("../utils/email");
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const FRONTEND_URL =
+  process.env.FRONTEND_URL ||
+  process.env.APP_URL ||
+  process.env.CLIENT_URL ||
+  "http://localhost:3000";
+const STAFF_RESET_TOKEN_PURPOSE = "staff-password-reset";
+const STAFF_RESET_TOKEN_EXPIRY = "30m";
 if (!JWT_SECRET) {
   console.error("JWT_SECRET is not set in environment variables");
   process.exit(1);
 }
+
+const normalizeEmail = (email) =>
+  typeof email === "string" ? email.trim().toLowerCase() : "";
+
+const buildPasswordResetSecret = (passwordHash) =>
+  `${JWT_SECRET}:${passwordHash || "no-password"}`;
+
+const buildStaffPasswordResetUrl = (token) => {
+  const normalizedBaseUrl = FRONTEND_URL.replace(/\/+$/, "");
+  return `${normalizedBaseUrl}/staff-reset-password?token=${encodeURIComponent(token)}`;
+};
+
+const createStaffPasswordResetToken = (user) =>
+  jwt.sign(
+    {
+      userId: user._id.toString(),
+      role: user.role,
+      purpose: STAFF_RESET_TOKEN_PURPOSE,
+    },
+    buildPasswordResetSecret(user.password),
+    { expiresIn: STAFF_RESET_TOKEN_EXPIRY },
+  );
+
+const resolveStaffResetUserFromToken = async (token) => {
+  const decoded = jwt.decode(token);
+
+  if (
+    !decoded ||
+    typeof decoded !== "object" ||
+    !decoded.userId ||
+    decoded.purpose !== STAFF_RESET_TOKEN_PURPOSE
+  ) {
+    return { user: null, error: "Invalid or expired reset link" };
+  }
+
+  const user = await User.findById(decoded.userId).select(
+    "password role email fullname",
+  );
+
+  if (!user || !["staff", "manager"].includes(user.role) || !user.password) {
+    return { user: null, error: "Invalid or expired reset link" };
+  }
+
+  try {
+    jwt.verify(token, buildPasswordResetSecret(user.password));
+    return { user, error: null };
+  } catch (error) {
+    return { user: null, error: "Invalid or expired reset link" };
+  }
+};
 
 // Helper function to handle sign-in logic
 const handleSignIn = async (req, res, allowedRoles) => {
@@ -21,8 +79,7 @@ const handleSignIn = async (req, res, allowedRoles) => {
   }
 
   const { email, password } = req.body;
-  const normalizedEmail =
-    typeof email === "string" ? email.trim().toLowerCase() : "";
+  const normalizedEmail = normalizeEmail(email);
 
   if (!normalizedEmail || !password) {
     return res.status(400).json({ message: "Email and password required" });
@@ -178,6 +235,108 @@ router.post("/customer/signin", async (req, res) => {
 // Staff/Manager Sign-In route
 router.post("/staff/signin", (req, res) => {
   handleSignIn(req, res, ["staff", "manager"]);
+});
+
+router.post("/staff/forgot-password", async (req, res) => {
+  const normalizedEmail = normalizeEmail(req.body?.email);
+
+  if (!normalizedEmail) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  try {
+    const user = await User.findOne({
+      email: normalizedEmail,
+      role: { $in: ["staff", "manager"] },
+    }).select("email fullname role password");
+
+    if (user?.password) {
+      try {
+        const resetToken = createStaffPasswordResetToken(user);
+        const resetUrl = buildStaffPasswordResetUrl(resetToken);
+
+        await sendStaffPasswordResetEmail({
+          email: user.email,
+          fullname: user.fullname,
+          resetUrl,
+        });
+      } catch (emailError) {
+        console.error("Failed to send staff password reset email:", {
+          email: normalizedEmail,
+          message: emailError.message,
+        });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "If an account exists for that email, password reset instructions have been sent.",
+    });
+  } catch (error) {
+    console.error("Staff forgot password error:", error.message);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/staff/reset-password/validate", async (req, res) => {
+  const token =
+    typeof req.query?.token === "string" ? req.query.token.trim() : "";
+
+  if (!token) {
+    return res.status(400).json({ message: "Reset token is required" });
+  }
+
+  try {
+    const { user, error } = await resolveStaffResetUserFromToken(token);
+
+    if (!user) {
+      return res.status(401).json({ message: error });
+    }
+
+    return res.status(200).json({
+      valid: true,
+      email: user.email,
+      role: user.role,
+    });
+  } catch (routeError) {
+    console.error("Staff reset token validation error:", routeError.message);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/staff/reset-password", async (req, res) => {
+  const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+  const newPassword = req.body?.password;
+
+  if (!token || !newPassword) {
+    return res
+      .status(400)
+      .json({ message: "Reset token and new password are required" });
+  }
+
+  if (!isPasswordValid(newPassword)) {
+    return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
+  }
+
+  try {
+    const { user, error } = await resolveStaffResetUserFromToken(token);
+
+    if (!user) {
+      return res.status(401).json({ message: error });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successful",
+    });
+  } catch (routeError) {
+    console.error("Staff reset password error:", routeError.message);
+    return res.status(500).json({ message: "Server error" });
+  }
 });
 
 // Staff/Manager Signup route

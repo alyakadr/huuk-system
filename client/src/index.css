@@ -14,6 +14,8 @@
 @import "./styles/reset.css";
 @import "./styles/staffDashboard.css";
 @import "./styles/StaffProfiles.css";
+@import "./styles/staffForgotPassword.css";
+@import "./styles/staffResetPassword.css";
 
 @layer base {
   html,

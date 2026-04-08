@@ -716,7 +716,14 @@ const Homepage = () => {
               </label>
             </div>
             <p>
-              <a href="#" className={styles["forgot-password-homepage"]}>
+              <a
+                href="/staff-forgot-password"
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate("/staff-forgot-password");
+                }}
+                className={styles["forgot-password-homepage"]}
+              >
                 Forgot password?
               </a>
             </p>

@@ -25,6 +25,57 @@ transporter.verify((error, success) => {
   }
 });
 
+const validateRecipientEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error("Invalid email format");
+  }
+};
+
+const sendStaffPasswordResetEmail = async ({ email, fullname, resetUrl }) => {
+  if (!email || !resetUrl) {
+    throw new Error("Email and reset URL are required");
+  }
+
+  validateRecipientEmail(email);
+
+  const recipientName = fullname || "there";
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to: email,
+    subject: "Reset your HUUK staff password",
+    text: `Hello ${recipientName},\n\nWe received a request to reset your HUUK staff account password. Use the link below to set a new password:\n\n${resetUrl}\n\nThis link will expire in 30 minutes. If you did not request a password reset, you can ignore this email.\n\nHUUK Team`,
+    html: `
+      <div style="font-family: Quicksand, Arial, sans-serif; color: #1a1a1a; line-height: 1.6;">
+        <h2 style="margin-bottom: 12px;">Reset your HUUK staff password</h2>
+        <p>Hello ${recipientName},</p>
+        <p>We received a request to reset your HUUK staff account password.</p>
+        <p>
+          <a
+            href="${resetUrl}"
+            style="display: inline-block; padding: 12px 20px; background: #1a1a1a; color: #baa173; text-decoration: none; font-weight: 700; border-radius: 6px;"
+          >
+            Reset Password
+          </a>
+        </p>
+        <p>If the button does not work, copy and paste this link into your browser:</p>
+        <p><a href="${resetUrl}">${resetUrl}</a></p>
+        <p>This link will expire in 30 minutes. If you did not request a password reset, you can ignore this email.</p>
+        <p>HUUK Team</p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions).catch((smtpErr) => {
+    console.error("SMTP error while sending password reset email:", {
+      message: smtpErr.message,
+      stack: smtpErr.stack,
+      to: email,
+    });
+    throw new Error(`Failed to send email: ${smtpErr.message}`);
+  });
+};
+
 const sendBookingReceipt = async (bookingDetails, email) => {
   console.log("Attempting to send receipt:", { bookingDetails, to: email });
   if (!email || !bookingDetails) {
@@ -485,4 +536,5 @@ module.exports = {
   sendBookingReceipt,
   sendRescheduleConfirmation,
   sendCancelConfirmation,
+  sendStaffPasswordResetEmail,
 };

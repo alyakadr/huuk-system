@@ -7,6 +7,8 @@ import {
 } from "react-router-dom";
 import { ProfileProvider } from "./ProfileContext";
 import Homepage from "./pages/staff/Homepage";
+import StaffForgotPassword from "./pages/staff/StaffForgotPassword";
+import StaffResetPassword from "./pages/staff/StaffResetPassword";
 import CustomerHomepage from "./pages/customer/CustomerHomepage";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import ManagerLayout from "./pages/staff/ManagerLayout";
@@ -89,6 +91,14 @@ const App = () => {
             {/* Public routes */}
             <Route path="/homepage" element={<CustomerHomepage />} />
             <Route path="/staff-login" element={<Homepage />} />
+            <Route
+              path="/staff-forgot-password"
+              element={<StaffForgotPassword />}
+            />
+            <Route
+              path="/staff-reset-password"
+              element={<StaffResetPassword />}
+            />
             <Route path="/" element={<CustomerHomepage />} />
             <Route path="/booking" element={<Booking />} />
             {/* Staff routes */}

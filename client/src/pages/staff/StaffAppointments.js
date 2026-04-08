@@ -244,7 +244,10 @@ const StaffAppointments = () => {
         const startMoment = moment(apt.start_time.slice(0, 5), "HH:mm");
         const endMoment = moment(apt.end_time.slice(0, 5), "HH:mm");
 
-        return slotMoment.isSameOrAfter(startMoment) && slotMoment.isBefore(endMoment);
+        return (
+          slotMoment.isSameOrAfter(startMoment) &&
+          slotMoment.isBefore(endMoment)
+        );
       });
 
       const isBlocked = blockedSlots.some((slot) => {
