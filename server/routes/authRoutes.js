@@ -274,7 +274,9 @@ router.post("/customer/signin", async (req, res) => {
   const normalizedPhone = rawIdentifier.includes("@") ? "" : rawIdentifier;
 
   if ((!normalizedPhone && !normalizedEmail) || !password) {
-    return res.status(400).json({ message: "Email/phone and password required" });
+    return res
+      .status(400)
+      .json({ message: "Email/phone and password required" });
   }
 
   try {
@@ -448,7 +450,7 @@ router.post("/customer/signup", async (req, res) => {
     username,
   });
 
-    if (!password || !email || !username) {
+  if (!password || !email || !username) {
     return res
       .status(400)
       .json({ message: "Please fill all required fields." });

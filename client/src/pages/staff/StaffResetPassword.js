@@ -289,10 +289,7 @@ const StaffResetPassword = () => {
             <Link to="/staff-login" className="staff-reset-link">
               Back to Sign In
             </Link>
-            <Link
-              to="/forgot-password"
-              className="staff-reset-link subtle"
-            >
+            <Link to="/forgot-password" className="staff-reset-link subtle">
               Request New Link
             </Link>
           </div>

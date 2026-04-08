@@ -321,7 +321,10 @@ const CustomerHomepage = () => {
       } else {
         const message = error.response?.data?.message || "Sign-up failed";
         // Try to parse which field the error is about
-        if (message.toLowerCase().includes("full") || message.toLowerCase().includes("name")) {
+        if (
+          message.toLowerCase().includes("full") ||
+          message.toLowerCase().includes("name")
+        ) {
           setSignUpErrors({
             fullName: message,
             email: "",
@@ -642,9 +645,7 @@ const CustomerHomepage = () => {
                 </span>
               </div>
               {signUpErrors.email && (
-                <p className={styles["error-homepage"]}>
-                  {signUpErrors.email}
-                </p>
+                <p className={styles["error-homepage"]}>{signUpErrors.email}</p>
               )}
 
               <label htmlFor="password">Password</label>

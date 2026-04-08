@@ -26,6 +26,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
   : "http://localhost:5000/api";
 
+const STAFF_REMEMBER_EMAIL_KEY = "staff_remember_email";
+
 // Use plain class names while preserving existing styles["..."] references.
 const styles = new Proxy(
   {},
@@ -79,6 +81,24 @@ const Homepage = () => {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] =
     useState(false);
+
+  const preloadRememberedEmail = () => {
+    const rememberedEmail =
+      localStorage.getItem(STAFF_REMEMBER_EMAIL_KEY) || Cookies.get("email");
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setIsChecked(true);
+      return;
+    }
+    setIsChecked(false);
+  };
+
+  useEffect(() => {
+    if (isSignInOpen) {
+      preloadRememberedEmail();
+    }
+  }, [isSignInOpen]);
+
   // Handle clean redirect without showing modals for certain scenarios
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
@@ -205,8 +225,10 @@ const Homepage = () => {
         // Let ProfileContext handle all storage - it will use role-specific keys
         updateProfile(userData);
         if (isChecked) {
+          localStorage.setItem(STAFF_REMEMBER_EMAIL_KEY, normalizedEmail);
           Cookies.set("email", normalizedEmail, { expires: 7 });
         } else {
+          localStorage.removeItem(STAFF_REMEMBER_EMAIL_KEY);
           Cookies.remove("email");
         }
         setSignInOpen(false);
@@ -571,6 +593,7 @@ const Homepage = () => {
               <span
                 onClick={openSignUpModal}
                 className={styles["sign-up-text-homepage"]}
+                style={{ fontWeight: "bold", textDecoration: "underline" }}
               >
                 Sign Up
               </span>
@@ -603,15 +626,15 @@ const Homepage = () => {
                   onChange={(e) => {
                     setEmail(e.target.value);
                   }}
-                  placeholder="Email"
+                  placeholder="Enter your email"
                   required
                   style={{
-                    paddingLeft: "40px",
                     color: "#1a1a1a",
                     backgroundColor: "#ffffff",
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
+                    paddingLeft: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",
@@ -646,15 +669,16 @@ const Homepage = () => {
                   onChange={(e) => {
                     setPassword(e.target.value);
                   }}
-                  placeholder="Password"
+                  placeholder="Enter your password"
                   required
                   style={{
-                    paddingLeft: "40px",
                     color: "#1a1a1a",
                     backgroundColor: "#ffffff",
                     border: "1px solid #1a1a1a",
                     fontFamily: "Quicksand, sans-serif",
                     padding: "12px",
+                    paddingLeft: "40px",
+                    paddingRight: "40px",
                     margin: "2px 0 8px 0",
                     width: "220px",
                     height: "40px",
@@ -698,35 +722,40 @@ const Homepage = () => {
               >
                 {loading ? "Signing In..." : "Sign In"}
               </button>
-            </form>
-            <div className={styles["remember-container-homepage"]}>
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={isChecked}
-                onChange={() => setIsChecked(!isChecked)}
-                className={styles["remember-checkbox-homepage"]}
-                disabled={loading}
-              />
-              <label
-                htmlFor="rememberMe"
-                className={styles["remember-label-homepage"]}
-              >
-                Remember me
-              </label>
-            </div>
-            <p>
-              <a
-                href="/forgot-password"
-                onClick={(event) => {
-                  event.preventDefault();
-                  navigate("/forgot-password");
-                }}
+
+              <div className={styles["remember-container-homepage"]}>
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={isChecked}
+                  onChange={() => setIsChecked(!isChecked)}
+                  className={styles["remember-checkbox-homepage"]}
+                  disabled={loading}
+                />
+                <label
+                  htmlFor="rememberMe"
+                  className={styles["remember-label-homepage"]}
+                >
+                  Remember me
+                </label>
+              </div>
+
+              <p
                 className={styles["forgot-password-homepage"]}
+                style={{ marginTop: "14px" }}
               >
-                Forgot password?
-              </a>
-            </p>
+                <a
+                  href="/forgot-password"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    navigate("/forgot-password");
+                  }}
+                  style={{ cursor: "pointer", textDecoration: "underline" }}
+                >
+                  Forgot Password?
+                </a>
+              </p>
+            </form>
           </div>
 
           <button
