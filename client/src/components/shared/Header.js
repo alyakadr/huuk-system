@@ -2,7 +2,18 @@ import React, { useState, useEffect } from "react";
 import moment from "moment";
 import logo from "../../assets/logo.PNG";
 
-const Header = ({ logoSrc, username, role, minimized, pageTitle, mode }) => {
+const Header = ({
+  logoSrc,
+  username,
+  role,
+  minimized,
+  pageTitle,
+  mode,
+  isMobile = false,
+  isTablet = false,
+  layoutLeftOffset,
+  layoutWidth,
+}) => {
   const [currentTimeDisplay, setCurrentTimeDisplay] = useState(moment().format("HH:mm"));
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -21,8 +32,14 @@ const Header = ({ logoSrc, username, role, minimized, pageTitle, mode }) => {
     { id: 3, type: "update", message: "System update completed successfully", time: "1 hour ago", unread: false },
   ];
 
-  const leftOffset = minimized ? "77px" : "285px";
-  const headerWidth = minimized ? "calc(100% - 77px)" : "calc(100% - 285px)";
+  const leftOffset = layoutLeftOffset || (isMobile ? "72px" : minimized ? "77px" : "285px");
+  const headerWidth = layoutWidth || (isMobile
+    ? "calc(100% - 72px)"
+    : minimized
+      ? "calc(100% - 77px)"
+      : "calc(100% - 285px)");
+  const mobileSearchWidth = "min(52vw, 210px)";
+  const tabletSearchWidth = "min(32vw, 240px)";
 
   return (
     <header
@@ -32,29 +49,33 @@ const Header = ({ logoSrc, username, role, minimized, pageTitle, mode }) => {
         top: 0,
         left: leftOffset,
         width: headerWidth,
-        marginTop: "-20px",
-        marginLeft: "-15px",
+        marginTop: isMobile ? "0" : "-20px",
+        marginLeft: isMobile ? "0" : "-15px",
         transition: "left 0.3s ease, width 0.3s ease",
         background: "transparent",
-        padding: "0",
+        padding: isMobile ? "10px 8px 0 8px" : isTablet ? "8px 18px 0 6px" : "0",
       }}
     >
       {/* Left: logo + title + date */}
       <div className="flex flex-col items-start gap-2">
         <div className="flex-shrink-0">
-          <img src={logo} alt="Company Logo" className="h-[120px] w-auto block" />
+          <img
+            src={logo}
+            alt="Company Logo"
+            className={isMobile ? "h-[68px] w-auto block" : isTablet ? "h-[86px] w-auto block" : "h-[120px] w-auto block"}
+          />
         </div>
-        <div className="text-left ml-5 -mt-5 flex-1">
-          <h1 className="text-3xl font-bold text-white text-left m-0" style={{ fontFamily: "Montserrat, sans-serif" }}>
+        <div className="text-left flex-1" style={{ marginLeft: isMobile ? "4px" : isTablet ? "12px" : "20px", marginTop: isMobile ? "-10px" : isTablet ? "-12px" : "-20px", maxWidth: isMobile ? "calc(100vw - 190px)" : isTablet ? "calc(100vw - 360px)" : "none" }}>
+          <h1 className={isMobile ? "text-base font-bold text-white text-left m-0 leading-snug" : isTablet ? "text-2xl font-bold text-white text-left m-0 leading-snug" : "text-3xl font-bold text-white text-left m-0"} style={{ fontFamily: "Montserrat, sans-serif" }}>
             {pageTitle || `Welcome back, ${username}!`}{" "}
             {role === "manager" && mode && (
-              <span className="inline-flex items-center text-[#ababab] font-bold text-[15px] ml-2.5 px-3 py-1 rounded-[20px] select-none">
-                <i className="bi bi-eye text-[25px] mr-2.5" />
+              <span className={isMobile ? "inline-flex items-center text-[#ababab] font-bold text-[11px] ml-1.5 px-2 py-0.5 rounded-[16px] select-none" : "inline-flex items-center text-[#ababab] font-bold text-[15px] ml-2.5 px-3 py-1 rounded-[20px] select-none"}>
+                <i className={isMobile ? "bi bi-eye text-[14px] mr-1.5" : "bi bi-eye text-[25px] mr-2.5"} />
                 {mode}
               </span>
             )}
           </h1>
-          <p className="text-[#ffc50f] font-semibold text-lg m-0" style={{ fontFamily: "Montserrat, sans-serif" }}>
+          <p className={isMobile ? "text-[#ffc50f] font-semibold text-[11px] m-0" : isTablet ? "text-[#ffc50f] font-semibold text-sm m-0" : "text-[#ffc50f] font-semibold text-lg m-0"} style={{ fontFamily: "Montserrat, sans-serif" }}>
             {getDate()}, {currentTimeDisplay}
           </p>
         </div>
@@ -62,11 +83,14 @@ const Header = ({ logoSrc, username, role, minimized, pageTitle, mode }) => {
 
       {/* Right: search + notifications */}
       <div
-        className="absolute flex items-center gap-3 flex-row-reverse"
-        style={{ right: "300px", top: "50px", flexWrap: "nowrap" }}
+        className="absolute flex items-center gap-2 flex-row-reverse"
+        style={{ right: isMobile ? "8px" : isTablet ? "24px" : "300px", top: isMobile ? "10px" : isTablet ? "28px" : "50px", flexWrap: "nowrap" }}
       >
         {/* Search bar */}
-        <div className="relative w-[220px] min-w-[180px] z-[1100]">
+        <div
+          className="relative z-[1100]"
+          style={{ width: isMobile ? mobileSearchWidth : isTablet ? tabletSearchWidth : "220px", minWidth: isMobile ? "120px" : isTablet ? "170px" : "180px" }}
+        >
           <div
             className="relative w-full flex items-center rounded-[18px] transition-all duration-300"
             style={{
@@ -81,8 +105,13 @@ const Header = ({ logoSrc, username, role, minimized, pageTitle, mode }) => {
             <i className="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg pointer-events-none z-[1]" />
             <input
               type="text"
-              className="w-full py-2 px-[50px] bg-transparent text-white text-sm outline-none font-quicksand placeholder-slate-500 rounded-[16px]"
-              placeholder="Search customers, appointments, staff..."
+              className="w-full bg-transparent outline-none font-quicksand placeholder-slate-500 rounded-[16px]"
+              style={{
+                padding: isMobile ? "10px 34px" : isTablet ? "9px 44px" : "8px 50px",
+                color: "white",
+                fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
+              }}
+              placeholder={isMobile ? "Search..." : isTablet ? "Search staff or bookings..." : "Search customers, appointments, staff..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchFocused(true)}
@@ -100,23 +129,28 @@ const Header = ({ logoSrc, username, role, minimized, pageTitle, mode }) => {
         {/* Bell icon */}
         <div className="relative flex-shrink-0">
           <button
-            className="flex items-center justify-center w-11 h-11 rounded-[16px] cursor-pointer transition-all duration-300 hover:-translate-y-0.5"
+            className="flex items-center justify-center rounded-[16px] cursor-pointer transition-all duration-300 hover:-translate-y-0.5"
             style={{
+              width: isMobile ? "42px" : isTablet ? "44px" : "44px",
+              height: isMobile ? "42px" : isTablet ? "44px" : "44px",
               background: "linear-gradient(135deg,rgba(30,41,59,0.9) 0%,rgba(15,23,42,0.9) 100%)",
               border: "2px solid transparent",
               backdropFilter: "blur(15px)",
               boxShadow: "0 4px 12px -2px rgba(0,0,0,0.12)",
               color: "white",
             }}
+            aria-label="Open notifications"
             onClick={() => setNotificationOpen(!notificationOpen)}
           >
-            <i className="bi bi-bell text-[22px] leading-none" />
+            <i className={isMobile ? "bi bi-bell text-[18px] leading-none" : isTablet ? "bi bi-bell text-[20px] leading-none" : "bi bi-bell text-[22px] leading-none"} />
           </button>
 
           {notificationOpen && (
             <div
-              className="absolute right-0 top-[calc(100%+8px)] w-[400px] max-w-[calc(100vw-60px)] rounded-[20px] overflow-hidden flex flex-col z-[1300]"
+              className="absolute right-0 top-[calc(100%+8px)] rounded-[20px] overflow-hidden flex flex-col z-[1300]"
               style={{
+                width: isMobile ? "min(320px, calc(100vw - 84px))" : "400px",
+                maxWidth: "calc(100vw - 84px)",
                 background: "linear-gradient(145deg,rgba(255,255,255,0.98) 0%,rgba(248,250,252,0.98) 100%)",
                 color: "#1f2937",
                 boxShadow: "0 25px 50px -12px rgba(0,0,0,0.15)",

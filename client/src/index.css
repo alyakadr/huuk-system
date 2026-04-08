@@ -41,6 +41,118 @@
   }
 }
 
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 1024px) {
+  .switch-mode-container {
+    right: 12px;
+    bottom: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .homepage-signin-modal,
+  .homepage-signup-modal {
+    width: min(100vw - 20px, 680px) !important;
+    max-width: min(100vw - 20px, 680px) !important;
+    height: min(92vh, 760px) !important;
+    max-height: 92vh !important;
+  }
+
+  .homepage-signin-modal-container,
+  .homepage-signup-modal-container {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  .homepage-signin-left-section,
+  .homepage-signup-left-section,
+  .homepage-signin-right-section,
+  .homepage-signup-right-section {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 24px 20px !important;
+  }
+
+  .h2he-homepage,
+  .h2he2-homepage {
+    font-size: clamp(2.2rem, 8vw, 3.2rem) !important;
+    line-height: 1 !important;
+  }
+
+  .sign-up-heading-homepage {
+    font-size: clamp(1.8rem, 7vw, 2.3rem) !important;
+  }
+
+  .sign-up-form-homepage,
+  .sign-up-form-homepage label,
+  .error-homepage,
+  .remember-container-homepage,
+  .sign-up-btn-homepage,
+  .sign-up-form-homepage input {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .homepage-signin-modal,
+  .homepage-signup-modal {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    height: calc(100vh - 16px) !important;
+    max-height: calc(100vh - 16px) !important;
+    border-radius: 8px !important;
+  }
+
+  .homepage-signin-left-section,
+  .homepage-signup-left-section,
+  .homepage-signin-right-section,
+  .homepage-signup-right-section {
+    padding: 18px 14px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .staff-schedule {
+    height: auto !important;
+    max-height: none !important;
+    padding: 10px 8px !important;
+  }
+
+  .staff-schedule .daily-controls,
+  .staff-schedule .weekly-controls,
+  .staff-schedule .view-toggle-container,
+  .staff-schedule .date-navigation,
+  .staff-schedule .legend-items,
+  .staff-schedule .daily-legend-items {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .staff-schedule .view-toggle-btn {
+    min-width: 86px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .staff-schedule .daily-grid {
+    min-width: 760px;
+  }
+
+  .staff-schedule .schedule-grid-wrapper {
+    min-width: 980px;
+  }
+}
+
 /* Reusable component layer utilities */
 @layer components {
   .btn-primary {
@@ -291,6 +403,83 @@
   }
   .staff-schedule .modal-overlay {
     @apply absolute inset-0 -z-10;
+  }
+
+  @media (max-width: 768px) {
+    .staff-schedule {
+      @apply px-3 pb-3;
+      height: auto;
+      max-height: none;
+      min-height: calc(100vh - 92px);
+    }
+    .staff-schedule .daily-controls,
+    .staff-schedule .weekly-controls {
+      @apply items-stretch gap-3;
+      flex-direction: column;
+    }
+    .staff-schedule .view-toggle-container {
+      @apply mb-0 w-full;
+    }
+    .staff-schedule .view-toggle-btn {
+      @apply min-w-0 flex-1 px-4 py-3.5;
+    }
+    .staff-schedule .date-picker,
+    .staff-schedule .date-navigation {
+      @apply w-full justify-between;
+    }
+    .staff-schedule .nav-button {
+      @apply h-11 w-11;
+    }
+    .staff-schedule .date-display {
+      @apply flex-1 px-2 text-[13px];
+      min-width: 0;
+    }
+    .staff-schedule .daily-legend-items,
+    .staff-schedule .legend-items {
+      @apply flex-wrap gap-x-3 gap-y-2 text-xs;
+    }
+    .staff-schedule .available-actions {
+      @apply flex-col gap-1.5;
+    }
+    .staff-schedule .add-btn,
+    .staff-schedule .block-btn {
+      @apply min-h-[28px] justify-center px-1.5 py-1 text-[10px];
+    }
+    .staff-schedule .btn-icon {
+      @apply text-[10px];
+    }
+  }
+
+  @media (max-width: 1100px) and (min-width: 769px) {
+    .staff-schedule {
+      @apply px-3.5 pb-3.5;
+      height: auto;
+      max-height: none;
+      min-height: calc(100vh - 112px);
+    }
+    .staff-schedule .daily-grid {
+      min-width: 840px;
+    }
+    .staff-schedule .schedule-grid-wrapper {
+      min-width: 960px;
+    }
+    .staff-schedule .schedule-header-grid,
+    .staff-schedule .day-row-grid {
+      grid-template-columns: 104px repeat(24, minmax(30px, 1fr));
+    }
+    .staff-schedule .day-label-cell,
+    .staff-schedule .schedule-slot,
+    .staff-schedule .booking-slot-column,
+    .staff-schedule .time-label-column {
+      height: 56px;
+    }
+    .staff-schedule .time-display,
+    .staff-schedule .day-date {
+      @apply text-[10px];
+    }
+    .staff-schedule .day-name {
+      @apply text-[13px];
+    }
   }
 
   /* Homepage styles migrated from homepage.module.css */

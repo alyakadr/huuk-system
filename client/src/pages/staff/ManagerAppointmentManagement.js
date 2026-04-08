@@ -93,6 +93,22 @@ const ManagerAppointmentManagement = () => {
   const [, setOutletError] = useState("");
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
+  const [isTabletView, setIsTabletView] = useState(
+    window.innerWidth > 768 && window.innerWidth <= 1100,
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+      setIsTabletView(window.innerWidth > 768 && window.innerWidth <= 1100);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isCondensedView = isMobileView || isTabletView;
 
   // Function to handle submission from RescheduleBookingModal
   const handleRescheduleSubmit = async (rescheduleData) => {
@@ -512,7 +528,13 @@ const ManagerAppointmentManagement = () => {
   };
 
   return (
-    <div className="bg-transparent text-white h-[calc(100vh-160px)] p-4 font-quicksand relative overflow-hidden flex flex-col gap-4 box-border">
+    <div
+      className="bg-transparent text-white p-4 font-quicksand relative flex flex-col gap-4 box-border"
+      style={{
+        height: isMobileView ? "auto" : "calc(100vh - 160px)",
+        overflow: isMobileView ? "visible" : "hidden",
+      }}
+    >
       {/* Location Tabs */}
       {/* 2. Outlet filter bar: show all unique outlets as filter buttons */}
       {/* Use locations array for outlet filter bar, so all outlets are shown even if they have no bookings */}
@@ -525,10 +547,10 @@ const ManagerAppointmentManagement = () => {
           marginBottom: 8,
           borderRadius: 8,
           display: "flex",
-          flexWrap: "nowrap",
+          flexWrap: isMobileView ? "wrap" : "nowrap",
           padding: "0 4px",
           gap: "4px",
-          overflow: "hidden",
+          overflow: isMobileView ? "visible" : "hidden",
         }}
       >
         <button
@@ -540,12 +562,13 @@ const ManagerAppointmentManagement = () => {
             fontFamily: "Quicksand, sans-serif",
             border: "none",
             whiteSpace: "nowrap",
-            minWidth: 0,
-            flex: 1,
-            padding: "10px 0",
+            minWidth: isMobileView ? "calc(50% - 2px)" : 0,
+            flex: isMobileView ? "1 1 calc(50% - 2px)" : 1,
+            padding: isMobileView ? "11px 8px" : "10px 0",
             borderRadius: 6,
             cursor: "pointer",
             transition: "all 0.2s",
+            minHeight: 44,
           }}
           onClick={() => setSelectedLocation("")}
         >
@@ -568,12 +591,13 @@ const ManagerAppointmentManagement = () => {
               fontFamily: "Quicksand, sans-serif",
               border: "none",
               whiteSpace: "nowrap",
-              minWidth: 0,
-              flex: 1,
-              padding: "10px 0",
+              minWidth: isMobileView ? "calc(50% - 2px)" : 0,
+              flex: isMobileView ? "1 1 calc(50% - 2px)" : 1,
+              padding: isMobileView ? "11px 8px" : "10px 0",
               borderRadius: 6,
               cursor: "pointer",
               transition: "all 0.2s",
+              minHeight: 44,
             }}
             onClick={() => setSelectedLocation(outlet.shortform || outlet.name)}
           >
@@ -590,6 +614,8 @@ const ManagerAppointmentManagement = () => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: isCondensedView ? "wrap" : "nowrap",
+          gap: isCondensedView ? "10px" : "0",
           width: "100%",
         }}
       >
@@ -603,7 +629,7 @@ const ManagerAppointmentManagement = () => {
             minWidth: 0,
           }}
         >
-          <h2 style={{ whiteSpace: "nowrap", margin: 0 }}>
+          <h2 style={{ whiteSpace: isCondensedView ? "normal" : "nowrap", margin: 0, lineHeight: 1.2 }}>
             {selectedLocation
               ? `${outlets.find((outlet) => (outlet.shortform || outlet.name) === selectedLocation)?.name || selectedLocation} (${selectedLocation})`
               : "All Locations"}
@@ -622,8 +648,9 @@ const ManagerAppointmentManagement = () => {
             gap: 8,
             background: "#232323",
             borderRadius: 6,
-            padding: "6px 12px",
+            padding: isCondensedView ? "10px 12px" : "6px 12px",
             marginLeft: "auto",
+            width: isCondensedView ? "100%" : "auto",
           }}
         >
           <CalendarIcon />
@@ -639,8 +666,9 @@ const ManagerAppointmentManagement = () => {
               fontFamily: "Quicksand, sans-serif",
               fontWeight: "bold",
               fontSize: 15,
-              padding: "4px 0",
-              minWidth: 120,
+              padding: isCondensedView ? "8px 0" : "4px 0",
+              minWidth: isCondensedView ? 0 : 120,
+              width: isCondensedView ? "100%" : "auto",
               cursor: "pointer",
             }}
           />
@@ -667,10 +695,10 @@ const ManagerAppointmentManagement = () => {
         <div
           className="min-h-[340px] h-[340px] max-h-[340px] overflow-hidden box-border w-full mb-0 bg-[rgba(25,25,25,0.8)] rounded-huuk-sm border border-white/10 flex flex-col"
           style={{
-            minHeight: "340px", // 4 rows * 80-85px per row + header
-            height: "340px",
-            maxHeight: "340px",
-            overflow: "hidden",
+            minHeight: isCondensedView ? "auto" : "340px",
+            height: isCondensedView ? "auto" : "340px",
+            maxHeight: isCondensedView ? "none" : "340px",
+            overflow: isCondensedView ? "visible" : "hidden",
             boxSizing: "border-box",
             width: "100%",
             marginBottom: 0,
@@ -681,13 +709,77 @@ const ManagerAppointmentManagement = () => {
             flexDirection: "column",
           }}
         >
-          <div
-            className="grid bg-orange-500/10 px-4 py-3 font-semibold text-[11px] text-white uppercase tracking-wide border-b border-orange-500/30 shrink-0 w-full max-w-full box-border"
-            style={{
-              gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
-              overflow: "hidden",
-            }}
-          >
+          {isMobileView ? (
+            <div className="space-y-2 p-2">
+              {paginatedAppointments.length === 0 ? (
+                <div className="text-center text-sm text-gray-300 py-4">
+                  No appointments found.
+                </div>
+              ) : (
+                paginatedAppointments.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="rounded-huuk-sm border border-white/10 bg-white/5 p-3"
+                  >
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                      <span className="text-gray-300">Date</span>
+                      <span>
+                        {appointment.date
+                          ? formatDateForDisplay(appointment.date)
+                          : "N/A"}
+                      </span>
+                      <span className="text-gray-300">Time</span>
+                      <span>
+                        {(() => {
+                          if (
+                            !appointment.start_time ||
+                            !appointment.end_time ||
+                            !appointment.date
+                          )
+                            return "N/A";
+                          const dateOnly = appointment.date.split("T")[0];
+                          const startDateTime = moment(
+                            `${dateOnly}T${appointment.start_time}`,
+                          );
+                          const endDateTime = moment(
+                            `${dateOnly}T${appointment.end_time}`,
+                          );
+                          if (!startDateTime.isValid() || !endDateTime.isValid())
+                            return "Invalid Time";
+                          return `${startDateTime.format("HH:mm")} - ${endDateTime.format("HH:mm")}`;
+                        })()}
+                      </span>
+                      <span className="text-gray-300">Staff</span>
+                      <span>
+                        {appointment.username ||
+                        appointment.staff_username ||
+                        appointment.user_name
+                          ? appointment.username ||
+                            appointment.staff_username ||
+                            appointment.user_name
+                          : appointment.staffName &&
+                              appointment.staffName !== "-" &&
+                              appointment.staffName.trim() !== ""
+                            ? appointment.staffName
+                            : "Unassigned"}
+                      </span>
+                      <span className="text-gray-300">Service</span>
+                      <span>{appointment.service}</span>
+                    </div>
+                    <div className="mt-3 flex justify-stretch">{getActionButtons(appointment)}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+          <>
+            <div
+              className="grid bg-orange-500/10 px-4 py-3 font-semibold text-[11px] text-white uppercase tracking-wide border-b border-orange-500/30 shrink-0 w-full max-w-full box-border"
+              style={{
+                gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
+                overflow: "hidden",
+              }}
+            >
             <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
               <CalendarIcon />
               <span>DATE</span>
@@ -707,7 +799,7 @@ const ManagerAppointmentManagement = () => {
             <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap justify-center">
               <span>ACTIONS</span>
             </div>
-          </div>
+            </div>
           <div
             className="flex-1 overflow-hidden bg-transparent"
             style={{ flex: 1, overflow: "hidden", background: "transparent" }}
@@ -826,7 +918,9 @@ const ManagerAppointmentManagement = () => {
                 );
               }
             })}
-          </div>
+            </div>
+          </>
+          )}
         </div>
       )}
 
@@ -838,14 +932,14 @@ const ManagerAppointmentManagement = () => {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          marginTop: "-15px",
+          marginTop: isMobileView ? "4px" : "-15px",
         }}
       >
         <button
           className="px-3 py-1 rounded-huuk-sm bg-white/20 text-white disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={currentPage === 1}
           onClick={() => setCurrentPage(currentPage - 1)}
-          style={{ marginRight: 12 }}
+          style={{ marginRight: 12, minHeight: 40 }}
         >
           Prev
         </button>
@@ -863,7 +957,7 @@ const ManagerAppointmentManagement = () => {
           className="px-3 py-1 rounded-huuk-sm bg-white/20 text-white disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={currentPage >= totalPages}
           onClick={() => setCurrentPage(currentPage + 1)}
-          style={{ marginLeft: 12 }}
+          style={{ marginLeft: 12, minHeight: 40 }}
         >
           Next
         </button>
@@ -886,6 +980,13 @@ const ManagerAppointmentManagement = () => {
         onClose={() => setShowCancelConfirmation(false)}
         className="reschedule-dialog"
         maxWidth="sm"
+        PaperProps={{
+          sx: {
+            width: isMobileView ? "calc(100vw - 24px)" : undefined,
+            maxWidth: isMobileView ? "calc(100vw - 24px)" : undefined,
+            margin: isMobileView ? "12px" : undefined,
+          },
+        }}
       >
         <DialogTitle
           sx={{
@@ -960,14 +1061,14 @@ const ManagerAppointmentManagement = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ borderTop: "1px solid #333", p: 2 }}>
+        <DialogActions sx={{ borderTop: "1px solid #333", p: 2, flexWrap: isMobileView ? "wrap" : "nowrap", gap: isMobileView ? 1 : 0 }}>
           <Button
             onClick={() => setShowCancelConfirmation(false)}
             sx={{
               fontFamily: "Quicksand, sans-serif",
               textTransform: "none",
               fontWeight: "bold",
-              minWidth: "120px",
+              minWidth: isMobileView ? "100%" : "120px",
               backgroundColor: "transparent",
               color: "#fff",
               border: "1px solid #fff",
@@ -986,7 +1087,7 @@ const ManagerAppointmentManagement = () => {
               fontFamily: "Quicksand, sans-serif",
               textTransform: "none",
               fontWeight: "bold",
-              minWidth: "160px",
+              minWidth: isMobileView ? "100%" : "160px",
               color: "#fff",
             }}
           >

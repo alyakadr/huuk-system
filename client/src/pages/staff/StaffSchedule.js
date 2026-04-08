@@ -44,6 +44,7 @@ const StaffSchedule = () => {
   const [blockedSlots, setBlockedSlots] = useState([]);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [slotToBlock, setSlotToBlock] = useState(null);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
   // Set currentDate to today's date in local timezone
   const [currentDate, setCurrentDate] = useState(getMalaysiaToday);
   const [, setFormData] = useState({
@@ -107,6 +108,15 @@ const StaffSchedule = () => {
     },
     [sessionToken],
   );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     socketRef.current = io(API_BASE_URL);
@@ -1005,9 +1015,9 @@ const StaffSchedule = () => {
           isSidebarMinimized ? "sidebar-minimized" : ""
         }`}
         style={{
-          height: "600px",
-          maxHeight: "600px",
-          overflow: "hidden",
+          height: isMobileView ? "auto" : "600px",
+          maxHeight: isMobileView ? "none" : "600px",
+          overflow: isMobileView ? "visible" : "hidden",
         }}
       >
         {/* Toggle View and Date Filter - No Header */}
@@ -1047,7 +1057,7 @@ const StaffSchedule = () => {
                 <div
                   style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}
                 >
-                  API: {formatDateForAPI(currentDate)}
+                  {isMobileView ? "" : `API: ${formatDateForAPI(currentDate)}`}
                 </div>
               </div>
               <button
@@ -1378,7 +1388,7 @@ const StaffSchedule = () => {
                 width: "90vw",
                 maxHeight: "calc(100vh - 24px)",
                 overflowY: "auto",
-                padding: 22,
+                padding: isMobileView ? 14 : 22,
                 color: "#222",
                 display: "flex",
                 flexDirection: "column",
@@ -1390,7 +1400,7 @@ const StaffSchedule = () => {
                 style={{
                   textAlign: "center",
                   fontWeight: 700,
-                  fontSize: 24,
+                  fontSize: isMobileView ? 18 : 24,
                   color: "#222",
                   letterSpacing: "2px",
                   marginBottom: 12,
@@ -1405,10 +1415,10 @@ const StaffSchedule = () => {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1.2fr",
+                  gridTemplateColumns: isMobileView ? "1fr" : "1fr 1.2fr",
                   rowGap: 7,
                   columnGap: 10,
-                  fontSize: 14,
+                  fontSize: isMobileView ? 13 : 14,
                   color: "#222",
                   marginBottom: 10,
                 }}
@@ -1571,6 +1581,8 @@ const StaffSchedule = () => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: isMobileView ? "wrap" : "nowrap",
+          rowGap: isMobileView ? "10px" : "0",
           marginBottom: "10px",
           padding: "8px 0",
         }}
@@ -1803,7 +1815,7 @@ const StaffSchedule = () => {
               width: "90vw",
               maxHeight: "calc(100vh - 24px)",
               overflowY: "auto",
-              padding: 22,
+              padding: isMobileView ? 14 : 22,
               color: "#222",
               display: "flex",
               flexDirection: "column",
@@ -1815,7 +1827,7 @@ const StaffSchedule = () => {
               style={{
                 textAlign: "center",
                 fontWeight: 700,
-                fontSize: 24,
+                fontSize: isMobileView ? 18 : 24,
                 color: "#222",
                 letterSpacing: "2px",
                 marginBottom: 12,
@@ -1830,10 +1842,10 @@ const StaffSchedule = () => {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1.2fr",
+                gridTemplateColumns: isMobileView ? "1fr" : "1fr 1.2fr",
                 rowGap: 7,
                 columnGap: 10,
-                fontSize: 14,
+                fontSize: isMobileView ? 13 : 14,
                 color: "#222",
                 marginBottom: 10,
               }}

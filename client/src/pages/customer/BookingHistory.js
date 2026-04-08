@@ -60,6 +60,18 @@ const BookingHistory = () => {
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [confirmCancelDialogOpen, setConfirmCancelDialogOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
+  const [isCompactView, setIsCompactView] = useState(window.innerWidth <= 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+      setIsCompactView(window.innerWidth <= 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const navigate = useNavigate();
   const { profile } = useProfile();
@@ -884,7 +896,9 @@ const BookingHistory = () => {
                 className="cust-booking-row"
                 sx={{
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: isMobileView ? "flex-start" : "center",
+                  flexDirection: isMobileView ? "column" : "row",
+                  gap: isMobileView ? "8px" : "0",
                   padding: "10px !important",
                 }}
               >
@@ -893,7 +907,7 @@ const BookingHistory = () => {
                     variant="h6"
                     style={{
                       fontFamily: "Glacial Indifference",
-                      width: "270px",
+                      width: isMobileView ? "100%" : "270px",
                       margin: 0,
                       display: "flex",
                       alignItems: "center",
@@ -938,6 +952,7 @@ const BookingHistory = () => {
                         : () => handleViewDetails(booking)
                     }
                     className="cust-details-btn"
+                    sx={{ width: isMobileView ? "100%" : "auto" }}
                   >
                     {booking.status === "Completed" && !booking.review
                       ? "Rate Us"
@@ -1260,11 +1275,15 @@ const BookingHistory = () => {
         open={!!success}
         autoHideDuration={5000}
         onClose={() => setSuccess("")}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: isCompactView ? "center" : "left",
+        }}
         sx={{
           "& .MuiSnackbarContent-root": {
-            minWidth: "320px",
-            maxWidth: "500px",
+            minWidth: isCompactView ? "0" : "320px",
+            width: isCompactView ? "min(92vw, 520px)" : "auto",
+            maxWidth: isCompactView ? "min(92vw, 520px)" : "500px",
           },
           zIndex: 1002,
         }}
@@ -1312,11 +1331,15 @@ const BookingHistory = () => {
         open={!!error}
         autoHideDuration={5000}
         onClose={() => setError("")}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: isCompactView ? "center" : "left",
+        }}
         sx={{
           "& .MuiSnackbarContent-root": {
-            minWidth: "320px",
-            maxWidth: "500px",
+            minWidth: isCompactView ? "0" : "320px",
+            width: isCompactView ? "min(92vw, 520px)" : "auto",
+            maxWidth: isCompactView ? "min(92vw, 520px)" : "500px",
           },
           zIndex: 1002,
         }}
@@ -1368,8 +1391,9 @@ const BookingHistory = () => {
         maxWidth="xs"
         PaperProps={{
           sx: {
-            width: "350px",
-            maxWidth: "90vw",
+            width: isCompactView ? "min(92vw, 520px)" : "350px",
+            maxWidth: isCompactView ? "min(92vw, 520px)" : "90vw",
+            margin: isCompactView ? "12px" : undefined,
           },
         }}
       >
@@ -1443,6 +1467,7 @@ const BookingHistory = () => {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
+                width: "100%",
               }}
             >
               <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -1457,7 +1482,8 @@ const BookingHistory = () => {
                   disabled={isRescheduling}
                   timezone="Asia/Kuala_Lumpur" // Set Malaysia timezone
                   sx={{
-                    width: "220px",
+                    width: isCompactView ? "100%" : "220px",
+                    maxWidth: isCompactView ? "100%" : "220px",
                     "& .MuiInputBase-input": {
                       color: "#fff",
                       fontSize: "0.9rem",
@@ -1493,7 +1519,7 @@ const BookingHistory = () => {
               <FormControl
                 margin="normal"
                 disabled={!rescheduleDate || isRescheduling}
-                sx={{ width: "220px", display: "block", my: 1 }}
+                sx={{ width: isCompactView ? "100%" : "220px", maxWidth: isCompactView ? "100%" : "220px", display: "block", my: 1 }}
               >
                 <InputLabel sx={{ fontSize: "0.9rem" }}>
                   Available Time Slots
@@ -1542,7 +1568,7 @@ const BookingHistory = () => {
               <FormControl
                 margin="normal"
                 disabled={!rescheduleTime || isRescheduling}
-                sx={{ width: "220px", display: "block", my: 1 }}
+                sx={{ width: isCompactView ? "100%" : "220px", maxWidth: isCompactView ? "100%" : "220px", display: "block", my: 1 }}
               >
                 <InputLabel sx={{ fontSize: "0.9rem" }}>Staff</InputLabel>
                 <Select
@@ -1588,7 +1614,7 @@ const BookingHistory = () => {
             </Box>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ borderTop: "1px solid #333", p: 1.5, px: 2 }}>
+        <DialogActions sx={{ borderTop: "1px solid #333", p: 1.5, px: 2, flexWrap: isCompactView ? "wrap" : "nowrap", gap: isCompactView ? 1 : 0 }}>
           <Button
             onClick={() => setRescheduleDialogOpen(false)}
             className="reschedule-cancel-btn"
@@ -1598,7 +1624,7 @@ const BookingHistory = () => {
               textTransform: "none",
               fontWeight: "bold",
               fontSize: "0.85rem",
-              minWidth: "90px",
+              minWidth: isMobileView ? "100%" : isCompactView ? "48%" : "90px",
             }}
           >
             Cancel
@@ -1617,7 +1643,7 @@ const BookingHistory = () => {
               textTransform: "none",
               fontWeight: "bold",
               fontSize: "0.85rem",
-              minWidth: "130px",
+              minWidth: isMobileView ? "100%" : isCompactView ? "48%" : "130px",
             }}
           >
             {isRescheduling ? (
@@ -1638,6 +1664,13 @@ const BookingHistory = () => {
         onClose={() => !isCancelling && setConfirmCancelDialogOpen(false)}
         className="reschedule-dialog"
         maxWidth="sm"
+        PaperProps={{
+          sx: {
+            width: isCompactView ? "min(92vw, 520px)" : undefined,
+            maxWidth: isCompactView ? "min(92vw, 520px)" : undefined,
+            margin: isCompactView ? "12px" : undefined,
+          },
+        }}
       >
         <DialogTitle
           sx={{
@@ -1704,7 +1737,7 @@ const BookingHistory = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ borderTop: "1px solid #333", p: 2 }}>
+        <DialogActions sx={{ borderTop: "1px solid #333", p: 2, flexWrap: isCompactView ? "wrap" : "nowrap", gap: isCompactView ? 1 : 0 }}>
           <Button
             onClick={() => setConfirmCancelDialogOpen(false)}
             className="reschedule-cancel-btn"
@@ -1713,7 +1746,7 @@ const BookingHistory = () => {
               fontFamily: "Quicksand, sans-serif",
               textTransform: "none",
               fontWeight: "bold",
-              minWidth: "120px",
+              minWidth: isMobileView ? "100%" : isCompactView ? "48%" : "120px",
             }}
           >
             Keep Booking
@@ -1727,7 +1760,7 @@ const BookingHistory = () => {
               fontFamily: "Quicksand, sans-serif",
               textTransform: "none",
               fontWeight: "bold",
-              minWidth: "160px",
+              minWidth: isMobileView ? "100%" : isCompactView ? "48%" : "160px",
             }}
             disabled={isCancelling}
           >

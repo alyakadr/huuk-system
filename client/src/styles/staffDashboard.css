@@ -769,6 +769,18 @@ html:has(.staff-dashboard) {
   color: white !important;
 }
 
+
+@media (max-width: 768px) {
+  .staff-dashboard,
+  .staff-dashboard .staff-dashboard-dashboard-container,
+  .staff-dashboard .staff-dashboard-main-content,
+  body:has(.staff-dashboard),
+  html:has(.staff-dashboard) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: auto !important;
+  }
+}
 .staff-dashboard .staff-dashboard-timeslot-button.staff-dashboard-booked {
   background-color: #dc3545;
   color: white;

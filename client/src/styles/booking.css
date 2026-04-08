@@ -1766,6 +1766,28 @@
   display: flex;
 }
 
+@media (max-width: 768px) {
+  .enhanced-payment-modal-container,
+  .fpx-modal-container {
+    width: min(100vw - 20px, 420px);
+    min-height: 0;
+    max-height: calc(100vh - 24px);
+  }
+
+  .payment-modal-container,
+  .confirmation-modal-container {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+  }
+
+  .booking-details-modal-container {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100vh - 24px) !important;
+    padding: 12px !important;
+  }
+}
+
 .confirmation-left-section {
   flex: 1;
   padding: 20px;
@@ -1824,6 +1846,60 @@
   font-weight: 500;
 }
 
+@media (max-width: 1100px) {
+  .cust-booking {
+    margin-top: 86px;
+    padding: 14px;
+  }
+
+  .cust-booking h2 {
+    font-size: 1.7rem;
+    width: min(92%, 760px);
+  }
+
+  .cust-container,
+  .cust-stepper,
+  .cust-form,
+  .form-columns {
+    max-width: 100%;
+  }
+
+  .cust-stepper .MuiStepLabel-label {
+    font-size: 12px !important;
+    line-height: 1.2;
+  }
+
+  .form-columns {
+    gap: 18px;
+    margin-top: -8px;
+  }
+
+  .form-column-left,
+  .form-column-right,
+  .form-field,
+  .cust-form input,
+  .cust-form select,
+  .cust-form .date-picker,
+  .name-input,
+  .cust-form .react-datepicker-wrapper,
+  .cust-form .react-datepicker__input-container,
+  .cust-form .react-datepicker__input-container input {
+    max-width: 250px;
+    min-width: 0;
+  }
+
+  .booking-details-modal-container {
+    width: min(100vw - 36px, 920px) !important;
+    max-width: min(100vw - 36px, 920px) !important;
+    max-height: calc(100vh - 48px) !important;
+  }
+
+  .confirmation-modal-container {
+    width: min(100vw - 36px, 860px);
+    max-width: min(100vw - 36px, 860px);
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 600px) {
   .form-columns {
@@ -1868,5 +1944,56 @@
   .sign-in-left-section,
   .confirmation-left-section {
     border-radius: 15px 15px 0 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .cust-booking {
+    margin-top: 74px;
+    min-height: calc(100vh - 74px);
+    padding: 10px 8px;
+  }
+
+  .cust-stepper {
+    margin: 12px auto 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .cust-stepper .MuiStepper-root {
+    min-width: 620px;
+  }
+
+  .cust-stepper .MuiStepLabel-label {
+    font-size: 11px !important;
+  }
+
+  .cust-form {
+    margin-top: 10px;
+  }
+
+  .payment-modal-container,
+  .sign-in-modal-container,
+  .confirmation-modal-container {
+    border-radius: 14px;
+  }
+
+  .confirmation-modal-container {
+    flex-direction: column;
+  }
+
+  .confirmation-left-section,
+  .confirmation-right-section {
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .payment-actions-section {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .payment-actions-section .MuiButton-root {
+    width: 100%;
   }
 }

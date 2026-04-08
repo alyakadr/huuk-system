@@ -764,7 +764,7 @@ const ManagerDashboard = () => {
     <main className="w-full bg-huuk-bg text-white font-quicksand p-2">
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         <div className="xl:col-span-9 space-y-4">
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-2xl font-bold m-0">
               Overall Staffs Status Appointment
             </h2>
@@ -945,7 +945,7 @@ const ManagerDashboard = () => {
         </div>
 
         <section className="xl:col-span-3 card-dark rounded-huuk-lg min-h-[230px] mt-0 xl:mt-12 flex flex-col">
-          <header className="flex items-center justify-between mb-1">
+          <header className="flex flex-wrap items-center justify-between gap-2 mb-1">
             <h2>Number of Transaction</h2>
             <MaintenanceViewAllButton />
           </header>

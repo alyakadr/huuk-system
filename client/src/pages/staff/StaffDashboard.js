@@ -43,7 +43,7 @@ ChartJS.register(
   ChartDataLabels,
 );
 
-const PaymentManagementTable = ({ loadingPayment, paymentData }) => {
+const PaymentManagementTable = ({ loadingPayment, paymentData, isMobileView }) => {
   return (
     <div className="card-dark mt-5">
       <div className="flex items-center justify-between">
@@ -59,45 +59,81 @@ const PaymentManagementTable = ({ loadingPayment, paymentData }) => {
           View all
         </button>
       </div>
-      <table className="huuk-table mt-3">
-        <thead>
-          <tr>
-            <th className="huuk-th">CUSTOMER NAME</th>
-            <th className="huuk-th">PAYMENT METHOD</th>
-            <th className="huuk-th">STATUS</th>
-          </tr>
-        </thead>
-        <tbody>
+      {isMobileView ? (
+        <div className="mt-3 space-y-2">
           {loadingPayment ? (
-            <tr>
-              <td colSpan="3" className="huuk-td text-center">
-                Loading payment data...
-              </td>
-            </tr>
+            <div className="huuk-td text-center">Loading payment data...</div>
           ) : paymentData.length === 0 ? (
-            <tr>
-              <td colSpan="3" className="huuk-td text-center">
-                No payment data available
-              </td>
-            </tr>
+            <div className="huuk-td text-center">No payment data available</div>
           ) : (
             paymentData.slice(0, 3).map((payment, index) => (
-              <tr
+              <div
                 key={payment.id || index}
-                className="huuk-tr border-b border-white/10"
+                className="rounded-huuk-sm border border-white/10 bg-white/5 p-3"
               >
-                <td className="huuk-td">{payment.customer_name}</td>
-                <td className="huuk-td">{payment.payment_method}</td>
-                <td
-                  className={`huuk-td font-semibold ${payment.payment_status === "Paid" ? "text-green-400" : "text-yellow-300"}`}
-                >
-                  {payment.payment_status}
-                </td>
-              </tr>
+                <div className="grid grid-cols-2 gap-y-1 text-sm">
+                  <span className="text-huuk-muted">Customer</span>
+                  <span>{payment.customer_name}</span>
+                  <span className="text-huuk-muted">Method</span>
+                  <span>{payment.payment_method}</span>
+                  <span className="text-huuk-muted">Status</span>
+                  <span
+                    className={
+                      payment.payment_status === "Paid"
+                        ? "font-semibold text-green-400"
+                        : "font-semibold text-yellow-300"
+                    }
+                  >
+                    {payment.payment_status}
+                  </span>
+                </div>
+              </div>
             ))
           )}
-        </tbody>
-      </table>
+        </div>
+      ) : (
+      <div className="overflow-x-auto mt-3">
+        <table className="huuk-table min-w-[560px]">
+          <thead>
+            <tr>
+              <th className="huuk-th">CUSTOMER NAME</th>
+              <th className="huuk-th">PAYMENT METHOD</th>
+              <th className="huuk-th">STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loadingPayment ? (
+              <tr>
+                <td colSpan="3" className="huuk-td text-center">
+                  Loading payment data...
+                </td>
+              </tr>
+            ) : paymentData.length === 0 ? (
+              <tr>
+                <td colSpan="3" className="huuk-td text-center">
+                  No payment data available
+                </td>
+              </tr>
+            ) : (
+              paymentData.slice(0, 3).map((payment, index) => (
+                <tr
+                  key={payment.id || index}
+                  className="huuk-tr border-b border-white/10"
+                >
+                  <td className="huuk-td">{payment.customer_name}</td>
+                  <td className="huuk-td">{payment.payment_method}</td>
+                  <td
+                    className={`huuk-td font-semibold ${payment.payment_status === "Paid" ? "text-green-400" : "text-yellow-300"}`}
+                  >
+                    {payment.payment_status}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      )}
     </div>
   );
 };
@@ -125,6 +161,16 @@ const StaffDashboard = () => {
   const [blockedSlots, setBlockedSlots] = useState([]);
   const [showAddBookingModal, setShowAddBookingModal] = useState(false);
   const [selectedSlotForBooking, setSelectedSlotForBooking] = useState(null);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const fetchAllData = async () => {
     setLoadingSummary(true);
@@ -756,6 +802,50 @@ const StaffDashboard = () => {
     [BOOKING_STATUSES.RESCHEDULED]: "#ffbf05",
   };
 
+  const renderScheduleAction = (booking) => {
+    const displayStatus = booking.status;
+    const color = statusColorMap[displayStatus] || "#f44336";
+
+    if (displayStatus === BOOKING_STATUSES.CONFIRMED) {
+      return (
+        <button
+          className="btn-primary"
+          style={{
+            padding: "6px 0",
+            minWidth: "90px",
+            maxWidth: "120px",
+            fontSize: "14px",
+            boxShadow: "0 2px 8px rgba(25, 118, 210, 0.08)",
+            letterSpacing: "0.5px",
+            transition: "background 0.2s",
+            margin: "0 auto",
+            display: "block",
+          }}
+          onClick={() => checkPaymentConfirmation(booking.id)}
+        >
+          Done
+        </button>
+      );
+    }
+
+    return (
+      <span
+        className="font-bold text-base block text-center"
+        style={{
+          fontFamily: "Quicksand, sans-serif",
+          fontWeight: "bold",
+          fontSize: "16px",
+          color,
+          display: "block",
+          textAlign: "center",
+          textTransform: "none",
+        }}
+      >
+        {displayStatus}
+      </span>
+    );
+  };
+
   if (!user) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center text-white font-quicksand">
@@ -878,7 +968,7 @@ const StaffDashboard = () => {
             {/* Left side - Appointment List */}
             <div className="xl:col-span-8 space-y-4">
               <div className="card-dark rounded-huuk-lg">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <h3 className="text-lg font-bold flex items-center">
                     My Schedule
                     <>
@@ -906,8 +996,38 @@ const StaffDashboard = () => {
                     View All
                   </button>
                 </div>
+                {isMobileView ? (
+                  <div className="space-y-2">
+                    {loadingSchedule ? (
+                      <div className="huuk-td text-center">Loading...</div>
+                    ) : (
+                      limitedSchedule.map((booking, index) => (
+                        <div
+                          key={booking.id || index}
+                          className="rounded-huuk-sm border border-white/10 bg-white/5 p-3"
+                        >
+                          <div className="grid grid-cols-2 gap-y-1 text-sm">
+                            <span className="text-huuk-muted">Customer</span>
+                            <span>{booking.customer_name}</span>
+                            <span className="text-huuk-muted">Phone</span>
+                            <span>{booking.phone_number}</span>
+                            <span className="text-huuk-muted">Service</span>
+                            <span>{booking.service_name}</span>
+                            <span className="text-huuk-muted">Time</span>
+                            <span>
+                              {booking.start_time !== "-" && booking.end_time !== "-"
+                                ? `${booking.start_time} - ${booking.end_time}`
+                                : "-"}
+                            </span>
+                          </div>
+                          <div className="mt-3">{renderScheduleAction(booking)}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : (
                 <div className="overflow-x-auto">
-                  <table className="huuk-table">
+                  <table className="huuk-table min-w-[760px]">
                     <thead>
                       <tr>
                         <th className="huuk-th">CUSTOMER NAME</th>
@@ -954,53 +1074,7 @@ const StaffDashboard = () => {
                                   verticalAlign: "middle",
                                 }}
                               >
-                                {(() => {
-                                  let displayStatus = booking.status;
-                                  let color =
-                                    statusColorMap[displayStatus] || "#f44336";
-                                  if (
-                                    displayStatus === BOOKING_STATUSES.CONFIRMED
-                                  ) {
-                                    return (
-                                      <button
-                                        className="btn-primary"
-                                        style={{
-                                          padding: "6px 0",
-                                          minWidth: "90px",
-                                          maxWidth: "120px",
-                                          fontSize: "14px",
-                                          boxShadow:
-                                            "0 2px 8px rgba(25, 118, 210, 0.08)",
-                                          letterSpacing: "0.5px",
-                                          transition: "background 0.2s",
-                                          margin: "0 auto",
-                                          display: "block",
-                                        }}
-                                        onClick={() =>
-                                          checkPaymentConfirmation(booking.id)
-                                        }
-                                      >
-                                        Done
-                                      </button>
-                                    );
-                                  }
-                                  return (
-                                    <span
-                                      className="font-bold text-base block text-center"
-                                      style={{
-                                        fontFamily: "Quicksand, sans-serif",
-                                        fontWeight: "bold",
-                                        fontSize: "16px",
-                                        color,
-                                        display: "block",
-                                        textAlign: "center",
-                                        textTransform: "none", // Ensure original casing
-                                      }}
-                                    >
-                                      {displayStatus}
-                                    </span>
-                                  );
-                                })()}
+                                {renderScheduleAction(booking)}
                               </td>
                             </tr>
                           );
@@ -1009,6 +1083,7 @@ const StaffDashboard = () => {
                     </tbody>
                   </table>
                 </div>
+                )}
               </div>
 
               {/* Payment Management and Sales Report */}
@@ -1016,6 +1091,7 @@ const StaffDashboard = () => {
                 <PaymentManagementTable
                   loadingPayment={loadingPayment}
                   paymentData={paymentData}
+                  isMobileView={isMobileView}
                 />
 
                 <div className="card-dark rounded-huuk-lg">
@@ -1253,9 +1329,13 @@ const StaffDashboard = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between gap-2.5">
+            <div
+              className="flex justify-between gap-2.5"
+              style={{ flexDirection: isMobileView ? "column" : "row" }}
+            >
               <button
                 className="flex-1 p-3 bg-emerald-500 text-white border-none rounded-huuk-sm font-bold cursor-pointer flex items-center justify-center gap-1"
+                style={{ minHeight: 46 }}
                 onClick={() => handlePaymentPaid(paymentConfirmationData)}
               >
                 <i className="bi bi-check-lg"></i> Yes, Paid
@@ -1263,6 +1343,7 @@ const StaffDashboard = () => {
 
               <button
                 className="flex-1 p-3 bg-amber-500 text-white border-none rounded-huuk-sm font-bold cursor-pointer flex items-center justify-center gap-1"
+                style={{ minHeight: 46 }}
                 onClick={() => handlePaymentUnpaid(paymentConfirmationData)}
               >
                 <i className="bi bi-clock"></i> Not Yet

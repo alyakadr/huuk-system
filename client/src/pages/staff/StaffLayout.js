@@ -22,8 +22,12 @@ const staffNavItems = [
 const StaffLayout = () => {
   const [user, setUser] = useState(null);
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const navigate = useNavigate();
   const location = useLocation();
+  const isPhone = viewportWidth <= 768;
+  const isCompactLayout = viewportWidth <= 1024;
+  const isTablet = viewportWidth > 768 && viewportWidth <= 1100;
   // Get token from staff_loggedInUser object or fallback to direct token
   const getToken = () => {
     const staffUser = localStorage.getItem('staff_loggedInUser');
@@ -114,6 +118,21 @@ const StaffLayout = () => {
       console.error("StaffLayout attendance check error:", error);
     }
   };
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isCompactLayout) {
+      setIsSidebarMinimized(true);
+    }
+  }, [isCompactLayout]);
 
   useEffect(() => {
     // Check if logout is in progress to prevent interference
@@ -223,21 +242,19 @@ const StaffLayout = () => {
   const staffLayoutStyles = {
     display: 'flex',
     minHeight: '100vh',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    backgroundColor: '#0e0d0f'
   };
-
-  const isMobile = window.innerWidth <= 768;
   
   const staffContentStyles = {
     flexGrow: 1,
-    overflow: 'hidden !important',
-    overflowX: 'hidden !important',
-    overflowY: 'hidden !important',
+    overflow: 'auto',
+    overflowX: 'hidden',
     backgroundColor: '#0e0d0f',
-    padding: '20px 20px 20px 10px',
-    paddingTop: '150px',
-    marginLeft: isMobile ? '77px' : (isSidebarMinimized ? '77px' : '285px'),
-    width: isMobile ? 'calc(100% - 77px)' : (isSidebarMinimized ? 'calc(100% - 77px)' : 'calc(100% - 285px)'),
+    padding: isPhone ? '12px' : isTablet ? '16px 16px 16px 12px' : '20px 20px 20px 10px',
+    paddingTop: isPhone ? '112px' : isCompactLayout ? '132px' : '150px',
+    marginLeft: isCompactLayout ? '77px' : (isSidebarMinimized ? '77px' : '285px'),
+    width: isCompactLayout ? 'calc(100% - 77px)' : (isSidebarMinimized ? 'calc(100% - 77px)' : 'calc(100% - 285px)'),
     boxSizing: 'border-box',
     transition: 'margin-left 0.3s ease, width 0.3s ease',
     position: 'relative',
@@ -253,7 +270,11 @@ const StaffLayout = () => {
         toggleSidebar={toggleSidebar}
       />
       <Header
-        minimized={isSidebarMinimized}
+        isMobile={isPhone}
+        isTablet={isTablet}
+        minimized={isCompactLayout ? true : isSidebarMinimized}
+        layoutLeftOffset={isCompactLayout ? '77px' : (isSidebarMinimized ? '77px' : '285px')}
+        layoutWidth={isCompactLayout ? 'calc(100% - 77px)' : (isSidebarMinimized ? 'calc(100% - 77px)' : 'calc(100% - 285px)')}
         logoSrc={
           user.profilePicture
             ? `http://localhost:5000${user.profilePicture}`

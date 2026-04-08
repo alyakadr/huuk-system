@@ -58,6 +58,16 @@ const StaffAppointments = () => {
   });
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [paymentConfirmationData, setPaymentConfirmationData] = useState(null);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Retry mechanism for API calls
   // Handler functions for appointment actions
@@ -1408,6 +1418,179 @@ const StaffAppointments = () => {
     return timeString;
   };
 
+  const getAppointmentPhone = (appointment) => {
+    const phoneFields = [
+      appointment.phone_number,
+      appointment.phone,
+      appointment.customer_phone,
+      appointment.phone_no,
+      appointment.contact_number,
+      appointment.user_phone,
+      appointment.customer?.phone,
+      appointment.customer?.phone_number,
+      appointment.user?.phone,
+      appointment.user?.phone_number,
+    ];
+
+    const phoneNumber = phoneFields.find(
+      (phone) =>
+        phone &&
+        phone !== "" &&
+        phone !== null &&
+        phone !== undefined &&
+        phone.toString().trim() !== "",
+    );
+
+    return phoneNumber ? phoneNumber.toString().trim() : "N/A";
+  };
+
+  const renderServiceStatus = (appointment) => {
+    const normalizedStatus = (appointment.status || "").toLowerCase();
+
+    if (normalizedStatus === "completed") {
+      return (
+        <span
+          className="status-message completed"
+          style={{
+            color: "#90d14f",
+            fontStyle: "italic",
+            textTransform: "none",
+          }}
+        >
+          Service Completed
+        </span>
+      );
+    }
+
+    if (normalizedStatus === "absent") {
+      return (
+        <span
+          className="status-message absent"
+          style={{
+            color: "#dc3545",
+            fontStyle: "italic",
+            textTransform: "none",
+          }}
+        >
+          Not Attend
+        </span>
+      );
+    }
+
+    if (normalizedStatus === "cancelled" || normalizedStatus === "canceled") {
+      return (
+        <span
+          className="status-message cancelled"
+          style={{
+            color: "#dc3545",
+            fontStyle: "italic",
+            textTransform: "none",
+          }}
+        >
+          Booking Cancelled
+        </span>
+      );
+    }
+
+    if (normalizedStatus === "rescheduled") {
+      return (
+        <span
+          className="status-message rescheduled"
+          style={{
+            color: "#8b5cf6",
+            fontStyle: "normal",
+            textTransform: "none",
+          }}
+        >
+          Rescheduled
+        </span>
+      );
+    }
+
+    if (
+      normalizedStatus === "confirmed" ||
+      normalizedStatus === "pending" ||
+      normalizedStatus === "" ||
+      !appointment.status
+    ) {
+      const daysDiff = moment(appointment.booking_date, moment.ISO_8601).diff(
+        moment(),
+        "days",
+      );
+
+      if (daysDiff >= 3) {
+        return (
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => handleReschedule(appointment.id)}
+              className="px-3 py-1 rounded-huuk-sm bg-huuk-purple text-white text-xs font-semibold hover:opacity-90"
+            >
+              Reschedule
+            </button>
+            <button
+              onClick={() => handleOpenCancelDialog(appointment.id)}
+              className="px-3 py-1 rounded-huuk-sm bg-huuk-red text-white text-xs font-semibold hover:opacity-90"
+            >
+              Cancel
+            </button>
+          </div>
+        );
+      }
+
+      if (daysDiff >= 2 || daysDiff < 0) {
+        return (
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => checkPaymentConfirmation(appointment.id)}
+              disabled={processingIds.has(appointment.id)}
+              className="px-3 py-1 rounded-huuk-sm bg-huuk-blue text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+            >
+              Done
+            </button>
+            <button
+              onClick={() => handleOpenCancelDialog(appointment.id)}
+              className="px-3 py-1 rounded-huuk-sm bg-huuk-red text-white text-xs font-semibold hover:opacity-90"
+            >
+              Cancel
+            </button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex flex-wrap justify-center gap-2">
+          <button
+            onClick={() => checkPaymentConfirmation(appointment.id)}
+            disabled={processingIds.has(appointment.id)}
+            className="px-3 py-1 rounded-huuk-sm bg-huuk-blue text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+          >
+            Done
+          </button>
+          <button
+            onClick={() => handleStatusChange(appointment.id, "absent")}
+            disabled={processingIds.has(appointment.id)}
+            className="px-3 py-1 rounded-huuk-sm bg-amber-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+          >
+            Absent
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <span
+        className="status-message generic"
+        style={{
+          color: getStatusColor(appointment.status),
+          fontStyle: "normal",
+          textTransform: "none",
+        }}
+      >
+        {appointment.status || "Unknown Status"}
+      </span>
+    );
+  };
+
   if (loading) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center">
@@ -1449,6 +1632,55 @@ const StaffAppointments = () => {
             <div className="mb-3">
               <h2 className="text-xl font-bold">Booking Details</h2>
             </div>
+            {isMobileView ? (
+              <div className="space-y-3 max-h-[640px] overflow-auto pr-1">
+                {filteredAppointments.length > 0 ? (
+                  sortedDates.map((date) => (
+                    <div key={`mobile-date-section-${date}`} className="space-y-2">
+                      <div className="bg-white/5 rounded-huuk-sm px-3 py-2 text-sm font-semibold text-huuk-accent flex items-center gap-2">
+                        <i className="bi bi-calendar-date"></i>
+                        <span>{formatDateForDisplay(date)}</span>
+                        <span className="text-huuk-muted">
+                          ({groupedAppointments[date].length} appointment
+                          {groupedAppointments[date].length !== 1 ? "s" : ""})
+                        </span>
+                      </div>
+                      {groupedAppointments[date].map((appointment) => (
+                        <div
+                          key={`mobile-card-${appointment.id}`}
+                          className="rounded-huuk-sm border border-white/10 bg-white/5 p-3"
+                        >
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                            <span className="text-huuk-muted">Customer</span>
+                            <span>{appointment.customer_name || "N/A"}</span>
+                            <span className="text-huuk-muted">Phone</span>
+                            <span>{getAppointmentPhone(appointment)}</span>
+                            <span className="text-huuk-muted">Service</span>
+                            <span>{appointment.service_name || "N/A"}</span>
+                            <span className="text-huuk-muted">Time</span>
+                            <span>
+                              {appointment.start_time && appointment.end_time
+                                ? `${formatTime(appointment.start_time)} – ${formatTime(appointment.end_time)}`
+                                : `${formatTime(appointment.start_time) || "N/A"} – ${formatTime(appointment.end_time) || "N/A"}`}
+                            </span>
+                          </div>
+                          <div className="mt-3 text-center italic">
+                            {renderServiceStatus(appointment)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                ) : (
+                  <div className="huuk-td text-center py-8">
+                    <i className="bi bi-calendar-x"></i>
+                    {selectedDate
+                      ? "No appointments found for the selected date."
+                      : "No appointments found for today."}
+                  </div>
+                )}
+              </div>
+            ) : (
             <div
               className="appointments-table-container overflow-auto max-h-[640px]"
               onScroll={(e) => {
@@ -1462,7 +1694,7 @@ const StaffAppointments = () => {
                 }
               }}
             >
-              <table className="huuk-table">
+              <table className="huuk-table min-w-[760px]">
                 {/* Single table header */}
                 <thead>
                   <tr>
@@ -1549,200 +1781,8 @@ const StaffAppointments = () => {
                                 fontStyle: "italic",
                               }}
                             >
-                              <div
-                                className="italic"
-                                style={{ fontStyle: "italic" }}
-                              >
-                                {(() => {
-                                  // Normalize status to lowercase for consistent checking
-                                  const normalizedStatus = (
-                                    appointment.status || ""
-                                  ).toLowerCase();
-
-                                  // Check for completed status (case-insensitive)
-                                  if (normalizedStatus === "completed") {
-                                    return (
-                                      <span
-                                        className="status-message completed"
-                                        style={{
-                                          color: "#90d14f",
-                                          fontStyle: "italic",
-                                          textTransform: "none",
-                                        }}
-                                      >
-                                        Service Completed
-                                      </span>
-                                    );
-                                  }
-                                  // Check for absent status (case-insensitive)
-                                  else if (normalizedStatus === "absent") {
-                                    return (
-                                      <span
-                                        className="status-message absent"
-                                        style={{
-                                          color: "#dc3545",
-                                          fontStyle: "italic",
-                                          textTransform: "none",
-                                        }}
-                                      >
-                                        Not Attend
-                                      </span>
-                                    );
-                                  }
-                                  // Check for cancelled status (case-insensitive)
-                                  else if (
-                                    normalizedStatus === "cancelled" ||
-                                    normalizedStatus === "canceled"
-                                  ) {
-                                    return (
-                                      <span
-                                        className="status-message cancelled"
-                                        style={{
-                                          color: "#dc3545",
-                                          fontStyle: "italic",
-                                          textTransform: "none",
-                                        }}
-                                      >
-                                        Booking Cancelled
-                                      </span>
-                                    );
-                                  }
-                                  // Check for other non-active statuses
-                                  else if (normalizedStatus === "rescheduled") {
-                                    return (
-                                      <span
-                                        className="status-message rescheduled"
-                                        style={{
-                                          color: "#8b5cf6",
-                                          fontStyle: "normal",
-                                          textTransform: "none",
-                                        }}
-                                      >
-                                        Rescheduled
-                                      </span>
-                                    );
-                                  }
-                                  // Only show action buttons for confirmed appointments or appointments with active statuses
-                                  else if (
-                                    normalizedStatus === "confirmed" ||
-                                    normalizedStatus === "pending" ||
-                                    normalizedStatus === "" ||
-                                    !appointment.status
-                                  ) {
-                                    // Show buttons for active appointments
-                                    const daysDiff = moment(
-                                      appointment.booking_date,
-                                      moment.ISO_8601,
-                                    ).diff(moment(), "days");
-
-                                    // 3+ days in future: Reschedule and Cancel
-                                    if (daysDiff >= 3) {
-                                      return (
-                                        <div className="flex justify-center gap-2">
-                                          <button
-                                            onClick={() =>
-                                              handleReschedule(appointment.id)
-                                            }
-                                            className="px-3 py-1 rounded-huuk-sm bg-huuk-purple text-white text-xs font-semibold hover:opacity-90"
-                                          >
-                                            Reschedule
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleOpenCancelDialog(
-                                                appointment.id,
-                                              )
-                                            }
-                                            className="px-3 py-1 rounded-huuk-sm bg-huuk-red text-white text-xs font-semibold hover:opacity-90"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </div>
-                                      );
-                                    }
-                                    // 2+ days in future till old appointment: Done and Cancel
-                                    else if (daysDiff >= 2 || daysDiff < 0) {
-                                      return (
-                                        <div className="flex justify-center gap-2">
-                                          <button
-                                            onClick={() =>
-                                              checkPaymentConfirmation(
-                                                appointment.id,
-                                              )
-                                            }
-                                            disabled={processingIds.has(
-                                              appointment.id,
-                                            )}
-                                            className="px-3 py-1 rounded-huuk-sm bg-huuk-blue text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
-                                          >
-                                            Done
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleOpenCancelDialog(
-                                                appointment.id,
-                                              )
-                                            }
-                                            className="px-3 py-1 rounded-huuk-sm bg-huuk-red text-white text-xs font-semibold hover:opacity-90"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </div>
-                                      );
-                                    }
-                                    // Default case (0-1 days in future) - Show Done and Absent
-                                    else {
-                                      return (
-                                        <div className="flex justify-center gap-2">
-                                          <button
-                                            onClick={() =>
-                                              checkPaymentConfirmation(
-                                                appointment.id,
-                                              )
-                                            }
-                                            disabled={processingIds.has(
-                                              appointment.id,
-                                            )}
-                                            className="px-3 py-1 rounded-huuk-sm bg-huuk-blue text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
-                                          >
-                                            Done
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleStatusChange(
-                                                appointment.id,
-                                                "absent",
-                                              )
-                                            }
-                                            disabled={processingIds.has(
-                                              appointment.id,
-                                            )}
-                                            className="px-3 py-1 rounded-huuk-sm bg-amber-600 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
-                                          >
-                                            Absent
-                                          </button>
-                                        </div>
-                                      );
-                                    }
-                                  }
-                                  // For any other status, show the status as text
-                                  else {
-                                    return (
-                                      <span
-                                        className="status-message generic"
-                                        style={{
-                                          color: getStatusColor(
-                                            appointment.status,
-                                          ),
-                                          fontStyle: "normal",
-                                          textTransform: "none",
-                                        }}
-                                      >
-                                        {appointment.status || "Unknown Status"}
-                                      </span>
-                                    );
-                                  }
-                                })()}
+                              <div className="italic" style={{ fontStyle: "italic" }}>
+                                {renderServiceStatus(appointment)}
                               </div>
                             </td>
                           </tr>
@@ -1763,6 +1803,7 @@ const StaffAppointments = () => {
                 </tbody>
               </table>
             </div>
+            )}
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -1837,7 +1878,9 @@ const StaffAppointments = () => {
                       : moment().format("DD-MM-YYYY")}
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 mt-2">
+                <div
+                  className={`grid gap-2 mt-2 ${isMobileView ? "grid-cols-1" : "grid-cols-3"}`}
+                >
                   <button
                     type="button"
                     className={`px-2 py-1 rounded-huuk-sm text-xs font-semibold ${selectedDate === moment().format("YYYY-MM-DD") ? "bg-huuk-blue text-white" : "bg-white/10 text-white"}`}
@@ -1873,9 +1916,9 @@ const StaffAppointments = () => {
             </div>
 
             {/* Title and Legend Header */}
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-lg font-bold">Booking Slots</h3>
-              <div className="flex items-center gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-3 text-xs">
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-sm bg-huuk-yellow"></div>
                   <span>Blocked</span>

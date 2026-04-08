@@ -673,3 +673,115 @@
   max-width: 400px;
   margin: 0;
 }
+
+@media (max-width: 992px) {
+  .cust-header {
+    padding: 8px 12px;
+    height: 70px;
+  }
+
+  .cust-logo {
+    height: 92px;
+  }
+
+  .cust-nav {
+    gap: 6px;
+    top: 0;
+  }
+
+  .cust-nav button {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .cust-login-container,
+  .cust-auth-logged-in {
+    top: 0;
+    left: 0;
+  }
+
+  .cust-modal {
+    width: min(100vw - 20px, 760px);
+    height: min(92vh, 760px);
+  }
+
+  .cust-modal-container {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .cust-left-section,
+  .cust-right-section {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 20px 16px;
+  }
+
+  .cust-sign-up-form,
+  .form-group,
+  .form-options,
+  .cust-sign-in-btn-new,
+  .forgot-password,
+  .sign-up-link {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .cust-homepage {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .cust-header {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 64px;
+    row-gap: 4px;
+  }
+
+  .cust-nav {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .cust-hero-content {
+    width: calc(100% - 20px);
+  }
+
+  .cust-hero-content h1 {
+    font-size: 1.8rem;
+  }
+
+  .cust-hero-buttons .cust-btn,
+  .cust-hero-buttons .cust-book-now,
+  .cust-book-now,
+  .cust-view-services {
+    width: 100%;
+    max-width: 280px;
+    margin: 6px auto;
+    display: block;
+  }
+
+  .cust-modal {
+    width: calc(100vw - 16px);
+    height: calc(100vh - 16px);
+  }
+
+  .cust-h2he,
+  .cust-h2he2 {
+    font-size: clamp(2.4rem, 12vw, 3.8rem);
+    line-height: 0.95;
+  }
+
+  .cust-no-account,
+  .cust-sign-up-text,
+  .cust-have-account,
+  .cust-sign-in-text {
+    position: static;
+  }
+}

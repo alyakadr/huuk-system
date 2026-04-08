@@ -631,6 +631,78 @@ input[type="text"]:not(.homepage_MuiInputBase-input__gg398) {
   color: #fff;
 }
 
+@media (max-width: 1024px) {
+  .booking-history-page .cust-booking-history-title {
+    width: min(70%, 560px);
+    margin-top: 10px;
+  }
+
+  .booking-history-page .cust-filter-container {
+    position: static;
+    width: min(70%, 560px);
+    left: auto;
+    top: auto;
+    margin: 0 0 12px 0;
+    justify-content: flex-start;
+  }
+
+  .booking-history-page .cust-main-container {
+    flex-direction: column;
+    width: 100%;
+    max-width: 860px;
+    padding: 12px;
+    margin: 40px auto 0;
+    height: auto;
+    min-height: 0;
+    gap: 14px;
+  }
+
+  .booking-history-page .cust-bookings-container,
+  .booking-history-page .cust-details-container {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+  }
+
+  .booking-history-page .cust-details-container {
+    justify-content: flex-start;
+  }
+
+  .booking-history-page .cust-booking-actions {
+    min-width: 120px;
+  }
+
+  .booking-history-page .cust-details-rows,
+  .booking-history-page .cust-feedback-section,
+  .booking-history-page .cust-actions {
+    margin-left: 0;
+  }
+
+  .booking-history-page .cust-details-rows {
+    margin-top: 0;
+  }
+
+  .booking-history-page
+    .cust-details-container:has(.cust-feedback-section)
+    .cust-details-rows {
+    margin-top: 0;
+  }
+
+  .booking-history-page .cust-feedback-section {
+    margin-top: 16px;
+  }
+
+  .booking-history-page .cust-feedback-section hr {
+    margin-right: 0;
+  }
+
+  .booking-history-page .cust-actions {
+    margin-top: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
 /* Responsive design for modal */
 @media (max-width: 600px) {
   .reschedule-dialog .MuiDialog-paper {
@@ -671,13 +743,13 @@ input[type="text"]:not(.homepage_MuiInputBase-input__gg398) {
     justify-content: flex-start; /* Reset for vertical stacking */
   }
   .booking-history-page .cust-details-rows {
-    margin-left: 5px; /* Reduced indentation for small screens */
+    margin-left: 0;
   }
   .booking-history-page .cust-feedback-section {
-    margin-left: 5px; /* Reduced indentation for small screens */
+    margin-left: 0;
   }
   .booking-history-page .cust-actions {
-    margin-left: 5px; /* Reduced indentation for small screens */
+    margin-left: 0;
     flex-direction: column; /* Stack buttons vertically on small screens */
     gap: 10px; /* Space between buttons */
   }

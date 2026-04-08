@@ -55,11 +55,15 @@ const managerNavItems = [
 const ManagerLayout = () => {
   const [user, setUser] = useState(null);
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const [, setSearchText] = useState("");
   const [, setIsNotiOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { profile } = useProfile();
+  const isPhone = viewportWidth <= 768;
+  const isCompactLayout = viewportWidth <= 1024;
+  const isTablet = viewportWidth > 768 && viewportWidth <= 1100;
 
   // Sample notifications (move to state management or API if dynamic)
   const notifications = [
@@ -123,6 +127,21 @@ const ManagerLayout = () => {
   };
 
   useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isCompactLayout) {
+      setIsSidebarMinimized(true);
+    }
+  }, [isCompactLayout]);
+
+  useEffect(() => {
     // Check for user data in both legacy and new storage keys
     const storedUser =
       localStorage.getItem("staff_loggedInUser") ||
@@ -153,14 +172,16 @@ const ManagerLayout = () => {
     );
   }
 
-  const isMobile = window.innerWidth <= 768;
   const managerContentStyles = {
     flexGrow: 1,
     overflow: "auto",
     backgroundColor: "#0e0d0f",
-    paddingTop: "170px",
-    marginLeft: isMobile ? "72px" : isSidebarMinimized ? "72px" : "270px",
-    width: isMobile
+    paddingTop: isPhone ? "112px" : isCompactLayout ? "136px" : "170px",
+    paddingLeft: isPhone ? "12px" : isTablet ? "16px" : "0px",
+    paddingRight: isPhone ? "12px" : isTablet ? "16px" : "0px",
+    paddingBottom: isPhone ? "12px" : isTablet ? "16px" : "0px",
+    marginLeft: isCompactLayout ? "72px" : isSidebarMinimized ? "72px" : "270px",
+    width: isCompactLayout
       ? "calc(100% - 72px)"
       : isSidebarMinimized
         ? "calc(100% - 72px)"
@@ -180,7 +201,11 @@ const ManagerLayout = () => {
       />
       <div style={managerContentStyles}>
         <Header
-          minimized={isSidebarMinimized}
+          isMobile={isPhone}
+          isTablet={isTablet}
+          minimized={isCompactLayout ? true : isSidebarMinimized}
+          layoutLeftOffset={isCompactLayout ? '72px' : (isSidebarMinimized ? '72px' : '270px')}
+          layoutWidth={isCompactLayout ? 'calc(100% - 72px)' : (isSidebarMinimized ? 'calc(100% - 72px)' : 'calc(100% - 270px)')}
           logoSrc={logo}
           username={profile?.username || user?.username || "User"}
           role={user.role}

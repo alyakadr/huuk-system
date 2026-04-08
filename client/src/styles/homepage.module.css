@@ -709,6 +709,72 @@ input:-webkit-autofill:active {
   right: 30px;
 }
 
+@media (max-width: 900px) {
+  .homepage-signin-modal,
+  .homepage-signup-modal {
+    width: min(100vw - 20px, 680px) !important;
+    max-width: min(100vw - 20px, 680px) !important;
+    height: min(92vh, 760px) !important;
+    max-height: 92vh !important;
+  }
+
+  .homepage-signin-modal-container,
+  .homepage-signup-modal-container {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .homepage-signin-left-section,
+  .homepage-signup-left-section,
+  .homepage-signin-right-section,
+  .homepage-signup-right-section {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    height: auto;
+    padding: 24px 20px;
+  }
+
+  .h2he-homepage,
+  .h2he2-homepage {
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    line-height: 1;
+  }
+
+  .sign-up-heading-homepage {
+    font-size: clamp(1.8rem, 7vw, 2.3rem);
+  }
+
+  .sign-up-form-homepage,
+  .sign-up-form-homepage label,
+  .error-homepage,
+  .remember-container-homepage,
+  .sign-up-btn-homepage,
+  .sign-up-form-homepage input {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .homepage-signin-modal,
+  .homepage-signup-modal {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    height: calc(100vh - 16px) !important;
+    max-height: calc(100vh - 16px) !important;
+    border-radius: 8px;
+  }
+
+  .homepage-signin-left-section,
+  .homepage-signup-left-section,
+  .homepage-signin-right-section,
+  .homepage-signup-right-section {
+    padding: 18px 14px;
+  }
+}
+
 .logout-btn-homepage:hover {
   background-color: #333;
 }
