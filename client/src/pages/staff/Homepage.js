@@ -715,14 +715,6 @@ const Homepage = () => {
                 </p>
               )}
 
-              <button
-                type="submit"
-                className={styles["sign-up-btn-homepage"]}
-                disabled={loading}
-              >
-                {loading ? "Signing In..." : "Sign In"}
-              </button>
-
               <div className={styles["remember-container-homepage"]}>
                 <input
                   type="checkbox"
@@ -739,6 +731,14 @@ const Homepage = () => {
                   Remember me
                 </label>
               </div>
+
+              <button
+                type="submit"
+                className={styles["sign-up-btn-homepage"]}
+                disabled={loading}
+              >
+                {loading ? "Signing In..." : "Sign In"}
+              </button>
 
               <p
                 className={styles["forgot-password-homepage"]}
