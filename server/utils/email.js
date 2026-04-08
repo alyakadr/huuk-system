@@ -102,14 +102,20 @@ const sendBookingReceipt = async (bookingDetails, email) => {
     });
     throw new Error("Cannot send receipt for unpaid booking");
   }
-  
+
   // Allow "Pay at Outlet" bookings with "Pending" status
-  if (bookingDetails.payment_method === "Pay at Outlet" && bookingDetails.payment_status === "Pending") {
-    console.log("Sending receipt for Pay at Outlet booking with Pending status:", {
-      bookingId: bookingDetails.id,
-      payment_method: bookingDetails.payment_method,
-      payment_status: bookingDetails.payment_status,
-    });
+  if (
+    bookingDetails.payment_method === "Pay at Outlet" &&
+    bookingDetails.payment_status === "Pending"
+  ) {
+    console.log(
+      "Sending receipt for Pay at Outlet booking with Pending status:",
+      {
+        bookingId: bookingDetails.id,
+        payment_method: bookingDetails.payment_method,
+        payment_status: bookingDetails.payment_status,
+      },
+    );
   }
   const pdfDir = path.join(__dirname, "../receipts");
   const pdfPath = path.join(pdfDir, `receipt_${bookingDetails.id}.pdf`);
@@ -165,12 +171,12 @@ const sendBookingReceipt = async (bookingDetails, email) => {
       .text(
         `Price: MYR ${parseFloat(bookingDetails.price).toFixed(2)}`,
         50,
-        340
+        340,
       )
       .text(
         `Payment Method: ${bookingDetails.payment_method || "Pending"}`,
         50,
-        360
+        360,
       )
       .text(`Status: ${bookingDetails.payment_status || "Pending"}`, 50, 380);
 
@@ -311,12 +317,12 @@ const sendRescheduleConfirmation = async (bookingDetails, email) => {
       .text(
         `Price: MYR ${parseFloat(bookingDetails.price).toFixed(2)}`,
         50,
-        340
+        340,
       )
       .text(
         `Payment Method: ${bookingDetails.payment_method || "Pending"}`,
         50,
-        360
+        360,
       )
       .text(`Status: ${bookingDetails.payment_status || "Pending"}`, 50, 380);
 
@@ -457,12 +463,12 @@ const sendCancelConfirmation = async (bookingDetails, email) => {
       .text(
         `Price: MYR ${parseFloat(bookingDetails.price).toFixed(2)}`,
         50,
-        340
+        340,
       )
       .text(
         `Payment Method: ${bookingDetails.payment_method || "Pending"}`,
         50,
-        360
+        360,
       )
       .text(`Status: ${bookingDetails.payment_status || "Pending"}`, 50, 380);
 

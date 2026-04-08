@@ -306,7 +306,8 @@ router.get("/staff/reset-password/validate", async (req, res) => {
 });
 
 router.post("/staff/reset-password", async (req, res) => {
-  const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+  const token =
+    typeof req.body?.token === "string" ? req.body.token.trim() : "";
   const newPassword = req.body?.password;
 
   if (!token || !newPassword) {

@@ -52,7 +52,10 @@ const StaffForgotPassword = () => {
   return (
     <main className="staff-forgot-page">
       <div className="staff-forgot-backdrop" aria-hidden="true" />
-      <section className="staff-forgot-card" aria-labelledby="staff-forgot-title">
+      <section
+        className="staff-forgot-card"
+        aria-labelledby="staff-forgot-title"
+      >
         <aside className="staff-forgot-brand-panel">
           <img src={banner1} alt="Huuk" className="staff-forgot-brand-image" />
           <div className="staff-forgot-brand-overlay" />
@@ -60,8 +63,8 @@ const StaffForgotPassword = () => {
             <img src={logo} alt="Huuk logo" className="staff-forgot-logo" />
             <h1 className="staff-forgot-brand-title">Reset Access</h1>
             <p className="staff-forgot-brand-copy">
-              Enter your staff account email and we will send reset instructions if
-              the account exists.
+              Enter your staff account email and we will send reset instructions
+              if the account exists.
             </p>
           </div>
         </aside>
@@ -72,7 +75,11 @@ const StaffForgotPassword = () => {
           </h2>
 
           {isSuccess ? (
-            <div className="staff-forgot-success" role="status" aria-live="polite">
+            <div
+              className="staff-forgot-success"
+              role="status"
+              aria-live="polite"
+            >
               <MdOutlineMarkEmailRead className="staff-forgot-success-icon" />
               <p>
                 If your email is registered, reset instructions have been sent.
@@ -80,12 +87,19 @@ const StaffForgotPassword = () => {
               </p>
             </div>
           ) : (
-            <form className="staff-forgot-form" onSubmit={handleSubmit} noValidate>
+            <form
+              className="staff-forgot-form"
+              onSubmit={handleSubmit}
+              noValidate
+            >
               <label htmlFor="staffForgotEmail" className="staff-forgot-label">
                 Staff Email
               </label>
               <div className="staff-forgot-input-wrap">
-                <MdEmail className="staff-forgot-input-icon" aria-hidden="true" />
+                <MdEmail
+                  className="staff-forgot-input-icon"
+                  aria-hidden="true"
+                />
                 <input
                   id="staffForgotEmail"
                   type="email"

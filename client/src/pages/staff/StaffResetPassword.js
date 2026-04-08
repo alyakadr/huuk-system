@@ -134,7 +134,11 @@ const StaffResetPassword = () => {
   const renderContent = () => {
     if (validationState === VALIDATION_STATE.LOADING) {
       return (
-        <div className="staff-reset-feedback-card" role="status" aria-live="polite">
+        <div
+          className="staff-reset-feedback-card"
+          role="status"
+          aria-live="polite"
+        >
           <p>Validating your reset link...</p>
         </div>
       );
@@ -154,7 +158,11 @@ const StaffResetPassword = () => {
 
     if (validationState === VALIDATION_STATE.SUCCESS) {
       return (
-        <div className="staff-reset-feedback-card is-success" role="status" aria-live="polite">
+        <div
+          className="staff-reset-feedback-card is-success"
+          role="status"
+          aria-live="polite"
+        >
           <MdCheckCircleOutline className="staff-reset-feedback-icon" />
           <div>
             <h3>Password Updated</h3>
@@ -200,7 +208,10 @@ const StaffResetPassword = () => {
           </button>
         </div>
 
-        <label htmlFor="staffResetConfirmPassword" className="staff-reset-label">
+        <label
+          htmlFor="staffResetConfirmPassword"
+          className="staff-reset-label"
+        >
           Confirm Password
         </label>
         <div className="staff-reset-input-wrap">
@@ -224,7 +235,11 @@ const StaffResetPassword = () => {
             type="button"
             className="staff-reset-toggle"
             onClick={() => setShowConfirmPassword((current) => !current)}
-            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+            aria-label={
+              showConfirmPassword
+                ? "Hide confirm password"
+                : "Show confirm password"
+            }
           >
             {showConfirmPassword ? <MdVisibilityOff /> : <MdVisibility />}
           </button>
@@ -260,8 +275,8 @@ const StaffResetPassword = () => {
             <img src={logo} alt="Huuk logo" className="staff-reset-logo" />
             <h1 className="staff-reset-brand-title">Set A New Password</h1>
             <p className="staff-reset-brand-copy">
-              Choose a strong password for your staff portal and keep your account
-              secure.
+              Choose a strong password for your staff portal and keep your
+              account secure.
             </p>
           </div>
         </aside>
@@ -275,7 +290,10 @@ const StaffResetPassword = () => {
             <Link to="/staff-login" className="staff-reset-link">
               Back to Sign In
             </Link>
-            <Link to="/staff-forgot-password" className="staff-reset-link subtle">
+            <Link
+              to="/staff-forgot-password"
+              className="staff-reset-link subtle"
+            >
               Request New Link
             </Link>
           </div>
