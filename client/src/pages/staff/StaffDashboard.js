@@ -43,7 +43,11 @@ ChartJS.register(
   ChartDataLabels,
 );
 
-const PaymentManagementTable = ({ loadingPayment, paymentData, isMobileView }) => {
+const PaymentManagementTable = ({
+  loadingPayment,
+  paymentData,
+  isMobileView,
+}) => {
   return (
     <div className="card-dark mt-5">
       <div className="flex items-center justify-between">
@@ -92,47 +96,47 @@ const PaymentManagementTable = ({ loadingPayment, paymentData, isMobileView }) =
           )}
         </div>
       ) : (
-      <div className="overflow-x-auto mt-3">
-        <table className="huuk-table min-w-[560px]">
-          <thead>
-            <tr>
-              <th className="huuk-th">CUSTOMER NAME</th>
-              <th className="huuk-th">PAYMENT METHOD</th>
-              <th className="huuk-th">STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loadingPayment ? (
+        <div className="overflow-x-auto mt-3">
+          <table className="huuk-table min-w-[560px]">
+            <thead>
               <tr>
-                <td colSpan="3" className="huuk-td text-center">
-                  Loading payment data...
-                </td>
+                <th className="huuk-th">CUSTOMER NAME</th>
+                <th className="huuk-th">PAYMENT METHOD</th>
+                <th className="huuk-th">STATUS</th>
               </tr>
-            ) : paymentData.length === 0 ? (
-              <tr>
-                <td colSpan="3" className="huuk-td text-center">
-                  No payment data available
-                </td>
-              </tr>
-            ) : (
-              paymentData.slice(0, 3).map((payment, index) => (
-                <tr
-                  key={payment.id || index}
-                  className="huuk-tr border-b border-white/10"
-                >
-                  <td className="huuk-td">{payment.customer_name}</td>
-                  <td className="huuk-td">{payment.payment_method}</td>
-                  <td
-                    className={`huuk-td font-semibold ${payment.payment_status === "Paid" ? "text-green-400" : "text-yellow-300"}`}
-                  >
-                    {payment.payment_status}
+            </thead>
+            <tbody>
+              {loadingPayment ? (
+                <tr>
+                  <td colSpan="3" className="huuk-td text-center">
+                    Loading payment data...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : paymentData.length === 0 ? (
+                <tr>
+                  <td colSpan="3" className="huuk-td text-center">
+                    No payment data available
+                  </td>
+                </tr>
+              ) : (
+                paymentData.slice(0, 3).map((payment, index) => (
+                  <tr
+                    key={payment.id || index}
+                    className="huuk-tr border-b border-white/10"
+                  >
+                    <td className="huuk-td">{payment.customer_name}</td>
+                    <td className="huuk-td">{payment.payment_method}</td>
+                    <td
+                      className={`huuk-td font-semibold ${payment.payment_status === "Paid" ? "text-green-400" : "text-yellow-300"}`}
+                    >
+                      {payment.payment_status}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
@@ -1015,74 +1019,77 @@ const StaffDashboard = () => {
                             <span>{booking.service_name}</span>
                             <span className="text-huuk-muted">Time</span>
                             <span>
-                              {booking.start_time !== "-" && booking.end_time !== "-"
+                              {booking.start_time !== "-" &&
+                              booking.end_time !== "-"
                                 ? `${booking.start_time} - ${booking.end_time}`
                                 : "-"}
                             </span>
                           </div>
-                          <div className="mt-3">{renderScheduleAction(booking)}</div>
+                          <div className="mt-3">
+                            {renderScheduleAction(booking)}
+                          </div>
                         </div>
                       ))
                     )}
                   </div>
                 ) : (
-                <div className="overflow-x-auto">
-                  <table className="huuk-table min-w-[760px]">
-                    <thead>
-                      <tr>
-                        <th className="huuk-th">CUSTOMER NAME</th>
-                        <th className="huuk-th">PHONE NUMBER</th>
-                        <th className="huuk-th">SERVICE</th>
-                        <th className="huuk-th">TIME</th>
-                        <th className="huuk-th text-center">ACTION</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {loadingSchedule ? (
+                  <div className="overflow-x-auto">
+                    <table className="huuk-table min-w-[760px]">
+                      <thead>
                         <tr>
-                          <td colSpan="5" className="huuk-td text-center">
-                            Loading...
-                          </td>
+                          <th className="huuk-th">CUSTOMER NAME</th>
+                          <th className="huuk-th">PHONE NUMBER</th>
+                          <th className="huuk-th">SERVICE</th>
+                          <th className="huuk-th">TIME</th>
+                          <th className="huuk-th text-center">ACTION</th>
                         </tr>
-                      ) : (
-                        limitedSchedule.map((booking, index) => {
-                          return (
-                            <tr
-                              key={booking.id || index}
-                              className="huuk-tr border-b border-white/10"
-                            >
-                              <td className="huuk-td">
-                                {booking.customer_name}
-                              </td>
-                              <td className="huuk-td">
-                                {booking.phone_number}
-                              </td>
-                              <td className="huuk-td">
-                                {booking.service_name}
-                              </td>
-                              <td className="huuk-td">
-                                {booking.start_time !== "-" &&
-                                booking.end_time !== "-"
-                                  ? `${booking.start_time} - ${booking.end_time}`
-                                  : "-"}
-                              </td>
-                              <td
-                                className="huuk-td"
-                                style={{
-                                  textAlign: "center",
-                                  verticalAlign: "middle",
-                                }}
+                      </thead>
+
+                      <tbody>
+                        {loadingSchedule ? (
+                          <tr>
+                            <td colSpan="5" className="huuk-td text-center">
+                              Loading...
+                            </td>
+                          </tr>
+                        ) : (
+                          limitedSchedule.map((booking, index) => {
+                            return (
+                              <tr
+                                key={booking.id || index}
+                                className="huuk-tr border-b border-white/10"
                               >
-                                {renderScheduleAction(booking)}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                                <td className="huuk-td">
+                                  {booking.customer_name}
+                                </td>
+                                <td className="huuk-td">
+                                  {booking.phone_number}
+                                </td>
+                                <td className="huuk-td">
+                                  {booking.service_name}
+                                </td>
+                                <td className="huuk-td">
+                                  {booking.start_time !== "-" &&
+                                  booking.end_time !== "-"
+                                    ? `${booking.start_time} - ${booking.end_time}`
+                                    : "-"}
+                                </td>
+                                <td
+                                  className="huuk-td"
+                                  style={{
+                                    textAlign: "center",
+                                    verticalAlign: "middle",
+                                  }}
+                                >
+                                  {renderScheduleAction(booking)}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
 

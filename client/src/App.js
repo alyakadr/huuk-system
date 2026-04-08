@@ -91,14 +91,8 @@ const App = () => {
             {/* Public routes */}
             <Route path="/homepage" element={<CustomerHomepage />} />
             <Route path="/staff-login" element={<Homepage />} />
-            <Route
-              path="/staff-forgot-password"
-              element={<StaffForgotPassword />}
-            />
-            <Route
-              path="/staff-reset-password"
-              element={<StaffResetPassword />}
-            />
+            <Route path="/forgot-password" element={<StaffForgotPassword />} />
+            <Route path="/reset-password" element={<StaffResetPassword />} />
             <Route path="/" element={<CustomerHomepage />} />
             <Route path="/booking" element={<Booking />} />
             {/* Staff routes */}

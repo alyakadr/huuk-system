@@ -7,7 +7,7 @@ const {
   PASSWORD_POLICY_MESSAGE,
   isPasswordValid,
 } = require("../utils/passwordPolicy");
-const { sendStaffPasswordResetEmail } = require("../utils/email");
+const { sendPasswordResetEmail } = require("../utils/email");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL =
@@ -15,8 +15,9 @@ const FRONTEND_URL =
   process.env.APP_URL ||
   process.env.CLIENT_URL ||
   "http://localhost:3000";
-const STAFF_RESET_TOKEN_PURPOSE = "staff-password-reset";
-const STAFF_RESET_TOKEN_EXPIRY = "30m";
+const PASSWORD_RESET_TOKEN_PURPOSE = "password-reset";
+const PASSWORD_RESET_TOKEN_EXPIRY = "30m";
+const PASSWORD_RESET_ELIGIBLE_ROLES = ["staff", "manager", "customer"];
 if (!JWT_SECRET) {
   console.error("JWT_SECRET is not set in environment variables");
   process.exit(1);
@@ -28,30 +29,30 @@ const normalizeEmail = (email) =>
 const buildPasswordResetSecret = (passwordHash) =>
   `${JWT_SECRET}:${passwordHash || "no-password"}`;
 
-const buildStaffPasswordResetUrl = (token) => {
+const buildPasswordResetUrl = (token) => {
   const normalizedBaseUrl = FRONTEND_URL.replace(/\/+$/, "");
-  return `${normalizedBaseUrl}/staff-reset-password?token=${encodeURIComponent(token)}`;
+  return `${normalizedBaseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 };
 
-const createStaffPasswordResetToken = (user) =>
+const createPasswordResetToken = (user) =>
   jwt.sign(
     {
       userId: user._id.toString(),
       role: user.role,
-      purpose: STAFF_RESET_TOKEN_PURPOSE,
+      purpose: PASSWORD_RESET_TOKEN_PURPOSE,
     },
     buildPasswordResetSecret(user.password),
-    { expiresIn: STAFF_RESET_TOKEN_EXPIRY },
+    { expiresIn: PASSWORD_RESET_TOKEN_EXPIRY },
   );
 
-const resolveStaffResetUserFromToken = async (token) => {
+const resolveResetUserFromToken = async (token) => {
   const decoded = jwt.decode(token);
 
   if (
     !decoded ||
     typeof decoded !== "object" ||
     !decoded.userId ||
-    decoded.purpose !== STAFF_RESET_TOKEN_PURPOSE
+    decoded.purpose !== PASSWORD_RESET_TOKEN_PURPOSE
   ) {
     return { user: null, error: "Invalid or expired reset link" };
   }
@@ -60,7 +61,11 @@ const resolveStaffResetUserFromToken = async (token) => {
     "password role email fullname",
   );
 
-  if (!user || !["staff", "manager"].includes(user.role) || !user.password) {
+  if (
+    !user ||
+    !PASSWORD_RESET_ELIGIBLE_ROLES.includes(user.role) ||
+    !user.password
+  ) {
     return { user: null, error: "Invalid or expired reset link" };
   }
 
@@ -69,6 +74,109 @@ const resolveStaffResetUserFromToken = async (token) => {
     return { user, error: null };
   } catch (error) {
     return { user: null, error: "Invalid or expired reset link" };
+  }
+};
+
+const requestPasswordReset = async (req, res, allowedRoles) => {
+  const normalizedEmail = normalizeEmail(req.body?.email);
+
+  if (!normalizedEmail) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  try {
+    const user = await User.findOne({
+      email: normalizedEmail,
+      role: { $in: allowedRoles },
+    }).select("email fullname role password");
+
+    if (user?.password) {
+      try {
+        const resetToken = createPasswordResetToken(user);
+        const resetUrl = buildPasswordResetUrl(resetToken);
+
+        await sendPasswordResetEmail({
+          email: user.email,
+          fullname: user.fullname,
+          resetUrl,
+        });
+      } catch (emailError) {
+        console.error("Failed to send password reset email:", {
+          email: normalizedEmail,
+          message: emailError.message,
+        });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "If an account exists for that email, password reset instructions have been sent.",
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error.message);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+const validatePasswordResetToken = async (req, res) => {
+  const token =
+    typeof req.query?.token === "string" ? req.query.token.trim() : "";
+
+  if (!token) {
+    return res.status(400).json({ message: "Reset token is required" });
+  }
+
+  try {
+    const { user, error } = await resolveResetUserFromToken(token);
+
+    if (!user) {
+      return res.status(401).json({ message: error });
+    }
+
+    return res.status(200).json({
+      valid: true,
+      email: user.email,
+      role: user.role,
+    });
+  } catch (routeError) {
+    console.error("Reset token validation error:", routeError.message);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+const resetPasswordWithToken = async (req, res) => {
+  const token =
+    typeof req.body?.token === "string" ? req.body.token.trim() : "";
+  const newPassword = req.body?.password;
+
+  if (!token || !newPassword) {
+    return res
+      .status(400)
+      .json({ message: "Reset token and new password are required" });
+  }
+
+  if (!isPasswordValid(newPassword)) {
+    return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
+  }
+
+  try {
+    const { user, error } = await resolveResetUserFromToken(token);
+
+    if (!user) {
+      return res.status(401).json({ message: error });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successful",
+    });
+  } catch (routeError) {
+    console.error("Reset password error:", routeError.message);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -159,29 +267,32 @@ router.post("/customer/signin", async (req, res) => {
     return res.status(400).json({ message: "Request body is missing" });
   }
 
-  const { phone_number, password } = req.body;
-  const normalizedPhone =
+  const { phone_number, email, password } = req.body;
+  const rawIdentifier =
     typeof phone_number === "string" ? phone_number.trim() : "";
+  const normalizedEmail = normalizeEmail(email || rawIdentifier);
+  const normalizedPhone = rawIdentifier.includes("@") ? "" : rawIdentifier;
 
-  if (!normalizedPhone || !password) {
-    return res
-      .status(400)
-      .json({ message: "Phone number and password required" });
+  if ((!normalizedPhone && !normalizedEmail) || !password) {
+    return res.status(400).json({ message: "Email/phone and password required" });
   }
 
   try {
-    const user = await User.findOne({
-      phone_number: normalizedPhone,
+    const customerQuery = {
       role: "customer",
-    }).lean();
+      ...(normalizedEmail
+        ? { email: normalizedEmail }
+        : { phone_number: normalizedPhone }),
+    };
+
+    const user = await User.findOne(customerQuery).lean();
 
     if (!user) {
+      const attemptedIdentifier = normalizedEmail || normalizedPhone;
       console.log(
-        `Sign-in failed: No customer found with phone: ${normalizedPhone}`,
+        `Sign-in failed: No customer found with identifier: ${attemptedIdentifier}`,
       );
-      return res
-        .status(401)
-        .json({ message: "Invalid phone number or password" });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     if (user.isApproved === 0) {
@@ -192,12 +303,11 @@ router.post("/customer/signin", async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      const attemptedIdentifier = normalizedEmail || normalizedPhone;
       console.log(
-        `Sign-in failed: Wrong password for phone: ${normalizedPhone}`,
+        `Sign-in failed: Wrong password for identifier: ${attemptedIdentifier}`,
       );
-      return res
-        .status(401)
-        .json({ message: "Invalid phone number or password" });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     console.log(
@@ -237,108 +347,12 @@ router.post("/staff/signin", (req, res) => {
   handleSignIn(req, res, ["staff", "manager"]);
 });
 
-router.post("/staff/forgot-password", async (req, res) => {
-  const normalizedEmail = normalizeEmail(req.body?.email);
-
-  if (!normalizedEmail) {
-    return res.status(400).json({ message: "Email is required" });
-  }
-
-  try {
-    const user = await User.findOne({
-      email: normalizedEmail,
-      role: { $in: ["staff", "manager"] },
-    }).select("email fullname role password");
-
-    if (user?.password) {
-      try {
-        const resetToken = createStaffPasswordResetToken(user);
-        const resetUrl = buildStaffPasswordResetUrl(resetToken);
-
-        await sendStaffPasswordResetEmail({
-          email: user.email,
-          fullname: user.fullname,
-          resetUrl,
-        });
-      } catch (emailError) {
-        console.error("Failed to send staff password reset email:", {
-          email: normalizedEmail,
-          message: emailError.message,
-        });
-      }
-    }
-
-    return res.status(200).json({
-      success: true,
-      message:
-        "If an account exists for that email, password reset instructions have been sent.",
-    });
-  } catch (error) {
-    console.error("Staff forgot password error:", error.message);
-    return res.status(500).json({ message: "Server error" });
-  }
-});
-
-router.get("/staff/reset-password/validate", async (req, res) => {
-  const token =
-    typeof req.query?.token === "string" ? req.query.token.trim() : "";
-
-  if (!token) {
-    return res.status(400).json({ message: "Reset token is required" });
-  }
-
-  try {
-    const { user, error } = await resolveStaffResetUserFromToken(token);
-
-    if (!user) {
-      return res.status(401).json({ message: error });
-    }
-
-    return res.status(200).json({
-      valid: true,
-      email: user.email,
-      role: user.role,
-    });
-  } catch (routeError) {
-    console.error("Staff reset token validation error:", routeError.message);
-    return res.status(500).json({ message: "Server error" });
-  }
-});
-
-router.post("/staff/reset-password", async (req, res) => {
-  const token =
-    typeof req.body?.token === "string" ? req.body.token.trim() : "";
-  const newPassword = req.body?.password;
-
-  if (!token || !newPassword) {
-    return res
-      .status(400)
-      .json({ message: "Reset token and new password are required" });
-  }
-
-  if (!isPasswordValid(newPassword)) {
-    return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
-  }
-
-  try {
-    const { user, error } = await resolveStaffResetUserFromToken(token);
-
-    if (!user) {
-      return res.status(401).json({ message: error });
-    }
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Password reset successful",
-    });
-  } catch (routeError) {
-    console.error("Staff reset password error:", routeError.message);
-    return res.status(500).json({ message: "Server error" });
-  }
-});
+// Generic forgot/reset endpoints for all account types with email/password.
+router.post("/forgot-password", (req, res) =>
+  requestPasswordReset(req, res, PASSWORD_RESET_ELIGIBLE_ROLES),
+);
+router.get("/reset-password/validate", validatePasswordResetToken);
+router.post("/reset-password", resetPasswordWithToken);
 
 // Staff/Manager Signup route
 router.post("/signup", async (req, res) => {
@@ -426,7 +440,7 @@ router.post("/customer/signup", async (req, res) => {
     return res.status(400).json({ message: "Request body is missing" });
   }
 
-  const { phone_number, password, email, username } = req.body;
+  const { phone_number, password, email, username, fullname } = req.body;
   console.log("[CUSTOMER SIGNUP] Extracted fields:", {
     phone_number,
     password: password ? "[PROVIDED]" : "[MISSING]",
@@ -434,7 +448,7 @@ router.post("/customer/signup", async (req, res) => {
     username,
   });
 
-  if (!phone_number || !password || !email || !username) {
+    if (!password || !email || !username) {
     return res
       .status(400)
       .json({ message: "Please fill all required fields." });
@@ -445,11 +459,13 @@ router.post("/customer/signup", async (req, res) => {
   }
 
   try {
-    const phoneCount = await User.countDocuments({ phone_number });
-    if (phoneCount > 0) {
-      return res
-        .status(400)
-        .json({ message: "Phone number is already registered." });
+    if (phone_number) {
+      const phoneCount = await User.countDocuments({ phone_number });
+      if (phoneCount > 0) {
+        return res
+          .status(400)
+          .json({ message: "Phone number is already registered." });
+      }
     }
 
     const emailCount = await User.countDocuments({
@@ -461,10 +477,10 @@ router.post("/customer/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     await User.create({
-      phone_number,
+      phone_number: phone_number || null,
       password: hashedPassword,
       email: email.toLowerCase(),
-      fullname: email.toLowerCase(),
+      fullname: (fullname && String(fullname).trim()) || email.toLowerCase(),
       username,
       role: "customer",
       outlet: "N/A",

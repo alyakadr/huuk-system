@@ -19,6 +19,7 @@ const styles = new Proxy(
 );
 
 const ProfileContext = createContext();
+const CUSTOMER_REMEMBER_PHONE_KEY = "customer_remember_phone";
 
 export const ProfileProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
@@ -36,6 +37,7 @@ export const ProfileProvider = ({ children }) => {
   });
   const [loadingSignIn, setLoadingSignIn] = useState(false);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [rememberSignInPhone, setRememberSignInPhone] = useState(false);
 
   // Animation for modal
   const signInAnimation = useSpring({
@@ -85,6 +87,13 @@ export const ProfileProvider = ({ children }) => {
         );
 
         updateProfile(userWithToken);
+
+        if (rememberSignInPhone) {
+          localStorage.setItem(CUSTOMER_REMEMBER_PHONE_KEY, signInPhoneNumber);
+        } else {
+          localStorage.removeItem(CUSTOMER_REMEMBER_PHONE_KEY);
+        }
+
         setIsSignInOpen(false);
         setSignInPhoneNumber("");
         setSignInPassword("");
@@ -117,6 +126,20 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
+  useEffect(() => {
+    if (!isSignInOpen) {
+      return;
+    }
+
+    const rememberedPhone = localStorage.getItem(CUSTOMER_REMEMBER_PHONE_KEY);
+    if (rememberedPhone) {
+      setSignInPhoneNumber(rememberedPhone);
+      setRememberSignInPhone(true);
+    } else {
+      setRememberSignInPhone(false);
+    }
+  }, [isSignInOpen]);
+
   // Add a function to close sign-in modal and open sign-up modal
   const openSignUpFromSignIn = () => {
     // Close the sign-in modal first
@@ -134,9 +157,8 @@ export const ProfileProvider = ({ children }) => {
     // Close the sign-in modal
     setIsSignInOpen(false);
 
-    // You can implement the forgot password functionality here
-    // For now, just show an alert
-    alert("Please contact support to reset your password.");
+    // ProfileProvider sits outside Router, so use location navigation here.
+    window.location.href = "/forgot-password";
   };
 
   useEffect(() => {
@@ -551,7 +573,7 @@ export const ProfileProvider = ({ children }) => {
               <span
                 onClick={openSignUpFromSignIn}
                 className={styles["sign-in-text-homepage"]}
-                style={{ fontWeight: "bold" }}
+                style={{ fontWeight: "bold", textDecoration: "underline" }}
               >
                 Sign Up
               </span>
@@ -678,6 +700,24 @@ export const ProfileProvider = ({ children }) => {
                   {signInErrors.password}
                 </p>
               )}
+              <div className={styles["remember-container-homepage"]}>
+                <input
+                  type="checkbox"
+                  id="customerRememberMe"
+                  checked={rememberSignInPhone}
+                  onChange={(event) => {
+                    setRememberSignInPhone(event.target.checked);
+                  }}
+                  className={styles["remember-checkbox-homepage"]}
+                  disabled={loadingSignIn}
+                />
+                <label
+                  htmlFor="customerRememberMe"
+                  className={styles["remember-label-homepage"]}
+                >
+                  Remember me
+                </label>
+              </div>
               <button
                 type="submit"
                 className={styles["sign-up-btn-homepage"]}
@@ -686,7 +726,10 @@ export const ProfileProvider = ({ children }) => {
                 {loadingSignIn ? "Signing In..." : "Sign In"}
               </button>
 
-              <p className={styles["forgot-password-homepage"]}>
+              <p
+                className={styles["forgot-password-homepage"]}
+                style={{ marginTop: "14px" }}
+              >
                 <span
                   onClick={handleForgotPassword}
                   style={{ cursor: "pointer", textDecoration: "underline" }}

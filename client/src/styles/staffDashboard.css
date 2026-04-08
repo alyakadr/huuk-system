@@ -21,7 +21,7 @@
   padding: 20px;
   position: relative;
   color: #333;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
 }
 
 .payment-popup-close {
@@ -277,7 +277,7 @@
   padding: 16px;
   position: relative;
   color: #333;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
 }
 
 .payment-popup-close-minimal {
@@ -365,7 +365,7 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  font-family: 'Quicksand', sans-serif;
+  font-family: "Quicksand", sans-serif;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -747,9 +747,12 @@ html:has(.staff-dashboard) {
 .staff-dashboard .staff-dashboard-timeslot-button.staff-dashboard-blocked,
 .staff-dashboard .staff-dashboard-timeslot-button.staff-dashboard-blocked:hover,
 .staff-dashboard .staff-dashboard-timeslot-button.staff-dashboard-blocked:focus,
-.staff-dashboard .staff-dashboard-timeslot-button.staff-dashboard-blocked:active,
-.staff-dashboard .staff-dashboard-timeslot-button.staff-dashboard-blocked:visited,
-.staff-dashboard .staff-dashboard-timeslot-button.staff-dashboard-blocked:disabled {
+.staff-dashboard
+  .staff-dashboard-timeslot-button.staff-dashboard-blocked:active,
+.staff-dashboard
+  .staff-dashboard-timeslot-button.staff-dashboard-blocked:visited,
+.staff-dashboard
+  .staff-dashboard-timeslot-button.staff-dashboard-blocked:disabled {
   background-color: #6c757d !important;
   background: #6c757d !important;
   color: white !important;
@@ -763,12 +766,13 @@ html:has(.staff-dashboard) {
 }
 
 /* Force blocked color even with inline styles */
-.staff-dashboard .staff-dashboard-timeslots-grid .staff-dashboard-timeslot-button.staff-dashboard-blocked[style] {
+.staff-dashboard
+  .staff-dashboard-timeslots-grid
+  .staff-dashboard-timeslot-button.staff-dashboard-blocked[style] {
   background-color: #6c757d !important;
   background: #6c757d !important;
   color: white !important;
 }
-
 
 @media (max-width: 768px) {
   .staff-dashboard,
@@ -1133,8 +1137,12 @@ html:has(.staff-dashboard) {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .staff-dashboard-empty-state {
@@ -1239,18 +1247,18 @@ html:has(.staff-dashboard) {
     flex-direction: column;
     gap: 20px;
   }
-  
+
   .staff-dashboard-booking-slot-section {
     flex: none;
     max-width: none;
     width: 100%;
   }
-  
+
   .staff-dashboard-bottom-section {
     flex-direction: column;
     gap: 20px;
   }
-  
+
   .staff-dashboard-charts-container {
     flex-direction: column;
     gap: 10px;
@@ -1457,7 +1465,8 @@ html:has(.staff-dashboard) {
   color: white;
 }
 
-.staff-dashboard .payment-confirmation-modal-button.unpaid:hover:not(:disabled) {
+.staff-dashboard
+  .payment-confirmation-modal-button.unpaid:hover:not(:disabled) {
   background-color: #c82333;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
@@ -1479,8 +1488,12 @@ html:has(.staff-dashboard) {
 }
 
 @keyframes modalButtonSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Success/Error toast notification */
@@ -1530,12 +1543,12 @@ html:has(.staff-dashboard) {
     padding: 20px;
     margin: 20px;
   }
-  
+
   .staff-dashboard .payment-confirmation-modal-buttons {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .staff-dashboard .payment-confirmation-modal-button {
     width: 100%;
   }
@@ -1557,7 +1570,7 @@ html:has(.staff-dashboard) {
     max-height: 235px;
     min-height: 235px;
   }
-.staff-dashboard .staff-dashboard-appointment-management-container {
+  .staff-dashboard .staff-dashboard-appointment-management-container {
     flex: 0 0 400px;
     max-width: 400px;
     height: 200px;

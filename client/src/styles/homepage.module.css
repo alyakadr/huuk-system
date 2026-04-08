@@ -130,7 +130,10 @@
   text-align: center;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease,
+    transform 0.3s ease;
   text-transform: none;
 }
 
@@ -176,7 +179,10 @@
   text-align: center;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease,
+    transform 0.3s ease;
   text-transform: none;
 }
 
@@ -226,7 +232,9 @@
   object-position: center;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 1s ease-in-out, visibility 0s 1s;
+  transition:
+    opacity 1s ease-in-out,
+    visibility 0s 1s;
   position: absolute;
   top: 0;
   left: 0;
@@ -235,13 +243,17 @@
 .fadeIn-homepage {
   opacity: 1;
   visibility: visible;
-  transition: opacity 1s ease-in-out, visibility 0s;
+  transition:
+    opacity 1s ease-in-out,
+    visibility 0s;
 }
 
 .fadeOut-homepage {
   opacity: 0;
   visibility: hidden;
-  transition: opacity 1s ease-in-out, visibility 0s 1s;
+  transition:
+    opacity 1s ease-in-out,
+    visibility 0s 1s;
 }
 
 /* Sign-in and Sign-up Modal Specific Styles */
@@ -555,7 +567,7 @@ input[type="text"]:not(.homepage_MuiInputBase-input__gg398) {
   gap: 0;
 }
 
-.sign-up-form-homepage input {
+.sign-up-form-homepage input:not([type="checkbox"]) {
   font-family: "Quicksand", sans-serif !important;
   color: #1a1a1a !important;
   background-color: #ffffff !important;
@@ -751,7 +763,7 @@ input:-webkit-autofill:active {
   .error-homepage,
   .remember-container-homepage,
   .sign-up-btn-homepage,
-  .sign-up-form-homepage input {
+  .sign-up-form-homepage input:not([type="checkbox"]) {
     width: 100% !important;
     max-width: 100% !important;
   }

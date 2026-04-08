@@ -97,7 +97,7 @@ body,
   .error-homepage,
   .remember-container-homepage,
   .sign-up-btn-homepage,
-  .sign-up-form-homepage input {
+  .sign-up-form-homepage input:not([type="checkbox"]) {
     width: 100% !important;
     max-width: 100% !important;
   }
@@ -833,7 +833,7 @@ body,
     align-items: center;
     gap: 0;
   }
-  .sign-up-form-homepage input {
+  .sign-up-form-homepage input:not([type="checkbox"]) {
     font-family: "Quicksand", sans-serif !important;
     color: #1a1a1a !important;
     background-color: #ffffff !important;
@@ -846,6 +846,9 @@ body,
     font-size: 0.9rem !important;
     box-shadow: 0 7px 8px rgba(0, 0, 0, 0.4) !important;
     box-sizing: border-box !important;
+  }
+  .sign-up-form-homepage input:not([type="checkbox"])::placeholder {
+    font-size: 0.8rem;
   }
   .sign-up-form-homepage label {
     font-size: 1rem;
@@ -869,6 +872,10 @@ body,
     height: 35px;
     margin-top: 20px;
     box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
   .sign-up-btn-homepage:hover,
   .logout-btn-homepage:hover {
@@ -896,17 +903,18 @@ body,
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    margin-top: 0;
+    margin-top: 2px;
+    margin-bottom: 4px;
     cursor: pointer;
     width: 220px;
   }
   .remember-checkbox-homepage {
     appearance: none;
-    width: 20px;
-    height: 20px;
-    border: 2px solid #1a1a1a;
-    border-radius: 5px;
-    margin-right: 10px;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid #1a1a1a;
+    border-radius: 3px;
+    margin-right: 8px;
     display: inline-block;
     position: relative;
     background-color: transparent;
@@ -914,19 +922,20 @@ body,
   .remember-checkbox-homepage:checked::after {
     content: "";
     position: absolute;
-    top: 2px;
-    left: 6px;
-    width: 6px;
-    height: 10px;
+    top: 1px;
+    left: 4px;
+    width: 4px;
+    height: 7px;
     border: solid #1a1a1a;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
   .remember-label-homepage {
     font-family: "Quicksand", sans-serif;
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #1a1a1a;
     text-align: left;
+    line-height: 1;
   }
   .sign-up-form-homepage div[style*="position: relative"] {
     display: flex;

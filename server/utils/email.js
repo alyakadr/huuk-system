@@ -32,7 +32,12 @@ const validateRecipientEmail = (email) => {
   }
 };
 
-const sendStaffPasswordResetEmail = async ({ email, fullname, resetUrl }) => {
+const sendPasswordResetEmail = async ({
+  email,
+  fullname,
+  resetUrl,
+  accountLabel = "HUUK account",
+}) => {
   if (!email || !resetUrl) {
     throw new Error("Email and reset URL are required");
   }
@@ -43,13 +48,13 @@ const sendStaffPasswordResetEmail = async ({ email, fullname, resetUrl }) => {
   const mailOptions = {
     from: process.env.GMAIL_USER,
     to: email,
-    subject: "Reset your HUUK staff password",
-    text: `Hello ${recipientName},\n\nWe received a request to reset your HUUK staff account password. Use the link below to set a new password:\n\n${resetUrl}\n\nThis link will expire in 30 minutes. If you did not request a password reset, you can ignore this email.\n\nHUUK Team`,
+    subject: "Reset your HUUK password",
+    text: `Hello ${recipientName},\n\nWe received a request to reset your ${accountLabel} password. Use the link below to set a new password:\n\n${resetUrl}\n\nThis link will expire in 30 minutes. If you did not request a password reset, you can ignore this email.\n\nHUUK Team`,
     html: `
       <div style="font-family: Quicksand, Arial, sans-serif; color: #1a1a1a; line-height: 1.6;">
-        <h2 style="margin-bottom: 12px;">Reset your HUUK staff password</h2>
+        <h2 style="margin-bottom: 12px;">Reset your HUUK password</h2>
         <p>Hello ${recipientName},</p>
-        <p>We received a request to reset your HUUK staff account password.</p>
+        <p>We received a request to reset your ${accountLabel} password.</p>
         <p>
           <a
             href="${resetUrl}"
@@ -75,6 +80,14 @@ const sendStaffPasswordResetEmail = async ({ email, fullname, resetUrl }) => {
     throw new Error(`Failed to send email: ${smtpErr.message}`);
   });
 };
+
+const sendStaffPasswordResetEmail = async ({ email, fullname, resetUrl }) =>
+  sendPasswordResetEmail({
+    email,
+    fullname,
+    resetUrl,
+    accountLabel: "HUUK staff account",
+  });
 
 const sendBookingReceipt = async (bookingDetails, email) => {
   console.log("Attempting to send receipt:", { bookingDetails, to: email });
@@ -542,5 +555,6 @@ module.exports = {
   sendBookingReceipt,
   sendRescheduleConfirmation,
   sendCancelConfirmation,
+  sendPasswordResetEmail,
   sendStaffPasswordResetEmail,
 };

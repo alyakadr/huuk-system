@@ -1519,7 +1519,12 @@ const BookingHistory = () => {
               <FormControl
                 margin="normal"
                 disabled={!rescheduleDate || isRescheduling}
-                sx={{ width: isCompactView ? "100%" : "220px", maxWidth: isCompactView ? "100%" : "220px", display: "block", my: 1 }}
+                sx={{
+                  width: isCompactView ? "100%" : "220px",
+                  maxWidth: isCompactView ? "100%" : "220px",
+                  display: "block",
+                  my: 1,
+                }}
               >
                 <InputLabel sx={{ fontSize: "0.9rem" }}>
                   Available Time Slots
@@ -1568,7 +1573,12 @@ const BookingHistory = () => {
               <FormControl
                 margin="normal"
                 disabled={!rescheduleTime || isRescheduling}
-                sx={{ width: isCompactView ? "100%" : "220px", maxWidth: isCompactView ? "100%" : "220px", display: "block", my: 1 }}
+                sx={{
+                  width: isCompactView ? "100%" : "220px",
+                  maxWidth: isCompactView ? "100%" : "220px",
+                  display: "block",
+                  my: 1,
+                }}
               >
                 <InputLabel sx={{ fontSize: "0.9rem" }}>Staff</InputLabel>
                 <Select
@@ -1614,7 +1624,15 @@ const BookingHistory = () => {
             </Box>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ borderTop: "1px solid #333", p: 1.5, px: 2, flexWrap: isCompactView ? "wrap" : "nowrap", gap: isCompactView ? 1 : 0 }}>
+        <DialogActions
+          sx={{
+            borderTop: "1px solid #333",
+            p: 1.5,
+            px: 2,
+            flexWrap: isCompactView ? "wrap" : "nowrap",
+            gap: isCompactView ? 1 : 0,
+          }}
+        >
           <Button
             onClick={() => setRescheduleDialogOpen(false)}
             className="reschedule-cancel-btn"
@@ -1737,7 +1755,14 @@ const BookingHistory = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ borderTop: "1px solid #333", p: 2, flexWrap: isCompactView ? "wrap" : "nowrap", gap: isCompactView ? 1 : 0 }}>
+        <DialogActions
+          sx={{
+            borderTop: "1px solid #333",
+            p: 2,
+            flexWrap: isCompactView ? "wrap" : "nowrap",
+            gap: isCompactView ? 1 : 0,
+          }}
+        >
           <Button
             onClick={() => setConfirmCancelDialogOpen(false)}
             className="reschedule-cancel-btn"

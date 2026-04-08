@@ -176,10 +176,8 @@ const ManagerDashboard = () => {
   // Add token validation
   const [, setTokenValidated] = useState(false);
 
-  const [, setCustomerSatisfactionLoading] =
-    useState(true);
-  const [, setCustomerSatisfactionError] =
-    useState(null);
+  const [, setCustomerSatisfactionLoading] = useState(true);
+  const [, setCustomerSatisfactionError] = useState(null);
 
   const outletListRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);

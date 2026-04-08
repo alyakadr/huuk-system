@@ -717,10 +717,10 @@ const Homepage = () => {
             </div>
             <p>
               <a
-                href="/staff-forgot-password"
+                href="/forgot-password"
                 onClick={(event) => {
                   event.preventDefault();
-                  navigate("/staff-forgot-password");
+                  navigate("/forgot-password");
                 }}
                 className={styles["forgot-password-homepage"]}
               >

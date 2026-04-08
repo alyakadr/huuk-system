@@ -59,7 +59,7 @@ const StaffResetPassword = () => {
 
       try {
         const response = await http.get(
-          `${API_BASE_URL}/auth/staff/reset-password/validate`,
+          `${API_BASE_URL}/auth/reset-password/validate`,
           {
             params: { token },
           },
@@ -109,7 +109,7 @@ const StaffResetPassword = () => {
     setErrorMessage("");
 
     try {
-      await http.post(`${API_BASE_URL}/auth/staff/reset-password`, {
+      await http.post(`${API_BASE_URL}/auth/reset-password`, {
         token,
         password,
       });
@@ -166,7 +166,7 @@ const StaffResetPassword = () => {
           <MdCheckCircleOutline className="staff-reset-feedback-icon" />
           <div>
             <h3>Password Updated</h3>
-            <p>Your staff account password has been reset successfully.</p>
+            <p>Your account password has been reset successfully.</p>
           </div>
         </div>
       );
@@ -175,7 +175,7 @@ const StaffResetPassword = () => {
     return (
       <form className="staff-reset-form" onSubmit={handleSubmit} noValidate>
         <p className="staff-reset-helper-copy">
-          Resetting password for {accountEmail || "your staff account"}.
+          Resetting password for {accountEmail || "your account"}.
         </p>
 
         <label htmlFor="staffResetPassword" className="staff-reset-label">
@@ -275,8 +275,7 @@ const StaffResetPassword = () => {
             <img src={logo} alt="Huuk logo" className="staff-reset-logo" />
             <h1 className="staff-reset-brand-title">Set A New Password</h1>
             <p className="staff-reset-brand-copy">
-              Choose a strong password for your staff portal and keep your
-              account secure.
+              Choose a strong password to keep your account secure.
             </p>
           </div>
         </aside>
@@ -291,7 +290,7 @@ const StaffResetPassword = () => {
               Back to Sign In
             </Link>
             <Link
-              to="/staff-forgot-password"
+              to="/forgot-password"
               className="staff-reset-link subtle"
             >
               Request New Link

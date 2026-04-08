@@ -35,7 +35,7 @@ const StaffForgotPassword = () => {
     setErrorMessage("");
 
     try {
-      await http.post(`${API_BASE_URL}/auth/staff/forgot-password`, {
+      await http.post(`${API_BASE_URL}/auth/forgot-password`, {
         email: normalizedEmail,
       });
       setIsSuccess(true);
@@ -63,8 +63,8 @@ const StaffForgotPassword = () => {
             <img src={logo} alt="Huuk logo" className="staff-forgot-logo" />
             <h1 className="staff-forgot-brand-title">Reset Access</h1>
             <p className="staff-forgot-brand-copy">
-              Enter your staff account email and we will send reset instructions
-              if the account exists.
+              Enter your account email and we will send reset instructions if
+              the account exists.
             </p>
           </div>
         </aside>
@@ -93,7 +93,7 @@ const StaffForgotPassword = () => {
               noValidate
             >
               <label htmlFor="staffForgotEmail" className="staff-forgot-label">
-                Staff Email
+                Email
               </label>
               <div className="staff-forgot-input-wrap">
                 <MdEmail
@@ -139,7 +139,7 @@ const StaffForgotPassword = () => {
               Back to Sign In
             </Link>
             <Link to="/" className="staff-forgot-link subtle">
-              Customer Homepage
+              Back to Homepage
             </Link>
           </div>
         </div>

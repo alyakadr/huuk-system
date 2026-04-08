@@ -4,10 +4,11 @@ import Modal from "react-modal";
 import { useSpring, animated } from "@react-spring/web";
 import http from "../../utils/httpClient";
 import {
-  MdPhone,
+  MdBadge,
   MdLock,
   MdEmail,
   MdPerson,
+  MdInfoOutline,
   MdVisibility,
   MdVisibilityOff,
 } from "react-icons/md";
@@ -43,15 +44,15 @@ const CustomerHomepage = () => {
 
   // Restore sign-up state (sign-in is now centralized)
   const [isSignUpOpen, setSignUpOpen] = useState(false);
-  const [signUpPhoneNumber, setSignUpPhoneNumber] = useState("");
+  const [signUpFullName, setSignUpFullName] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpUsername, setSignUpUsername] = useState("");
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
   const [signUpErrors, setSignUpErrors] = useState({
+    fullName: "",
     email: "",
     username: "",
-    phoneNumber: "",
     password: "",
     confirmPassword: "",
   });
@@ -157,6 +158,41 @@ const CustomerHomepage = () => {
     return re.test(password);
   };
 
+  const sharedInputStyle = {
+    color: "#1a1a1a",
+    backgroundColor: "#ffffff",
+    border: "1px solid #1a1a1a",
+    fontFamily: "Quicksand, sans-serif",
+    padding: "12px",
+    margin: "2px 0 8px 0",
+    width: "220px",
+    height: "40px",
+    borderRadius: "1px",
+    fontSize: "0.9rem",
+    boxShadow: "0px 7px 8px rgba(0, 0, 0, 0.4)",
+    boxSizing: "border-box",
+  };
+
+  const inputWithLeftIconStyle = {
+    ...sharedInputStyle,
+    paddingLeft: "40px",
+  };
+
+  const passwordInputStyle = {
+    ...inputWithLeftIconStyle,
+    paddingRight: "42px",
+  };
+
+  const infoIconStyle = {
+    position: "absolute",
+    top: "50%",
+    right: "-18px",
+    transform: "translateY(-50%)",
+    color: "#1a1a1a",
+    fontSize: "1rem",
+    cursor: "help",
+  };
+
   // Remove all sign-in modal state, handlers, and JSX
   // Only keep sign-up modal and its state/handlers
   // To open sign-in modal, use: const { setIsSignInOpen } = useProfile(); setIsSignInOpen(true);
@@ -165,20 +201,24 @@ const CustomerHomepage = () => {
     e.preventDefault();
     setLoading((prev) => ({ ...prev, signUp: true }));
     setSignUpErrors({
+      fullName: "",
       email: "",
       username: "",
-      phoneNumber: "",
       password: "",
       confirmPassword: "",
     });
 
     let newErrors = {
+      fullName: "",
       email: "",
       username: "",
-      phoneNumber: "",
       password: "",
       confirmPassword: "",
     };
+
+    if (!signUpFullName || signUpFullName.trim() === "") {
+      newErrors.fullName = "Fullname is required.";
+    }
 
     if (!validateEmail(signUpEmail)) {
       newErrors.email = "Please enter a valid email address.";
@@ -186,10 +226,6 @@ const CustomerHomepage = () => {
 
     if (!signUpUsername || signUpUsername.trim() === "") {
       newErrors.username = "Username is required.";
-    }
-
-    if (!signUpPhoneNumber || signUpPhoneNumber.trim() === "") {
-      newErrors.phoneNumber = "Phone number is required.";
     }
 
     if (!validatePassword(signUpPassword)) {
@@ -209,7 +245,7 @@ const CustomerHomepage = () => {
 
     try {
       console.log("[FRONTEND DEBUG] Sending signup request with data:", {
-        phone_number: signUpPhoneNumber,
+        fullname: signUpFullName,
         password: signUpPassword ? "[PROVIDED]" : "[MISSING]",
         username: signUpUsername,
         email: signUpEmail,
@@ -217,7 +253,7 @@ const CustomerHomepage = () => {
       });
 
       const response = await http.post(`${API_BASE_URL}/auth/customer/signup`, {
-        phone_number: signUpPhoneNumber,
+        fullname: signUpFullName,
         password: signUpPassword,
         username: signUpUsername,
         email: signUpEmail,
@@ -225,15 +261,15 @@ const CustomerHomepage = () => {
       if (response.data.message) {
         alert(response.data.message);
         setSignUpOpen(false);
-        setSignUpPhoneNumber("");
+        setSignUpFullName("");
         setSignUpPassword("");
         setSignUpEmail("");
         setSignUpUsername("");
         setSignUpConfirmPassword("");
         setSignUpErrors({
+          fullName: "",
           email: "",
           username: "",
-          phoneNumber: "",
           password: "",
           confirmPassword: "",
         });
@@ -245,6 +281,30 @@ const CustomerHomepage = () => {
       if (
         errData &&
         typeof errData === "object" &&
+        (errData.fullName ||
+          errData.fullname ||
+          errData.name ||
+          errData.full_name ||
+          errData.email ||
+          errData.username ||
+          errData.password ||
+          errData.confirmPassword)
+      ) {
+        setSignUpErrors({
+          fullName:
+            errData.fullName ||
+            errData.fullname ||
+            errData.name ||
+            errData.full_name ||
+            "",
+          email: errData.email || "",
+          username: errData.username || "",
+          password: errData.password || "",
+          confirmPassword: errData.confirmPassword || "",
+        });
+      } else if (
+        errData &&
+        typeof errData === "object" &&
         (errData.email ||
           errData.username ||
           errData.phoneNumber ||
@@ -252,52 +312,52 @@ const CustomerHomepage = () => {
           errData.confirmPassword)
       ) {
         setSignUpErrors({
+          fullName: "",
           email: errData.email || "",
           username: errData.username || "",
-          phoneNumber: errData.phoneNumber || "",
           password: errData.password || "",
           confirmPassword: errData.confirmPassword || "",
         });
       } else {
         const message = error.response?.data?.message || "Sign-up failed";
         // Try to parse which field the error is about
-        if (message.toLowerCase().includes("email")) {
+        if (message.toLowerCase().includes("full") || message.toLowerCase().includes("name")) {
           setSignUpErrors({
+            fullName: message,
+            email: "",
+            username: "",
+            password: "",
+            confirmPassword: "",
+          });
+        } else if (message.toLowerCase().includes("email")) {
+          setSignUpErrors({
+            fullName: "",
             email: message,
             username: "",
-            phoneNumber: "",
             password: "",
             confirmPassword: "",
           });
         } else if (message.toLowerCase().includes("username")) {
           setSignUpErrors({
+            fullName: "",
             email: "",
             username: message,
-            phoneNumber: "",
-            password: "",
-            confirmPassword: "",
-          });
-        } else if (message.toLowerCase().includes("phone")) {
-          setSignUpErrors({
-            email: "",
-            username: "",
-            phoneNumber: message,
             password: "",
             confirmPassword: "",
           });
         } else if (message.toLowerCase().includes("password")) {
           setSignUpErrors({
+            fullName: "",
             email: "",
             username: "",
-            phoneNumber: "",
             password: message,
             confirmPassword: "",
           });
         } else {
           setSignUpErrors({
+            fullName: "",
             email: message,
             username: "",
-            phoneNumber: "",
             password: "",
             confirmPassword: "",
           });
@@ -314,15 +374,15 @@ const CustomerHomepage = () => {
   };
   const closeSignUpModal = () => {
     setSignUpOpen(false);
+    setSignUpFullName("");
     setSignUpEmail("");
     setSignUpUsername("");
-    setSignUpPhoneNumber("");
     setSignUpPassword("");
     setSignUpConfirmPassword("");
     setSignUpErrors({
+      fullName: "",
       email: "",
       username: "",
-      phoneNumber: "",
       password: "",
       confirmPassword: "",
     });
@@ -487,9 +547,9 @@ const CustomerHomepage = () => {
               className={styles["sign-up-form-homepage"]}
               onSubmit={handleSignUp}
             >
-              <label htmlFor="email">Email</label>
-              <div style={{ position: "relative", marginBottom: "18px" }}>
-                <MdEmail
+              <label htmlFor="fullname">Fullname</label>
+              <div style={{ position: "relative" }}>
+                <MdBadge
                   style={{
                     position: "absolute",
                     top: "50%",
@@ -500,33 +560,22 @@ const CustomerHomepage = () => {
                   }}
                 />
                 <input
-                  type="email"
-                  id="email"
-                  value={signUpEmail}
-                  placeholder="Enter your email"
+                  type="text"
+                  id="fullname"
+                  value={signUpFullName}
+                  placeholder="As per IC"
                   onChange={(e) => {
-                    setSignUpEmail(e.target.value);
+                    setSignUpFullName(e.target.value);
                   }}
                   required
-                  style={{
-                    color: "#1a1a1a",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #1a1a1a",
-                    fontFamily: "Quicksand, sans-serif",
-                    padding: "12px",
-                    margin: "2px 0 8px 0",
-                    width: "220px",
-                    height: "40px",
-                    borderRadius: "1px",
-                    fontSize: "0.9rem",
-                    boxShadow: "0px 7px 8px rgba(0, 0, 0, 0.4)",
-                    boxSizing: "border-box",
-                  }}
+                  style={inputWithLeftIconStyle}
                   disabled={loading.signUp}
                 />
               </div>
-              {signUpErrors.email && (
-                <p className={styles["error-homepage"]}>{signUpErrors.email}</p>
+              {signUpErrors.fullName && (
+                <p className={styles["error-homepage"]}>
+                  {signUpErrors.fullName}
+                </p>
               )}
 
               <label htmlFor="username">Username</label>
@@ -550,21 +599,7 @@ const CustomerHomepage = () => {
                     setSignUpUsername(e.target.value);
                   }}
                   required
-                  style={{
-                    paddingLeft: "40px",
-                    color: "#1a1a1a",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #1a1a1a",
-                    fontFamily: "Quicksand, sans-serif",
-                    padding: "12px",
-                    margin: "2px 0 8px 0",
-                    width: "220px",
-                    height: "40px",
-                    borderRadius: "1px",
-                    fontSize: "0.9rem",
-                    boxShadow: "0px 7px 8px rgba(0, 0, 0, 0.4)",
-                    boxSizing: "border-box",
-                  }}
+                  style={inputWithLeftIconStyle}
                   disabled={loading.signUp}
                 />
               </div>
@@ -574,9 +609,9 @@ const CustomerHomepage = () => {
                 </p>
               )}
 
-              <label htmlFor="phoneNumber">Phone Number</label>
+              <label htmlFor="email">Email</label>
               <div style={{ position: "relative" }}>
-                <MdPhone
+                <MdEmail
                   style={{
                     position: "absolute",
                     top: "50%",
@@ -587,35 +622,28 @@ const CustomerHomepage = () => {
                   }}
                 />
                 <input
-                  type="tel"
-                  id="phoneNumber"
-                  value={signUpPhoneNumber}
-                  placeholder="01234567890"
+                  type="email"
+                  id="email"
+                  value={signUpEmail}
+                  placeholder="Enter a valid email address"
                   onChange={(e) => {
-                    setSignUpPhoneNumber(e.target.value);
+                    setSignUpEmail(e.target.value);
                   }}
                   required
-                  style={{
-                    paddingLeft: "40px",
-                    color: "#1a1a1a",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #1a1a1a",
-                    fontFamily: "Quicksand, sans-serif",
-                    padding: "12px",
-                    margin: "2px 0 8px 0",
-                    width: "220px",
-                    height: "40px",
-                    borderRadius: "1px",
-                    fontSize: "0.9rem",
-                    boxShadow: "0px 7px 8px rgba(0, 0, 0, 0.4)",
-                    boxSizing: "border-box",
-                  }}
+                  style={inputWithLeftIconStyle}
                   disabled={loading.signUp}
                 />
+                <span
+                  title="Use an active email address. We will use this for account and password reset notices."
+                  aria-label="Email requirements"
+                  style={infoIconStyle}
+                >
+                  <MdInfoOutline />
+                </span>
               </div>
-              {signUpErrors.phoneNumber && (
+              {signUpErrors.email && (
                 <p className={styles["error-homepage"]}>
-                  {signUpErrors.phoneNumber}
+                  {signUpErrors.email}
                 </p>
               )}
 
@@ -640,21 +668,7 @@ const CustomerHomepage = () => {
                     setSignUpPassword(e.target.value);
                   }}
                   required
-                  style={{
-                    paddingLeft: "40px",
-                    color: "#1a1a1a",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #1a1a1a",
-                    fontFamily: "Quicksand, sans-serif",
-                    padding: "12px",
-                    margin: "2px 0 8px 0",
-                    width: "220px",
-                    height: "40px",
-                    borderRadius: "1px",
-                    fontSize: "0.9rem",
-                    boxShadow: "0px 7px 8px rgba(0, 0, 0, 0.4)",
-                    boxSizing: "border-box",
-                  }}
+                  style={passwordInputStyle}
                   disabled={loading.signUp}
                 />
                 <span
@@ -675,6 +689,13 @@ const CustomerHomepage = () => {
                   }
                 >
                   {showSignUpPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                </span>
+                <span
+                  title="Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character."
+                  aria-label="Password requirements"
+                  style={infoIconStyle}
+                >
+                  <MdInfoOutline />
                 </span>
               </div>
               {signUpErrors.password && (
@@ -704,21 +725,7 @@ const CustomerHomepage = () => {
                     setSignUpConfirmPassword(e.target.value);
                   }}
                   required
-                  style={{
-                    paddingLeft: "40px",
-                    color: "#1a1a1a",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #1a1a1a",
-                    fontFamily: "Quicksand, sans-serif",
-                    padding: "12px",
-                    margin: "2px 0 8px 0",
-                    width: "220px",
-                    height: "40px",
-                    borderRadius: "1px",
-                    fontSize: "0.9rem",
-                    boxShadow: "0px 7px 8px rgba(0, 0, 0, 0.4)",
-                    boxSizing: "border-box",
-                  }}
+                  style={passwordInputStyle}
                   disabled={loading.signUp}
                 />
                 <span
@@ -762,13 +769,6 @@ const CustomerHomepage = () => {
               </button>
             </form>
           </div>
-
-          <button
-            className={styles["close-btn-homepage"]}
-            onClick={closeSignUpModal}
-          >
-            x
-          </button>
         </animated.div>
       </Modal>
       <SwitchModeButton />

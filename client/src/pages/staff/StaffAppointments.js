@@ -1636,7 +1636,10 @@ const StaffAppointments = () => {
               <div className="space-y-3 max-h-[640px] overflow-auto pr-1">
                 {filteredAppointments.length > 0 ? (
                   sortedDates.map((date) => (
-                    <div key={`mobile-date-section-${date}`} className="space-y-2">
+                    <div
+                      key={`mobile-date-section-${date}`}
+                      className="space-y-2"
+                    >
                       <div className="bg-white/5 rounded-huuk-sm px-3 py-2 text-sm font-semibold text-huuk-accent flex items-center gap-2">
                         <i className="bi bi-calendar-date"></i>
                         <span>{formatDateForDisplay(date)}</span>
@@ -1681,128 +1684,132 @@ const StaffAppointments = () => {
                 )}
               </div>
             ) : (
-            <div
-              className="appointments-table-container overflow-auto max-h-[640px]"
-              onScroll={(e) => {
-                const container = e.target;
-                const hasOverflow =
-                  container.scrollHeight > container.clientHeight;
-                if (hasOverflow) {
-                  container.classList.add("has-overflow");
-                } else {
-                  container.classList.remove("has-overflow");
-                }
-              }}
-            >
-              <table className="huuk-table min-w-[760px]">
-                {/* Single table header */}
-                <thead>
-                  <tr>
-                    <th className="huuk-th">CUSTOMER NAME</th>
-                    <th className="huuk-th">PHONE NUMBER</th>
-                    <th className="huuk-th">SERVICE</th>
-                    <th className="huuk-th">TIME</th>
-                    <th className="huuk-th">SERVICE STATUS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Date sections and appointments */}
-                  {filteredAppointments.length > 0 ? (
-                    sortedDates.map((date) => (
-                      <React.Fragment key={`date-section-${date}`}>
-                        {/* Date header row */}
-                        <tr className="bg-white/5">
-                          <td colSpan="5" className="px-4 py-2">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-huuk-accent">
-                              <i className="bi bi-calendar-date"></i>
-                              <span>{formatDateForDisplay(date)}</span>
-                              <span className="text-huuk-muted">
-                                ({groupedAppointments[date].length} appointment
-                                {groupedAppointments[date].length !== 1
-                                  ? "s"
-                                  : ""}
-                                )
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                        {/* Appointment rows for this date */}
-                        {groupedAppointments[date].map((appointment) => (
-                          <tr
-                            key={appointment.id}
-                            className="huuk-tr border-b border-white/10"
-                          >
-                            <td
-                              className="huuk-td"
-                              style={{ paddingLeft: "18px" }}
-                            >
-                              {appointment.customer_name || "N/A"}
-                            </td>
-                            <td>
-                              {(() => {
-                                // Comprehensive phone number fallback logic
-                                const phoneFields = [
-                                  appointment.phone_number,
-                                  appointment.phone,
-                                  appointment.customer_phone,
-                                  appointment.phone_no,
-                                  appointment.contact_number,
-                                  appointment.user_phone,
-                                  appointment.customer?.phone,
-                                  appointment.customer?.phone_number,
-                                  appointment.user?.phone,
-                                  appointment.user?.phone_number,
-                                ];
-                                const phoneNumber = phoneFields.find(
-                                  (phone) =>
-                                    phone &&
-                                    phone !== "" &&
-                                    phone !== null &&
-                                    phone !== undefined &&
-                                    phone.toString().trim() !== "",
-                                );
-                                return phoneNumber
-                                  ? phoneNumber.toString().trim()
-                                  : "N/A";
-                              })()}
-                            </td>
-                            <td className="huuk-td">
-                              {appointment.service_name || "N/A"}
-                            </td>
-                            <td className="huuk-td">
-                              {appointment.start_time && appointment.end_time
-                                ? `${formatTime(appointment.start_time)} – ${formatTime(appointment.end_time)}`
-                                : `${formatTime(appointment.start_time) || "N/A"} – ${formatTime(appointment.end_time) || "N/A"}`}
-                            </td>
-                            <td
-                              className="huuk-td text-center italic"
-                              style={{
-                                textAlign: "center",
-                                fontStyle: "italic",
-                              }}
-                            >
-                              <div className="italic" style={{ fontStyle: "italic" }}>
-                                {renderServiceStatus(appointment)}
+              <div
+                className="appointments-table-container overflow-auto max-h-[640px]"
+                onScroll={(e) => {
+                  const container = e.target;
+                  const hasOverflow =
+                    container.scrollHeight > container.clientHeight;
+                  if (hasOverflow) {
+                    container.classList.add("has-overflow");
+                  } else {
+                    container.classList.remove("has-overflow");
+                  }
+                }}
+              >
+                <table className="huuk-table min-w-[760px]">
+                  {/* Single table header */}
+                  <thead>
+                    <tr>
+                      <th className="huuk-th">CUSTOMER NAME</th>
+                      <th className="huuk-th">PHONE NUMBER</th>
+                      <th className="huuk-th">SERVICE</th>
+                      <th className="huuk-th">TIME</th>
+                      <th className="huuk-th">SERVICE STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Date sections and appointments */}
+                    {filteredAppointments.length > 0 ? (
+                      sortedDates.map((date) => (
+                        <React.Fragment key={`date-section-${date}`}>
+                          {/* Date header row */}
+                          <tr className="bg-white/5">
+                            <td colSpan="5" className="px-4 py-2">
+                              <div className="flex items-center gap-2 text-sm font-semibold text-huuk-accent">
+                                <i className="bi bi-calendar-date"></i>
+                                <span>{formatDateForDisplay(date)}</span>
+                                <span className="text-huuk-muted">
+                                  ({groupedAppointments[date].length}{" "}
+                                  appointment
+                                  {groupedAppointments[date].length !== 1
+                                    ? "s"
+                                    : ""}
+                                  )
+                                </span>
                               </div>
                             </td>
                           </tr>
-                        ))}
-                      </React.Fragment>
-                    ))
-                  ) : (
-                    /* Empty state */
-                    <tr>
-                      <td colSpan="5" className="huuk-td text-center py-8">
-                        <i className="bi bi-calendar-x"></i>
-                        {selectedDate
-                          ? "No appointments found for the selected date."
-                          : "No appointments found for today."}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          {/* Appointment rows for this date */}
+                          {groupedAppointments[date].map((appointment) => (
+                            <tr
+                              key={appointment.id}
+                              className="huuk-tr border-b border-white/10"
+                            >
+                              <td
+                                className="huuk-td"
+                                style={{ paddingLeft: "18px" }}
+                              >
+                                {appointment.customer_name || "N/A"}
+                              </td>
+                              <td>
+                                {(() => {
+                                  // Comprehensive phone number fallback logic
+                                  const phoneFields = [
+                                    appointment.phone_number,
+                                    appointment.phone,
+                                    appointment.customer_phone,
+                                    appointment.phone_no,
+                                    appointment.contact_number,
+                                    appointment.user_phone,
+                                    appointment.customer?.phone,
+                                    appointment.customer?.phone_number,
+                                    appointment.user?.phone,
+                                    appointment.user?.phone_number,
+                                  ];
+                                  const phoneNumber = phoneFields.find(
+                                    (phone) =>
+                                      phone &&
+                                      phone !== "" &&
+                                      phone !== null &&
+                                      phone !== undefined &&
+                                      phone.toString().trim() !== "",
+                                  );
+                                  return phoneNumber
+                                    ? phoneNumber.toString().trim()
+                                    : "N/A";
+                                })()}
+                              </td>
+                              <td className="huuk-td">
+                                {appointment.service_name || "N/A"}
+                              </td>
+                              <td className="huuk-td">
+                                {appointment.start_time && appointment.end_time
+                                  ? `${formatTime(appointment.start_time)} – ${formatTime(appointment.end_time)}`
+                                  : `${formatTime(appointment.start_time) || "N/A"} – ${formatTime(appointment.end_time) || "N/A"}`}
+                              </td>
+                              <td
+                                className="huuk-td text-center italic"
+                                style={{
+                                  textAlign: "center",
+                                  fontStyle: "italic",
+                                }}
+                              >
+                                <div
+                                  className="italic"
+                                  style={{ fontStyle: "italic" }}
+                                >
+                                  {renderServiceStatus(appointment)}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      ))
+                    ) : (
+                      /* Empty state */
+                      <tr>
+                        <td colSpan="5" className="huuk-td text-center py-8">
+                          <i className="bi bi-calendar-x"></i>
+                          {selectedDate
+                            ? "No appointments found for the selected date."
+                            : "No appointments found for today."}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {/* Pagination */}

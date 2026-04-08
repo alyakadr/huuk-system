@@ -629,7 +629,13 @@ const ManagerAppointmentManagement = () => {
             minWidth: 0,
           }}
         >
-          <h2 style={{ whiteSpace: isCondensedView ? "normal" : "nowrap", margin: 0, lineHeight: 1.2 }}>
+          <h2
+            style={{
+              whiteSpace: isCondensedView ? "normal" : "nowrap",
+              margin: 0,
+              lineHeight: 1.2,
+            }}
+          >
             {selectedLocation
               ? `${outlets.find((outlet) => (outlet.shortform || outlet.name) === selectedLocation)?.name || selectedLocation} (${selectedLocation})`
               : "All Locations"}
@@ -744,7 +750,10 @@ const ManagerAppointmentManagement = () => {
                           const endDateTime = moment(
                             `${dateOnly}T${appointment.end_time}`,
                           );
-                          if (!startDateTime.isValid() || !endDateTime.isValid())
+                          if (
+                            !startDateTime.isValid() ||
+                            !endDateTime.isValid()
+                          )
                             return "Invalid Time";
                           return `${startDateTime.format("HH:mm")} - ${endDateTime.format("HH:mm")}`;
                         })()}
@@ -766,160 +775,169 @@ const ManagerAppointmentManagement = () => {
                       <span className="text-gray-300">Service</span>
                       <span>{appointment.service}</span>
                     </div>
-                    <div className="mt-3 flex justify-stretch">{getActionButtons(appointment)}</div>
+                    <div className="mt-3 flex justify-stretch">
+                      {getActionButtons(appointment)}
+                    </div>
                   </div>
                 ))
               )}
             </div>
           ) : (
-          <>
-            <div
-              className="grid bg-orange-500/10 px-4 py-3 font-semibold text-[11px] text-white uppercase tracking-wide border-b border-orange-500/30 shrink-0 w-full max-w-full box-border"
-              style={{
-                gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
-                overflow: "hidden",
-              }}
-            >
-            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
-              <CalendarIcon />
-              <span>DATE</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
-              <ClockIcon />
-              <span>TIME</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
-              <UserIcon />
-              <span>STAFF NAME</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
-              <ScissorsIcon />
-              <span>SERVICE</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap justify-center">
-              <span>ACTIONS</span>
-            </div>
-            </div>
-          <div
-            className="flex-1 overflow-hidden bg-transparent"
-            style={{ flex: 1, overflow: "hidden", background: "transparent" }}
-          >
-            {Array.from({ length: 4 }).map((_, i) => {
-              // Changed from 5 to 4
-              const appointment = paginatedAppointments[i];
-              if (appointment) {
-                return (
-                  <div
-                    key={appointment.id}
-                    className="grid px-4 py-3 border-b border-white/5 items-center transition-all duration-200 hover:bg-white/5 w-full max-w-full box-border relative"
-                    style={{
-                      gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
-                      minHeight: 0,
-                      height: "80px",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
-                      style={{
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {appointment.date
-                        ? formatDateForDisplay(appointment.date)
-                        : "N/A"}
-                    </div>
-                    <div
-                      className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
-                      style={{
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {(() => {
-                        if (
-                          !appointment.start_time ||
-                          !appointment.end_time ||
-                          !appointment.date
-                        )
-                          return "N/A";
-                        const dateOnly = appointment.date.split("T")[0];
-                        const startDateTime = moment(
-                          `${dateOnly}T${appointment.start_time}`,
-                        );
-                        const endDateTime = moment(
-                          `${dateOnly}T${appointment.end_time}`,
-                        );
-                        if (!startDateTime.isValid() || !endDateTime.isValid())
-                          return "Invalid Time";
-                        const startTime = startDateTime.format("HH:mm");
-                        const endTime = endDateTime.format("HH:mm");
-                        return `${startTime} - ${endTime}`;
-                      })()}
-                    </div>
-                    <div
-                      className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
-                      style={{
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {appointment.username ||
-                      appointment.staff_username ||
-                      appointment.user_name
-                        ? appointment.username ||
+            <>
+              <div
+                className="grid bg-orange-500/10 px-4 py-3 font-semibold text-[11px] text-white uppercase tracking-wide border-b border-orange-500/30 shrink-0 w-full max-w-full box-border"
+                style={{
+                  gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
+                  overflow: "hidden",
+                }}
+              >
+                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
+                  <CalendarIcon />
+                  <span>DATE</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
+                  <ClockIcon />
+                  <span>TIME</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
+                  <UserIcon />
+                  <span>STAFF NAME</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
+                  <ScissorsIcon />
+                  <span>SERVICE</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap justify-center">
+                  <span>ACTIONS</span>
+                </div>
+              </div>
+              <div
+                className="flex-1 overflow-hidden bg-transparent"
+                style={{
+                  flex: 1,
+                  overflow: "hidden",
+                  background: "transparent",
+                }}
+              >
+                {Array.from({ length: 4 }).map((_, i) => {
+                  // Changed from 5 to 4
+                  const appointment = paginatedAppointments[i];
+                  if (appointment) {
+                    return (
+                      <div
+                        key={appointment.id}
+                        className="grid px-4 py-3 border-b border-white/5 items-center transition-all duration-200 hover:bg-white/5 w-full max-w-full box-border relative"
+                        style={{
+                          gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
+                          minHeight: 0,
+                          height: "80px",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {appointment.date
+                            ? formatDateForDisplay(appointment.date)
+                            : "N/A"}
+                        </div>
+                        <div
+                          className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {(() => {
+                            if (
+                              !appointment.start_time ||
+                              !appointment.end_time ||
+                              !appointment.date
+                            )
+                              return "N/A";
+                            const dateOnly = appointment.date.split("T")[0];
+                            const startDateTime = moment(
+                              `${dateOnly}T${appointment.start_time}`,
+                            );
+                            const endDateTime = moment(
+                              `${dateOnly}T${appointment.end_time}`,
+                            );
+                            if (
+                              !startDateTime.isValid() ||
+                              !endDateTime.isValid()
+                            )
+                              return "Invalid Time";
+                            const startTime = startDateTime.format("HH:mm");
+                            const endTime = endDateTime.format("HH:mm");
+                            return `${startTime} - ${endTime}`;
+                          })()}
+                        </div>
+                        <div
+                          className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {appointment.username ||
                           appointment.staff_username ||
                           appointment.user_name
-                        : appointment.staffName &&
-                            appointment.staffName !== "-" &&
-                            appointment.staffName.trim() !== ""
-                          ? appointment.staffName
-                          : "Unassigned"}
-                    </div>
-                    <div
-                      className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
-                      style={{
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {appointment.service}
-                    </div>
-                    <div className="text-[13px] text-white font-medium flex items-center justify-center text-center">
-                      {getActionButtons(appointment)}
-                    </div>
-                  </div>
-                );
-              } else {
-                // Render empty row for visual consistency
-                return (
-                  <div
-                    key={`empty-row-${i}`}
-                    className="grid px-4 py-3 border-b border-white/5 items-center w-full max-w-full box-border"
-                    style={{
-                      gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
-                      minHeight: 0,
-                      height: "80px",
-                      overflow: "hidden",
-                      background: "transparent",
-                    }}
-                  >
-                    <div className="text-[13px]" />
-                    <div className="text-[13px]" />
-                    <div className="text-[13px]" />
-                    <div className="text-[13px]" />
-                    <div className="text-[13px]" />
-                  </div>
-                );
-              }
-            })}
-            </div>
-          </>
+                            ? appointment.username ||
+                              appointment.staff_username ||
+                              appointment.user_name
+                            : appointment.staffName &&
+                                appointment.staffName !== "-" &&
+                                appointment.staffName.trim() !== ""
+                              ? appointment.staffName
+                              : "Unassigned"}
+                        </div>
+                        <div
+                          className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {appointment.service}
+                        </div>
+                        <div className="text-[13px] text-white font-medium flex items-center justify-center text-center">
+                          {getActionButtons(appointment)}
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    // Render empty row for visual consistency
+                    return (
+                      <div
+                        key={`empty-row-${i}`}
+                        className="grid px-4 py-3 border-b border-white/5 items-center w-full max-w-full box-border"
+                        style={{
+                          gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
+                          minHeight: 0,
+                          height: "80px",
+                          overflow: "hidden",
+                          background: "transparent",
+                        }}
+                      >
+                        <div className="text-[13px]" />
+                        <div className="text-[13px]" />
+                        <div className="text-[13px]" />
+                        <div className="text-[13px]" />
+                        <div className="text-[13px]" />
+                      </div>
+                    );
+                  }
+                })}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -1061,7 +1079,14 @@ const ManagerAppointmentManagement = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ borderTop: "1px solid #333", p: 2, flexWrap: isMobileView ? "wrap" : "nowrap", gap: isMobileView ? 1 : 0 }}>
+        <DialogActions
+          sx={{
+            borderTop: "1px solid #333",
+            p: 2,
+            flexWrap: isMobileView ? "wrap" : "nowrap",
+            gap: isMobileView ? 1 : 0,
+          }}
+        >
           <Button
             onClick={() => setShowCancelConfirmation(false)}
             sx={{

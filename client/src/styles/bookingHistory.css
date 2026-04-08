@@ -527,11 +527,15 @@ input[type="text"]:not(.homepage_MuiInputBase-input__gg398) {
   border-color: #666;
 }
 
-.reschedule-dialog .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+.reschedule-dialog
+  .MuiOutlinedInput-root:hover
+  .MuiOutlinedInput-notchedOutline {
   border-color: #999;
 }
 
-.reschedule-dialog .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+.reschedule-dialog
+  .MuiOutlinedInput-root.Mui-focused
+  .MuiOutlinedInput-notchedOutline {
   border-color: #007bff;
 }
 
