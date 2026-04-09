@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import BarberSalesReport from "../../components/staff/BarberSalesReport";
 import { useNavigate } from "react-router-dom";
@@ -47,10 +47,11 @@ const PaymentManagementTable = ({
   loadingPayment,
   paymentData,
   isMobileView,
+  className = "",
 }) => {
   return (
-    <div className="card-dark mt-5">
-      <div className="flex items-center justify-between">
+    <div className={`card-dark h-full ${className}`.trim()}>
+      <div className="flex items-center justify-between gap-3">
         <h3 className="text-lg font-bold">Payment Management</h3>
         <button
           className="btn-ghost text-sm"
@@ -96,13 +97,13 @@ const PaymentManagementTable = ({
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto mt-3">
-          <table className="huuk-table min-w-[560px]">
+        <div className="mt-3">
+          <table className="huuk-table w-full table-fixed">
             <thead>
               <tr>
-                <th className="huuk-th">CUSTOMER NAME</th>
-                <th className="huuk-th">PAYMENT METHOD</th>
-                <th className="huuk-th">STATUS</th>
+                <th className="huuk-th w-[38%]">CUSTOMER NAME</th>
+                <th className="huuk-th w-[38%]">PAYMENT METHOD</th>
+                <th className="huuk-th w-[24%]">STATUS</th>
               </tr>
             </thead>
             <tbody>
@@ -124,10 +125,10 @@ const PaymentManagementTable = ({
                     key={payment.id || index}
                     className="huuk-tr border-b border-white/10"
                   >
-                    <td className="huuk-td">{payment.customer_name}</td>
-                    <td className="huuk-td">{payment.payment_method}</td>
+                    <td className="huuk-td truncate">{payment.customer_name}</td>
+                    <td className="huuk-td truncate">{payment.payment_method}</td>
                     <td
-                      className={`huuk-td font-semibold ${payment.payment_status === "Paid" ? "text-green-400" : "text-yellow-300"}`}
+                      className={`huuk-td truncate font-semibold ${payment.payment_status === "Paid" ? "text-green-400" : "text-yellow-300"}`}
                     >
                       {payment.payment_status}
                     </td>
@@ -191,7 +192,6 @@ const StaffDashboard = () => {
         outletParam = user.outlet_id;
       }
 
-      // Fetch all three in parallel
       const [summaryResponse, scheduleResponse, barChartResponse] =
         await Promise.all([
           api.get("/bookings/summary", { headers }),
@@ -212,18 +212,19 @@ const StaffDashboard = () => {
         },
       );
 
-      const sortedSchedule = (scheduleResponse.data || []).sort((a, b) => {
-        if (a.start_time === "-" && b.start_time === "-") return 0;
-        if (a.start_time === "-") return 1;
-        if (b.start_time === "-") return -1;
-        return a.start_time.localeCompare(b.start_time);
-      });
-      setScheduleData(sortedSchedule);
+      const sortedScheduleResponse = (scheduleResponse.data || []).sort(
+        (a, b) => {
+          if (a.start_time === "-" && b.start_time === "-") return 0;
+          if (a.start_time === "-") return 1;
+          if (b.start_time === "-") return -1;
+          return a.start_time.localeCompare(b.start_time);
+        },
+      );
+      setScheduleData(sortedScheduleResponse);
 
       setBarChartData(barChartResponse.data || { labels: [], data: [] });
     } catch (error) {
-      console.error("❌ Error fetching data:", error);
-      // Set default values on error
+      console.error("Error fetching data:", error);
       setSummaryData({
         done: 0,
         pending: 0,
@@ -339,12 +340,10 @@ const StaffDashboard = () => {
       navigate("/");
     }
 
-    // Cleanup function
     return () => {};
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  // Simple polling for data updates
   useEffect(() => {
     const socket = io(API_BASE_URL);
     socket.on("bookingUpdated", () => {
@@ -393,7 +392,7 @@ const StaffDashboard = () => {
 
         if (shouldShowPaymentConfirmation) {
           const confirmationData = {
-            bookingId: bookingId,
+            bookingId,
             paymentMethod: bookingData.paymentMethod || "Pay at Outlet",
             customerName: bookingData.customerName || "Customer",
             serviceName: bookingData.serviceName || "Service",
@@ -413,7 +412,6 @@ const StaffDashboard = () => {
     }
   };
 
-  // Separate function to actually mark booking as done
   const markBookingAsDone = async (bookingId) => {
     try {
       const response = await api.post(
@@ -434,16 +432,14 @@ const StaffDashboard = () => {
         ]);
       }
     } catch (error) {
-      console.error("❌ Error marking booking as done:", error);
+      console.error("Error marking booking as done:", error);
       alert("Failed to mark booking as done. Please try again.");
       await Promise.all([fetchAllData(), fetchBlockedSlots()]);
     }
   };
 
-  // Update payment handlers to accept payment object
   const handlePaymentPaid = async (payment) => {
     try {
-      // Mark as paid
       const response = await api.post(
         "/payments/update-payment-status",
         {
@@ -457,32 +453,23 @@ const StaffDashboard = () => {
         },
       );
       if (response.status === 200) {
-        // Close the payment confirmation popup
         setShowPaymentConfirmation(false);
         setPaymentConfirmationData(null);
-
-        // Mark the booking as done after payment is confirmed
         await markBookingAsDone(payment.bookingId);
-
         alert("Payment marked as Paid successfully!");
       }
     } catch (error) {
-      let msg = "Failed to update payment status. Please try again.";
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        msg = error.response.data.message;
+      let message = "Failed to update payment status. Please try again.";
+      if (error.response?.data?.message) {
+        message = error.response.data.message;
       }
-      alert(msg);
+      alert(message);
       fetchPaymentData();
     }
   };
 
   const handlePaymentUnpaid = async (payment) => {
     try {
-      // Mark as unpaid
       const response = await api.post(
         "/payments/update-payment-status",
         {
@@ -496,27 +483,19 @@ const StaffDashboard = () => {
         },
       );
       if (response.status === 200) {
-        // Close the payment confirmation popup
         setShowPaymentConfirmation(false);
         setPaymentConfirmationData(null);
-
-        // Mark the booking as done after payment status is updated
         await markBookingAsDone(payment.bookingId);
-
         alert(
           "Booking marked as completed. Payment status kept as Pending. Please collect payment when customer is ready.",
         );
       }
     } catch (error) {
-      let msg = "Failed to update payment status. Please try again.";
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        msg = error.response.data.message;
+      let message = "Failed to update payment status. Please try again.";
+      if (error.response?.data?.message) {
+        message = error.response.data.message;
       }
-      alert(msg);
+      alert(message);
       fetchPaymentData();
     }
   };
@@ -583,10 +562,10 @@ const StaffDashboard = () => {
         bodyFont: { family: "Quicksand, sans-serif", size: 11 },
         padding: 12,
         callbacks: {
-          title: function (context) {
+          title(context) {
             return context[0].label;
           },
-          label: function (context) {
+          label(context) {
             const value = context.parsed.y;
             return `${value} appointment${value !== 1 ? "s" : ""} today`;
           },
@@ -601,7 +580,7 @@ const StaffDashboard = () => {
         font: { size: 12, family: "Quicksand, sans-serif", weight: "600" },
         formatter: (value) => (value > 0 ? value : ""),
         padding: 0,
-        display: function (context) {
+        display(context) {
           return context && context.parsed && context.parsed.y > 0;
         },
       },
@@ -627,7 +606,6 @@ const StaffDashboard = () => {
     },
   };
 
-  // Fetch blocked slots from API
   const fetchBlockedSlots = async () => {
     if (!user?.id) return;
     try {
@@ -647,12 +625,11 @@ const StaffDashboard = () => {
       );
       setBlockedSlots(processedBlockedSlots);
     } catch (error) {
-      console.error("❌ Error fetching blocked slots:", error);
+      console.error("Error fetching blocked slots:", error);
       setBlockedSlots([]);
     }
   };
 
-  // Fetch blocked slots when user changes
   useEffect(() => {
     if (user?.id) {
       fetchBlockedSlots();
@@ -660,22 +637,16 @@ const StaffDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Toggle slot blocking via API
   const toggleSlotBlocking = async (time) => {
     if (!user?.id) return;
 
     const isCurrentlyBlocked = blockedSlots.includes(time);
-
-    // Prevent unblocking of already blocked slots
     if (isCurrentlyBlocked) {
       alert("This time slot is already blocked and cannot be unblocked.");
       return;
     }
 
-    const action = "block";
-
     try {
-      // Optimistically update UI first
       setBlockedSlots((prev) => [...prev, time]);
 
       const response = await api.post(
@@ -683,8 +654,8 @@ const StaffDashboard = () => {
         {
           staff_id: user.id,
           date: moment().format("YYYY-MM-DD"),
-          time: time,
-          action: action,
+          time,
+          action: "block",
         },
         {
           headers: {
@@ -693,73 +664,56 @@ const StaffDashboard = () => {
         },
       );
 
-      // Confirm the block was successful
       if (response.status === 200) {
         alert(`Time slot ${time} blocked successfully.`);
-        // Refresh blocked slots from server to ensure accurate state
         await fetchBlockedSlots();
       }
     } catch (error) {
-      console.error(`❌ Error ${action}ing slot:`, error);
+      console.error("Error blocking slot:", error);
+      setBlockedSlots((prev) => prev.filter((slotTime) => slotTime !== time));
 
-      // Revert optimistic update on error
-      setBlockedSlots((prev) => prev.filter((t) => t !== time));
-
-      // Handle specific error cases
       if (error.response?.data?.message) {
         const errorMessage = error.response.data.message;
-        if (errorMessage.includes("already blocked") && action === "block") {
+        if (errorMessage.includes("already blocked")) {
           alert("This time slot is already blocked.");
-          // Ensure the slot shows as blocked
           setBlockedSlots((prev) =>
             prev.includes(time) ? prev : [...prev, time],
           );
         } else {
-          alert(`Failed to ${action} time slot: ${errorMessage}`);
+          alert(`Failed to block time slot: ${errorMessage}`);
         }
       } else {
-        alert(`Failed to ${action} time slot. Please try again.`);
+        alert("Failed to block time slot. Please try again.");
       }
     }
   };
 
-  // Handle slot click for adding booking
-  // Handle booking submission
-  const handleBookingSubmit = async (formData) => {
+  const handleBookingSubmit = async () => {
     try {
-      // Close modal
       setShowAddBookingModal(false);
       setSelectedSlotForBooking(null);
-
-      // Refresh data
       await fetchAllData();
-      await fetchBlockedSlots(); // Refresh blocked slots to ensure UI sync
+      await fetchBlockedSlots();
     } catch (error) {
       console.error("Error submitting booking:", error);
       alert("Failed to submit booking. Please try again.");
     }
   };
 
-  // Generate time slots for the day (30-minute intervals, 7 slots in sliding window)
   const generateTimeSlots = () => {
     const slots = [];
     const now = moment();
-
-    // Round current time to current or next 30-minute interval
     const currentMinutes = now.minutes();
     let startTime;
 
     if (currentMinutes <= 30) {
-      // If we're at or before 30 minutes, start from current hour:30
       startTime = moment().minutes(30).seconds(0);
     } else {
-      // If we're after 30 minutes, start from next hour:00
       startTime = moment().add(1, "hour").minutes(0).seconds(0);
     }
 
-    // Generate exactly 7 slots starting from the calculated start time
     const slotTime = startTime.clone();
-    for (let i = 0; i < 7; i++) {
+    for (let index = 0; index < 7; index += 1) {
       slots.push(slotTime.format("HH:mm"));
       slotTime.add(30, "minutes");
     }
@@ -767,7 +721,6 @@ const StaffDashboard = () => {
     return slots;
   };
 
-  // Helper function to check if a time slot is within operational hours
   const isWithinOperationalHours = (time) => {
     const operationalStart = moment()
       .hour(OPERATIONAL_HOURS.start.h)
@@ -778,12 +731,11 @@ const StaffDashboard = () => {
       .minute(OPERATIONAL_HOURS.end.m)
       .second(59);
     const slotTime = moment(time, "HH:mm");
-    return slotTime.isBetween(operationalStart, operationalEnd, null, "[)");
+    return slotTime.isBetween(operationalStart, operationalEnd, null, "[");
   };
 
   const availableSlots = generateTimeSlots();
 
-  // Bar chart data from backend with enhanced styling
   const todaysAppointmentBarData = {
     labels: barChartData.labels,
     datasets: [
@@ -834,13 +786,12 @@ const StaffDashboard = () => {
 
     return (
       <span
-        className="font-bold text-base block text-center"
+        className="block text-center text-base font-bold"
         style={{
           fontFamily: "Quicksand, sans-serif",
           fontWeight: "bold",
           fontSize: "16px",
           color,
-          display: "block",
           textAlign: "center",
           textTransform: "none",
         }}
@@ -868,382 +819,341 @@ const StaffDashboard = () => {
     const aIsActive = !completedStatuses.includes(a.status);
     const bIsActive = !completedStatuses.includes(b.status);
     if (aIsActive !== bIsActive) {
-      return aIsActive ? -1 : 1; // Active bookings first
+      return aIsActive ? -1 : 1;
     }
-    // Both are the same type (active or completed), sort by start_time ascending
     return (a.start_time || "").localeCompare(b.start_time || "");
   });
   const limitedSchedule = sortedSchedule.slice(0, 5);
 
   return (
-    <div className="bg-huuk-bg text-white font-quicksand">
-      <div className="w-full">
-        <div className="w-full">
-          {/* Header section with summary cards and attendance reminder */}
-          <div className="mb-4">
-            <div className="flex flex-col xl:flex-row gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 flex-1">
-                {[
-                  {
-                    img: summ1,
-                    label: "Done",
-                    value: loadingSummary ? "..." : summaryData.done.toString(),
-                  },
-                  {
-                    img: summ3,
-                    label: "Pending",
-                    value: loadingSummary
-                      ? "..."
-                      : summaryData.pending.toString(),
-                  },
-                  {
-                    img: summ4,
-                    label: "Cancelled",
-                    value: loadingSummary
-                      ? "..."
-                      : summaryData.cancelled.toString(),
-                  },
-                  {
-                    img: summ2,
-                    label: "Reschedule",
-                    value: loadingSummary
-                      ? "..."
-                      : summaryData.rescheduled.toString(),
-                  },
-                ].map(({ img, label, value }) => (
-                  <div
-                    key={label}
-                    className="card-dark rounded-huuk-lg flex items-center gap-3"
-                  >
-                    <img
-                      src={img}
-                      alt={label}
-                      className="w-8 h-8 object-contain"
-                    />
-                    <div>
-                      <p className="text-sm font-bold m-0">{label}</p>
-                      <p className="text-sm font-bold m-0">{value}</p>
-                    </div>
-                  </div>
-                ))}
+    <div className="staff-dashboard min-w-0 overflow-x-hidden bg-huuk-bg text-white font-quicksand">
+      <div className="w-full min-w-0">
+        <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              {
+                img: summ1,
+                label: "Done",
+                value: loadingSummary ? "..." : summaryData.done.toString(),
+              },
+              {
+                img: summ3,
+                label: "Pending",
+                value: loadingSummary ? "..." : summaryData.pending.toString(),
+              },
+              {
+                img: summ4,
+                label: "Cancelled",
+                value: loadingSummary ? "..." : summaryData.cancelled.toString(),
+              },
+              {
+                img: summ2,
+                label: "Reschedule",
+                value: loadingSummary
+                  ? "..."
+                  : summaryData.rescheduled.toString(),
+              },
+            ].map(({ img, label, value }) => (
+              <div
+                key={label}
+                className="card-dark flex min-h-[86px] min-w-0 items-center gap-3 rounded-huuk-lg"
+              >
+                <img src={img} alt={label} className="h-9 w-9 object-contain" />
+                <div className="min-w-0">
+                  <p className="m-0 text-sm font-bold">{label}</p>
+                  <p className="m-0 text-sm font-bold">{value}</p>
+                </div>
               </div>
+            ))}
+          </div>
 
-              {/* Attendance reminder in header */}
-              <div className="w-full xl:max-w-md">
-                <div className="card-dark rounded-huuk-lg flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={isTimeInConfirmed ? donereminder : remindreminder}
-                      alt="Attendance Reminder"
-                      className="w-12 h-12 object-contain"
-                    />
-                    <div>
-                      <p className="font-bold text-sm m-0">
-                        {isTimeInConfirmed
-                          ? "Already Updated Time-In"
-                          : "Not Yet Updated Time-In"}
-                      </p>
-                      {isTimeInConfirmed && (
-                        <p className="text-xs text-huuk-muted m-0 mt-1">
-                          Great! Your time-in has been successfully recorded.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {!isTimeInConfirmed && (
-                    <button
-                      className="btn-primary"
-                      onClick={() =>
-                        alert(
-                          "This feature is currently under maintenance. Please check back later.",
-                        )
-                      }
-                    >
-                      Update
-                    </button>
+          <div className="w-full min-w-0">
+            <div className="card-dark flex min-h-[86px] items-center justify-between gap-3 rounded-huuk-lg">
+              <div className="flex min-w-0 items-center gap-3">
+                <img
+                  src={isTimeInConfirmed ? donereminder : remindreminder}
+                  alt="Attendance Reminder"
+                  className="h-12 w-12 object-contain"
+                />
+                <div className="min-w-0">
+                  <p className="m-0 text-sm font-bold">
+                    {isTimeInConfirmed
+                      ? "Already Updated Time-In"
+                      : "Not Yet Updated Time-In"}
+                  </p>
+                  {isTimeInConfirmed && (
+                    <p className="m-0 mt-1 text-xs text-huuk-muted">
+                      Great! Your time-in has been successfully recorded.
+                    </p>
                   )}
                 </div>
               </div>
+              {!isTimeInConfirmed && (
+                <button
+                  className="btn-primary min-w-[92px]"
+                  onClick={() =>
+                    alert(
+                      "This feature is currently under maintenance. Please check back later.",
+                    )
+                  }
+                >
+                  Update
+                </button>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Main appointment management layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-            {/* Left side - Appointment List */}
-            <div className="xl:col-span-8 space-y-4">
-              <div className="card-dark rounded-huuk-lg">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <h3 className="text-lg font-bold flex items-center">
-                    My Schedule
-                    <>
-                      <span
-                        style={{
-                          display: "inline-block",
-                          width: "8px",
-                          height: "8px",
-                          backgroundColor: "#00ff00",
-                          borderRadius: "50%",
-                          marginLeft: "8px",
-                          animation: "pulse 2s infinite",
-                        }}
-                        title="Real-time updates enabled"
-                      />
-                      <span className="ml-2 text-huuk-muted italic text-sm font-normal">
-                        Active Booking
-                      </span>
-                    </>
-                  </h3>
-                  <button
-                    className="btn-ghost text-sm"
-                    onClick={() => navigate("/staff/schedule")}
-                  >
-                    View All
-                  </button>
+        <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-12">
+          <div className="xl:col-span-8 min-w-0 space-y-4">
+            <div className="card-dark min-w-0 rounded-huuk-lg">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="flex items-center text-lg font-bold">
+                  My Schedule
+                  <>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "8px",
+                        height: "8px",
+                        backgroundColor: "#00ff00",
+                        borderRadius: "50%",
+                        marginLeft: "8px",
+                        animation: "pulse 2s infinite",
+                      }}
+                      title="Real-time updates enabled"
+                    />
+                    <span className="ml-2 text-sm font-normal italic text-huuk-muted">
+                      Active Booking
+                    </span>
+                  </>
+                </h3>
+                <button
+                  className="btn-ghost text-sm"
+                  onClick={() => navigate("/staff/schedule")}
+                >
+                  View All
+                </button>
+              </div>
+              {isMobileView ? (
+                <div className="space-y-2">
+                  {loadingSchedule ? (
+                    <div className="huuk-td text-center">Loading...</div>
+                  ) : (
+                    limitedSchedule.map((booking, index) => (
+                      <div
+                        key={booking.id || index}
+                        className="rounded-huuk-sm border border-white/10 bg-white/5 p-3"
+                      >
+                        <div className="grid grid-cols-2 gap-y-1 text-sm">
+                          <span className="text-huuk-muted">Customer</span>
+                          <span>{booking.customer_name}</span>
+                          <span className="text-huuk-muted">Phone</span>
+                          <span>{booking.phone_number}</span>
+                          <span className="text-huuk-muted">Service</span>
+                          <span>{booking.service_name}</span>
+                          <span className="text-huuk-muted">Time</span>
+                          <span>
+                            {booking.start_time !== "-" && booking.end_time !== "-"
+                              ? `${booking.start_time} - ${booking.end_time}`
+                              : "-"}
+                          </span>
+                        </div>
+                        <div className="mt-3">{renderScheduleAction(booking)}</div>
+                      </div>
+                    ))
+                  )}
                 </div>
-                {isMobileView ? (
-                  <div className="space-y-2">
-                    {loadingSchedule ? (
-                      <div className="huuk-td text-center">Loading...</div>
-                    ) : (
-                      limitedSchedule.map((booking, index) => (
-                        <div
-                          key={booking.id || index}
-                          className="rounded-huuk-sm border border-white/10 bg-white/5 p-3"
-                        >
-                          <div className="grid grid-cols-2 gap-y-1 text-sm">
-                            <span className="text-huuk-muted">Customer</span>
-                            <span>{booking.customer_name}</span>
-                            <span className="text-huuk-muted">Phone</span>
-                            <span>{booking.phone_number}</span>
-                            <span className="text-huuk-muted">Service</span>
-                            <span>{booking.service_name}</span>
-                            <span className="text-huuk-muted">Time</span>
-                            <span>
-                              {booking.start_time !== "-" &&
-                              booking.end_time !== "-"
+              ) : (
+                <div className="min-w-0">
+                  <table className="huuk-table w-full table-fixed">
+                    <thead>
+                      <tr>
+                        <th className="huuk-th w-[21%]">CUSTOMER NAME</th>
+                        <th className="huuk-th w-[20%]">PHONE NUMBER</th>
+                        <th className="huuk-th w-[25%]">SERVICE</th>
+                        <th className="huuk-th w-[18%]">TIME</th>
+                        <th className="huuk-th w-[16%] text-center">ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loadingSchedule ? (
+                        <tr>
+                          <td colSpan="5" className="huuk-td text-center">
+                            Loading...
+                          </td>
+                        </tr>
+                      ) : (
+                        limitedSchedule.map((booking, index) => (
+                          <tr
+                            key={booking.id || index}
+                            className="huuk-tr border-b border-white/10"
+                          >
+                            <td className="huuk-td truncate">{booking.customer_name}</td>
+                            <td className="huuk-td truncate">{booking.phone_number}</td>
+                            <td className="huuk-td truncate">{booking.service_name}</td>
+                            <td className="huuk-td truncate">
+                              {booking.start_time !== "-" && booking.end_time !== "-"
                                 ? `${booking.start_time} - ${booking.end_time}`
                                 : "-"}
-                            </span>
-                          </div>
-                          <div className="mt-3">
-                            {renderScheduleAction(booking)}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="huuk-table min-w-[760px]">
-                      <thead>
-                        <tr>
-                          <th className="huuk-th">CUSTOMER NAME</th>
-                          <th className="huuk-th">PHONE NUMBER</th>
-                          <th className="huuk-th">SERVICE</th>
-                          <th className="huuk-th">TIME</th>
-                          <th className="huuk-th text-center">ACTION</th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {loadingSchedule ? (
-                          <tr>
-                            <td colSpan="5" className="huuk-td text-center">
-                              Loading...
+                            </td>
+                            <td
+                              className="huuk-td"
+                              style={{ textAlign: "center", verticalAlign: "middle" }}
+                            >
+                              {renderScheduleAction(booking)}
                             </td>
                           </tr>
-                        ) : (
-                          limitedSchedule.map((booking, index) => {
-                            return (
-                              <tr
-                                key={booking.id || index}
-                                className="huuk-tr border-b border-white/10"
-                              >
-                                <td className="huuk-td">
-                                  {booking.customer_name}
-                                </td>
-                                <td className="huuk-td">
-                                  {booking.phone_number}
-                                </td>
-                                <td className="huuk-td">
-                                  {booking.service_name}
-                                </td>
-                                <td className="huuk-td">
-                                  {booking.start_time !== "-" &&
-                                  booking.end_time !== "-"
-                                    ? `${booking.start_time} - ${booking.end_time}`
-                                    : "-"}
-                                </td>
-                                <td
-                                  className="huuk-td"
-                                  style={{
-                                    textAlign: "center",
-                                    verticalAlign: "middle",
-                                  }}
-                                >
-                                  {renderScheduleAction(booking)}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
 
-              {/* Payment Management and Sales Report */}
-              <div className="grid grid-cols-1 gap-4 mt-5">
+            <div className="grid min-w-0 grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.9fr)]">
+              <div className="min-w-0">
                 <PaymentManagementTable
                   loadingPayment={loadingPayment}
                   paymentData={paymentData}
                   isMobileView={isMobileView}
+                  className="mt-0"
                 />
-
-                <div className="card-dark rounded-huuk-lg">
-                  <BarberSalesReport />
-                </div>
               </div>
-            </div>
-
-            {/* Right side - Booking Time Slot */}
-            <div className="xl:col-span-4 space-y-4 mt-5 xl:mt-0">
-              <div className="card-dark rounded-huuk-lg">
-                <h3 className="text-lg font-bold">Appointment Management</h3>
-                <p className="text-sm text-huuk-muted mt-1">
-                  View Time Slots Status
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
-                  {availableSlots.map((time) => {
-                    const isBooked = scheduleData.some((booking) => {
-                      if (
-                        booking.status === "Cancelled" ||
-                        booking.status === "Rescheduled" ||
-                        booking.status === "-" ||
-                        booking.start_time === "-" ||
-                        booking.end_time === "-"
-                      ) {
-                        return false;
-                      }
-                      const slotMoment = moment(time, "HH:mm");
-                      const startTime = moment(booking.start_time, "HH:mm");
-                      const endTime = moment(booking.end_time, "HH:mm");
-                      if (!startTime.isValid() || !endTime.isValid())
-                        return false;
-                      // Block slot if slotMoment >= startTime and slotMoment < endTime
-                      return (
-                        slotMoment.isSameOrAfter(startTime) &&
-                        slotMoment.isBefore(endTime)
-                      );
-                    });
-                    const isBlocked = blockedSlots.includes(time);
-                    const isWithinHours = isWithinOperationalHours(time);
-
-                    const getButtonClass = () => {
-                      if (isBooked) return "bg-huuk-red/80 text-white";
-                      if (!isWithinHours) return "bg-gray-500 text-white";
-                      if (isBlocked) return "bg-huuk-yellow text-huuk-card";
-                      return "bg-huuk-card-light text-huuk-card hover:bg-white";
-                    };
-
-                    const isClickable =
-                      !isBooked && isWithinHours && !isBlocked;
-
-                    return (
-                      <button
-                        key={time}
-                        onDoubleClick={() => {
-                          if (isClickable) {
-                            toggleSlotBlocking(time);
-                          }
-                        }}
-                        className={`rounded-huuk-sm px-2 py-2 text-sm font-semibold transition-colors ${getButtonClass()}`}
-                        disabled={!isClickable}
-                        style={{
-                          cursor: isClickable ? "pointer" : "not-allowed",
-                          opacity: isBooked ? 0.6 : 1,
-                          backgroundColor: !isWithinHours
-                            ? "#6c757d"
-                            : undefined, // Grey for out of hours
-                          color: !isWithinHours ? "white" : undefined,
-                        }}
-                        title={
-                          !isWithinHours
-                            ? "Outside operational hours"
-                            : isBooked
-                              ? "Already booked"
-                              : isBlocked
-                                ? "Blocked slot"
-                                : "Double-click to block this slot"
-                        }
-                      >
-                        {time}
-                      </button>
-                    );
-                  })}
-                  <button
-                    className="btn-ghost mt-2"
-                    onClick={() => {
-                      navigate("/staff/appointments");
-                    }}
-                  >
-                    View all
-                  </button>
-                </div>
-              </div>
-
-              {/* Today's Appointments by All Staff under Appointment Management */}
-              <div className="card-dark rounded-huuk-lg mt-0">
-                <div className="mb-2">
-                  <h3
-                    className="text-lg font-bold"
-                    style={{ whiteSpace: "nowrap" }}
-                  >
-                    Today's Appointments by All Staff
-                  </h3>
-                </div>
-                {loadingBarChart ? (
-                  <div className="min-h-[220px] flex flex-col items-center justify-center">
-                    <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <p className="text-sm text-huuk-muted mt-3">
-                      Loading chart data...
-                    </p>
-                  </div>
-                ) : !barChartData.labels || barChartData.labels.length === 0 ? (
-                  <div className="min-h-[220px] flex flex-col items-center justify-center text-center">
-                    <div className="text-2xl">📊</div>
-                    <p className="text-sm mt-2">
-                      No appointments scheduled for today
-                    </p>
-                    <p className="text-xs text-huuk-muted mt-1">
-                      Check back later or view all appointments
-                    </p>
-                  </div>
-                ) : (
-                  <div className="h-[260px]">
-                    <Bar
-                      key={`bar-chart-${JSON.stringify(barChartData)}`}
-                      data={todaysAppointmentBarData}
-                      options={barChartOptions}
-                      redraw={true}
-                    />
-                  </div>
-                )}
+              <div className="card-dark min-w-0 rounded-huuk-lg">
+                <BarberSalesReport />
               </div>
             </div>
           </div>
 
-          {user?.role === "manager" && (
-            <SwitchModeButton
-              modeText="Switch to Manager Mode"
-              onClick={() => navigate("/manager")}
-            />
-          )}
+          <div className="xl:col-span-4 min-w-0 space-y-4">
+            <div className="card-dark rounded-huuk-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="m-0 text-lg font-bold">Appointment Management</h3>
+                  <p className="m-0 mt-1 text-sm text-huuk-muted">
+                    View Time Slots Status
+                  </p>
+                </div>
+                <button
+                  className="btn-ghost text-sm"
+                  onClick={() => navigate("/staff/appointments")}
+                >
+                  View all
+                </button>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {availableSlots.map((time) => {
+                  const isBooked = scheduleData.some((booking) => {
+                    if (
+                      booking.status === "Cancelled" ||
+                      booking.status === "Rescheduled" ||
+                      booking.status === "-" ||
+                      booking.start_time === "-" ||
+                      booking.end_time === "-"
+                    ) {
+                      return false;
+                    }
+                    const slotMoment = moment(time, "HH:mm");
+                    const startTime = moment(booking.start_time, "HH:mm");
+                    const endTime = moment(booking.end_time, "HH:mm");
+                    if (!startTime.isValid() || !endTime.isValid()) {
+                      return false;
+                    }
+                    return (
+                      slotMoment.isSameOrAfter(startTime) &&
+                      slotMoment.isBefore(endTime)
+                    );
+                  });
+                  const isBlocked = blockedSlots.includes(time);
+                  const isWithinHours = isWithinOperationalHours(time);
+                  const isClickable = !isBooked && isWithinHours && !isBlocked;
+
+                  const buttonClass = isBooked
+                    ? "bg-[#b64049] text-white"
+                    : !isWithinHours
+                      ? "bg-white/10 text-white/55"
+                      : isBlocked
+                        ? "bg-[#3b82f6] text-white"
+                        : "bg-[#8ddd53] text-[#1b1b1b] hover:bg-[#a4eb67]";
+
+                  return (
+                    <button
+                      key={time}
+                      onDoubleClick={() => {
+                        if (isClickable) {
+                          toggleSlotBlocking(time);
+                        }
+                      }}
+                      className={`rounded-[14px] px-2 py-2.5 text-sm font-semibold transition-colors ${buttonClass}`}
+                      disabled={!isClickable}
+                      style={{
+                        cursor: isClickable ? "pointer" : "not-allowed",
+                        opacity: !isWithinHours ? 0.65 : 1,
+                      }}
+                      title={
+                        !isWithinHours
+                          ? "Outside operational hours"
+                          : isBooked
+                            ? "Already booked"
+                            : isBlocked
+                              ? "Blocked slot"
+                              : "Double-click to block this slot"
+                      }
+                    >
+                      {time}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="card-dark min-h-[318px] rounded-huuk-lg">
+              <div className="mb-2">
+                <h3 className="m-0 text-[18px] font-bold">
+                  Today's Appointments by All Staff
+                </h3>
+              </div>
+              {loadingBarChart ? (
+                <div className="flex min-h-[240px] flex-col items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
+                  <p className="mt-3 text-sm text-huuk-muted">
+                    Loading chart data...
+                  </p>
+                </div>
+              ) : !barChartData.labels || barChartData.labels.length === 0 ? (
+                <div className="flex min-h-[240px] flex-col items-center justify-center text-center">
+                  <div className="text-2xl">Chart</div>
+                  <p className="mt-2 text-sm">
+                    No appointments scheduled for today
+                  </p>
+                  <p className="mt-1 text-xs text-huuk-muted">
+                    Check back later or view all appointments
+                  </p>
+                </div>
+              ) : (
+                <div className="h-[260px]">
+                  <Bar
+                    key={`bar-chart-${JSON.stringify(barChartData)}`}
+                    data={todaysAppointmentBarData}
+                    options={barChartOptions}
+                    redraw={true}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+
+        {user?.role === "manager" && (
+          <SwitchModeButton
+            modeText="Switch to Manager Mode"
+            onClick={() => navigate("/manager")}
+          />
+        )}
       </div>
 
-      {/* Add Booking Modal */}
       <AddBookingModal
         isOpen={showAddBookingModal}
         onClose={() => {
@@ -1261,18 +1171,14 @@ const StaffDashboard = () => {
         }))}
       />
 
-      {/* Minimal Payment Confirmation Popup */}
       {showPaymentConfirmation && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
-          <div className="bg-white rounded-huuk-sm p-5 w-[90%] max-w-[400px] shadow-xl relative z-[10000]">
-            {/* Close button */}
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
+          <div className="relative z-[10000] w-[90%] max-w-[400px] rounded-huuk-sm bg-white p-5 shadow-xl">
             <button
-              className="absolute top-2.5 right-2.5 bg-transparent border-none text-xl cursor-pointer"
+              className="absolute right-2.5 top-2.5 cursor-pointer border-none bg-transparent text-xl"
               onClick={() => {
-                // Close popup without marking booking as done
                 setShowPaymentConfirmation(false);
                 setPaymentConfirmationData(null);
-                // Note: Booking remains in its original state (not marked as done)
               }}
               aria-label="Close popup without completing booking"
               title="Close without completing booking"
@@ -1280,8 +1186,7 @@ const StaffDashboard = () => {
               <i className="bi bi-x"></i>
             </button>
 
-            {/* Header */}
-            <div className="text-center mb-5">
+            <div className="mb-5 text-center">
               <i
                 className="bi bi-credit-card"
                 style={{
@@ -1291,7 +1196,7 @@ const StaffDashboard = () => {
                 }}
               ></i>
               <h3
-                className="text-lg text-huuk-card m-0"
+                className="m-0 text-lg text-huuk-card"
                 style={{
                   fontSize: "18px",
                 }}
@@ -1300,22 +1205,20 @@ const StaffDashboard = () => {
               </h3>
             </div>
 
-            {/* Content */}
             <div className="mb-5">
               <div className="text-center">
                 <p
-                  className="text-base m-0 mb-1"
+                  className="m-0 mb-1 text-base"
                   style={{
                     fontSize: "16px",
                   }}
                 >
                   <strong>
-                    {paymentConfirmationData?.customerName ||
-                      "Walk-in Customer"}
+                    {paymentConfirmationData?.customerName || "Walk-in Customer"}
                   </strong>
                 </p>
                 <p
-                  className="text-sm text-[#666] m-0 mb-4"
+                  className="m-0 mb-4 text-sm text-[#666]"
                   style={{
                     fontSize: "14px",
                   }}
@@ -1323,7 +1226,7 @@ const StaffDashboard = () => {
                   {paymentConfirmationData?.serviceName || "Service"}
                 </p>
                 <p
-                  className="text-base font-bold mt-4 mb-0"
+                  className="mb-0 mt-4 text-base font-bold"
                   style={{
                     fontSize: "16px",
                     fontWeight: "bold",
@@ -1335,13 +1238,12 @@ const StaffDashboard = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div
               className="flex justify-between gap-2.5"
               style={{ flexDirection: isMobileView ? "column" : "row" }}
             >
               <button
-                className="flex-1 p-3 bg-emerald-500 text-white border-none rounded-huuk-sm font-bold cursor-pointer flex items-center justify-center gap-1"
+                className="flex flex-1 items-center justify-center gap-1 rounded-huuk-sm border-none bg-emerald-500 p-3 font-bold text-white cursor-pointer"
                 style={{ minHeight: 46 }}
                 onClick={() => handlePaymentPaid(paymentConfirmationData)}
               >
@@ -1349,7 +1251,7 @@ const StaffDashboard = () => {
               </button>
 
               <button
-                className="flex-1 p-3 bg-amber-500 text-white border-none rounded-huuk-sm font-bold cursor-pointer flex items-center justify-center gap-1"
+                className="flex flex-1 items-center justify-center gap-1 rounded-huuk-sm border-none bg-amber-500 p-3 font-bold text-white cursor-pointer"
                 style={{ minHeight: 46 }}
                 onClick={() => handlePaymentUnpaid(paymentConfirmationData)}
               >

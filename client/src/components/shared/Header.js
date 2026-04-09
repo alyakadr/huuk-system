@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import moment from "moment";
 import logo from "../../assets/logo.PNG";
 
 const Header = ({
-  logoSrc,
   username,
   role,
   minimized,
@@ -14,176 +13,222 @@ const Header = ({
   layoutLeftOffset,
   layoutWidth,
 }) => {
-  const [currentTimeDisplay, setCurrentTimeDisplay] = useState(moment().format("HH:mm"));
+  const [currentTimeDisplay, setCurrentTimeDisplay] = useState(
+    moment().format("HH:mm"),
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTimeDisplay(moment().format("HH:mm")), 1000);
+    const timer = setInterval(() => {
+      setCurrentTimeDisplay(moment().format("HH:mm"));
+    }, 1000);
+
     return () => clearInterval(timer);
   }, []);
 
-  const getDate = () => moment().format("dddd, D MMMM YYYY");
-
   const sampleNotifications = [
-    { id: 1, type: "appointment", message: "New appointment scheduled for tomorrow", time: "5 min ago", unread: true },
-    { id: 2, type: "reminder", message: "Staff meeting in 30 minutes", time: "10 min ago", unread: true },
-    { id: 3, type: "update", message: "System update completed successfully", time: "1 hour ago", unread: false },
+    {
+      id: 1,
+      type: "appointment",
+      message: "New appointment scheduled for tomorrow",
+      time: "5 min ago",
+      unread: true,
+    },
+    {
+      id: 2,
+      type: "reminder",
+      message: "Staff meeting in 30 minutes",
+      time: "10 min ago",
+      unread: true,
+    },
+    {
+      id: 3,
+      type: "update",
+      message: "System update completed successfully",
+      time: "1 hour ago",
+      unread: false,
+    },
   ];
 
-  const leftOffset = layoutLeftOffset || (isMobile ? "72px" : minimized ? "77px" : "285px");
-  const headerWidth = layoutWidth || (isMobile
-    ? "calc(100% - 72px)"
-    : minimized
-      ? "calc(100% - 77px)"
-      : "calc(100% - 285px)");
-  const mobileSearchWidth = "min(52vw, 210px)";
-  const tabletSearchWidth = "min(32vw, 240px)";
+  const getDate = () => moment().format("dddd, D MMMM YYYY");
+  const leftOffset = layoutLeftOffset || (isMobile ? "72px" : minimized ? "72px" : "236px");
+  const headerWidth =
+    layoutWidth ||
+    (isMobile
+      ? "calc(100% - 72px)"
+      : minimized
+        ? "calc(100% - 72px)"
+        : "calc(100% - 236px)");
+  const searchWidth = isMobile
+    ? "min(42vw, 180px)"
+    : isTablet
+      ? "min(32vw, 220px)"
+      : "240px";
 
   return (
     <header
-      className="flex justify-between items-start z-[1000] box-border"
+      className="box-border z-[1000]"
       style={{
         position: "fixed",
         top: 0,
         left: leftOffset,
         width: headerWidth,
-        marginTop: isMobile ? "0" : "-20px",
-        marginLeft: isMobile ? "0" : "-15px",
         transition: "left 0.3s ease, width 0.3s ease",
-        background: "transparent",
-        padding: isMobile ? "10px 8px 0 8px" : isTablet ? "8px 18px 0 6px" : "0",
+        padding: isMobile
+          ? "12px 10px 0"
+          : isTablet
+            ? "18px 18px 0 16px"
+            : "22px 24px 0 18px",
+        pointerEvents: "none",
       }}
     >
-      {/* Left: logo + title + date */}
-      <div className="flex flex-col items-start gap-2">
-        <div className="flex-shrink-0">
+      <div className="flex min-w-0 items-start justify-between gap-4">
+        <div className="pointer-events-auto flex min-w-0 flex-col items-start gap-2">
           <img
             src={logo}
             alt="Company Logo"
-            className={isMobile ? "h-[68px] w-auto block" : isTablet ? "h-[86px] w-auto block" : "h-[120px] w-auto block"}
+            className={
+              isMobile
+                ? "block h-[56px] w-auto"
+                : isTablet
+                  ? "block h-[68px] w-auto"
+                  : "block h-[74px] w-auto"
+            }
           />
-        </div>
-        <div className="text-left flex-1" style={{ marginLeft: isMobile ? "4px" : isTablet ? "12px" : "20px", marginTop: isMobile ? "-10px" : isTablet ? "-12px" : "-20px", maxWidth: isMobile ? "calc(100vw - 190px)" : isTablet ? "calc(100vw - 360px)" : "none" }}>
-          <h1 className={isMobile ? "text-base font-bold text-white text-left m-0 leading-snug" : isTablet ? "text-2xl font-bold text-white text-left m-0 leading-snug" : "text-3xl font-bold text-white text-left m-0"} style={{ fontFamily: "Montserrat, sans-serif" }}>
-            {pageTitle || `Welcome back, ${username}!`}{" "}
-            {role === "manager" && mode && (
-              <span className={isMobile ? "inline-flex items-center text-[#ababab] font-bold text-[11px] ml-1.5 px-2 py-0.5 rounded-[16px] select-none" : "inline-flex items-center text-[#ababab] font-bold text-[15px] ml-2.5 px-3 py-1 rounded-[20px] select-none"}>
-                <i className={isMobile ? "bi bi-eye text-[14px] mr-1.5" : "bi bi-eye text-[25px] mr-2.5"} />
-                {mode}
-              </span>
-            )}
-          </h1>
-          <p className={isMobile ? "text-[#ffc50f] font-semibold text-[11px] m-0" : isTablet ? "text-[#ffc50f] font-semibold text-sm m-0" : "text-[#ffc50f] font-semibold text-lg m-0"} style={{ fontFamily: "Montserrat, sans-serif" }}>
-            {getDate()}, {currentTimeDisplay}
-          </p>
-        </div>
-      </div>
-
-      {/* Right: search + notifications */}
-      <div
-        className="absolute flex items-center gap-2 flex-row-reverse"
-        style={{ right: isMobile ? "8px" : isTablet ? "24px" : "300px", top: isMobile ? "10px" : isTablet ? "28px" : "50px", flexWrap: "nowrap" }}
-      >
-        {/* Search bar */}
-        <div
-          className="relative z-[1100]"
-          style={{ width: isMobile ? mobileSearchWidth : isTablet ? tabletSearchWidth : "220px", minWidth: isMobile ? "120px" : isTablet ? "170px" : "180px" }}
-        >
-          <div
-            className="relative w-full flex items-center rounded-[18px] transition-all duration-300"
-            style={{
-              background: "linear-gradient(135deg, rgba(30,41,59,0.95) 0%,rgba(15,23,42,0.95) 100%)",
-              border: searchFocused ? "2px solid #3b82f6" : "2px solid transparent",
-              backdropFilter: "blur(15px)",
-              boxShadow: searchFocused
-                ? "0 0 0 4px rgba(59,130,246,0.12),0 12px 32px -8px rgba(59,130,246,0.25)"
-                : "0 4px 12px -2px rgba(0,0,0,0.12)",
-            }}
-          >
-            <i className="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg pointer-events-none z-[1]" />
-            <input
-              type="text"
-              className="w-full bg-transparent outline-none font-quicksand placeholder-slate-500 rounded-[16px]"
-              style={{
-                padding: isMobile ? "10px 34px" : isTablet ? "9px 44px" : "8px 50px",
-                color: "white",
-                fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
-              }}
-              placeholder={isMobile ? "Search..." : isTablet ? "Search staff or bookings..." : "Search customers, appointments, staff..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-            />
-            {searchQuery && (
-              <i
-                className="bi bi-x-circle absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg cursor-pointer hover:text-red-400 z-[1]"
-                onClick={() => setSearchQuery("")}
-              />
-            )}
+          <div className="min-w-0 text-left">
+            <h1
+              className={
+                isMobile
+                  ? "m-0 text-[15px] font-bold leading-tight text-white"
+                  : isTablet
+                    ? "m-0 text-[30px] font-bold leading-tight text-white"
+                    : "m-0 text-[42px] font-bold leading-tight text-white"
+              }
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
+              {pageTitle || `Welcome back, ${username}!`}
+              {role === "manager" && mode && (
+                <span
+                  className={
+                    isMobile
+                      ? "ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-[#ababab]"
+                      : "ml-3 inline-flex items-center gap-2 text-[18px] font-bold text-[#ababab]"
+                  }
+                >
+                  <i
+                    className={
+                      isMobile ? "bi bi-eye text-[12px]" : "bi bi-eye text-[18px]"
+                    }
+                  />
+                  {mode}
+                </span>
+              )}
+            </h1>
+            <p
+              className={
+                isMobile
+                  ? "m-0 text-[11px] font-semibold text-[#ffc50f]"
+                  : isTablet
+                    ? "m-0 text-sm font-semibold text-[#ffc50f]"
+                    : "m-0 text-[18px] font-semibold text-[#ffc50f]"
+              }
+              style={{ fontFamily: "Montserrat, sans-serif" }}
+            >
+              {getDate()}, {currentTimeDisplay}
+            </p>
           </div>
         </div>
 
-        {/* Bell icon */}
-        <div className="relative flex-shrink-0">
+        <div className="pointer-events-auto flex flex-shrink-0 items-center gap-2">
           <button
-            className="flex items-center justify-center rounded-[16px] cursor-pointer transition-all duration-300 hover:-translate-y-0.5"
+            type="button"
+            className="flex h-[48px] w-[48px] items-center justify-center rounded-[16px] border border-white/5 text-white transition-transform duration-200 hover:-translate-y-0.5"
             style={{
-              width: isMobile ? "42px" : isTablet ? "44px" : "44px",
-              height: isMobile ? "42px" : isTablet ? "44px" : "44px",
-              background: "linear-gradient(135deg,rgba(30,41,59,0.9) 0%,rgba(15,23,42,0.9) 100%)",
-              border: "2px solid transparent",
-              backdropFilter: "blur(15px)",
-              boxShadow: "0 4px 12px -2px rgba(0,0,0,0.12)",
-              color: "white",
+              background:
+                "linear-gradient(135deg, rgba(20,30,56,0.96) 0%, rgba(15,23,42,0.96) 100%)",
+              boxShadow: "0 10px 24px -16px rgba(0,0,0,0.7)",
             }}
             aria-label="Open notifications"
-            onClick={() => setNotificationOpen(!notificationOpen)}
+            onClick={() => setNotificationOpen((prev) => !prev)}
           >
-            <i className={isMobile ? "bi bi-bell text-[18px] leading-none" : isTablet ? "bi bi-bell text-[20px] leading-none" : "bi bi-bell text-[22px] leading-none"} />
+            <i className={isMobile ? "bi bi-bell text-[18px]" : "bi bi-bell text-[20px]"} />
           </button>
 
-          {notificationOpen && (
+          <div className="relative" style={{ width: searchWidth }}>
             <div
-              className="absolute right-0 top-[calc(100%+8px)] rounded-[20px] overflow-hidden flex flex-col z-[1300]"
+              className="relative flex w-full items-center rounded-[18px] border transition-all duration-200"
               style={{
-                width: isMobile ? "min(320px, calc(100vw - 84px))" : "400px",
-                maxWidth: "calc(100vw - 84px)",
-                background: "linear-gradient(145deg,rgba(255,255,255,0.98) 0%,rgba(248,250,252,0.98) 100%)",
-                color: "#1f2937",
-                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.15)",
-                border: "2px solid rgba(255,255,255,0.2)",
-                backdropFilter: "blur(24px)",
-                animation: "fadeInDown 0.3s ease",
+                background:
+                  "linear-gradient(135deg, rgba(20,30,56,0.96) 0%, rgba(15,23,42,0.96) 100%)",
+                borderColor: searchFocused
+                  ? "rgba(59,130,246,0.65)"
+                  : "rgba(255,255,255,0.04)",
+                boxShadow: searchFocused
+                  ? "0 0 0 4px rgba(59,130,246,0.12)"
+                  : "0 10px 24px -16px rgba(0,0,0,0.7)",
               }}
             >
-              <h3 className="text-lg font-bold m-0 px-6 py-5 border-b border-gray-200 text-gray-900 font-quicksand">
-                Notifications
-              </h3>
-              <ul className="list-none p-0 m-0 overflow-y-auto max-h-[300px]">
-                {sampleNotifications.map((n) => (
-                  <li
-                    key={n.id}
-                    className={`flex items-start gap-3 px-6 py-3 border-b border-gray-100 last:border-b-0 ${n.unread ? "bg-blue-50/50" : ""}`}
-                  >
-                    <i className={`bi bi-${n.type === "appointment" ? "calendar" : n.type === "reminder" ? "clock" : "info-circle"} text-huuk-blue text-lg mt-0.5`} />
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-800 m-0">{n.message}</p>
-                      <p className="text-xs text-gray-400 mt-0.5 m-0">{n.time}</p>
-                    </div>
-                    {n.unread && <span className="w-2 h-2 rounded-full bg-huuk-blue mt-1 flex-shrink-0" />}
-                  </li>
-                ))}
-              </ul>
-              <div className="px-6 py-3 border-t border-gray-200">
-                <button className="flex items-center gap-1 text-huuk-blue text-sm font-bold bg-transparent border-none cursor-pointer hover:underline font-quicksand">
-                  <i className="bi bi-check2-all" /> Mark all as read
+              <i className="bi bi-search pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                placeholder={isMobile ? "Search" : "Search customers"}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                className="w-full rounded-[18px] border-none bg-transparent font-quicksand text-white outline-none placeholder:text-slate-500"
+                style={{
+                  padding: isMobile ? "11px 38px" : "12px 42px",
+                  fontSize: isMobile ? "12px" : "14px",
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 border-none bg-transparent p-0 text-slate-500 transition-colors hover:text-red-400"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                >
+                  <i className="bi bi-x-circle text-base" />
                 </button>
-              </div>
+              )}
             </div>
-          )}
+
+            {notificationOpen && (
+              <div
+                className="absolute right-[calc(100%+12px)] top-0 flex max-h-[320px] w-[320px] flex-col overflow-hidden rounded-[20px] border border-white/20 bg-white text-slate-800 shadow-2xl"
+                style={{
+                  maxWidth: isMobile ? "min(300px, calc(100vw - 110px))" : "320px",
+                }}
+              >
+                <h3 className="m-0 border-b border-slate-200 px-5 py-4 text-base font-bold font-quicksand text-slate-900">
+                  Notifications
+                </h3>
+                <ul className="m-0 max-h-[248px] list-none overflow-y-auto p-0">
+                  {sampleNotifications.map((notification) => (
+                    <li
+                      key={notification.id}
+                      className={`flex items-start gap-3 border-b border-slate-100 px-5 py-3 last:border-b-0 ${notification.unread ? "bg-blue-50/60" : "bg-white"}`}
+                    >
+                      <i
+                        className={`bi bi-${notification.type === "appointment" ? "calendar" : notification.type === "reminder" ? "clock" : "info-circle"} mt-0.5 text-huuk-blue`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 text-sm text-slate-800">
+                          {notification.message}
+                        </p>
+                        <p className="m-0 mt-1 text-xs text-slate-400">
+                          {notification.time}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

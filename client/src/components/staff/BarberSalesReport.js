@@ -4,7 +4,6 @@ import { Chart as ChartJS, ArcElement } from "chart.js";
 import api from "../../utils/api";
 import moment from "moment";
 
-// Register ArcElement needed for Pie chart
 ChartJS.register(ArcElement);
 
 const PIE_COLORS = [
@@ -69,12 +68,12 @@ const BarberSalesReport = () => {
       {
         data: salesData.data || [],
         backgroundColor: (salesData.labels || []).map(
-          (_, i) => PIE_COLORS[i % PIE_COLORS.length],
+          (_, index) => PIE_COLORS[index % PIE_COLORS.length],
         ),
         borderWidth: 2,
         borderColor: "#1a1a1a",
         hoverBackgroundColor: (salesData.labels || []).map(
-          (_, i) => PIE_COLORS[i % PIE_COLORS.length] + "CC",
+          (_, index) => PIE_COLORS[index % PIE_COLORS.length] + "CC",
         ),
         hoverBorderWidth: 3,
         hoverBorderColor: "#ffffff",
@@ -92,7 +91,7 @@ const BarberSalesReport = () => {
           boxWidth: 10,
           font: { family: '"Quicksand", sans-serif', size: 8 },
           color: "white",
-          padding: 15,
+          padding: 14,
         },
       },
       tooltip: {
@@ -109,11 +108,10 @@ const BarberSalesReport = () => {
           label(context) {
             const value = context.parsed || 0;
             const total = context.dataset.data.reduce(
-              (sum, val) => sum + val,
+              (sum, currentValue) => sum + currentValue,
               0,
             );
-            const percentage =
-              total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
             return `${context.label}: ${value} (${percentage}%)`;
           },
         },
@@ -124,19 +122,21 @@ const BarberSalesReport = () => {
     responsive: true,
     animation: { duration: 1000, easing: "easeInOutQuart" },
     onHover: (event, elements) => {
-      event.native.target.style.cursor =
-        elements.length > 0 ? "pointer" : "default";
+      event.native.target.style.cursor = elements.length > 0 ? "pointer" : "default";
     },
   };
 
   return (
-    <div className="staff-dashboard-barber-sales-report-container">
-      <div className="staff-dashboard-barber-sales-report-header">
-        <h2 className="staff-dashboard-barber-sales-report-title">
-          Sales Report
-        </h2>
+    <div className="flex h-full min-h-[300px] flex-col">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="m-0 text-lg font-bold text-white">Sales Report</h3>
+          <p className="m-0 mt-1 text-sm text-white/80">
+            Today's Sales {salesData.totalSales > 0 && `(Total: RM${salesData.totalSales})`}
+          </p>
+        </div>
         <button
-          className="staff-dashboard-button-view-all-button-sales"
+          className="btn-ghost text-sm"
           onClick={() =>
             alert(
               "This feature is currently under maintenance. Please check back later.",
@@ -147,31 +147,24 @@ const BarberSalesReport = () => {
         </button>
       </div>
 
-      <p className="staff-dashboard-sales-report-subtitle">
-        Today's Sales{" "}
-        {salesData.totalSales > 0 && `(Total: RM${salesData.totalSales})`}
-      </p>
-
-      <div className="staff-dashboard-pie-chart">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
         {loadingSales ? (
-          <div className="staff-dashboard-chart-loading">
-            <div className="staff-dashboard-loading-spinner"></div>
-            <p className="staff-dashboard-no-appointments">
-              Loading sales data...
-            </p>
+          <div className="flex flex-col items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+            <p className="m-0 mt-3 text-sm text-huuk-muted">Loading sales data...</p>
           </div>
         ) : !salesData.labels || salesData.labels.length === 0 ? (
-          <div className="staff-dashboard-empty-state">
-            <div className="staff-dashboard-empty-icon">📊</div>
-            <p className="staff-dashboard-no-appointments">
-              No sales data available
-            </p>
-            <p className="staff-dashboard-empty-subtext">
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="text-2xl">📊</div>
+            <p className="m-0 mt-2 text-sm text-white">No sales data available</p>
+            <p className="m-0 mt-1 text-xs text-huuk-muted">
               Sales data will appear here once services are completed
             </p>
           </div>
         ) : (
-          <Pie data={chartData} options={options} />
+          <div className="h-[210px] w-full">
+            <Pie data={chartData} options={options} />
+          </div>
         )}
       </div>
     </div>

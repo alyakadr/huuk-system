@@ -26,7 +26,9 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       profile.role !== user.role ||
       profile.outlet !== user.outlet ||
       profile.profile_picture !== user.profile_picture;
+
     if (shouldSyncProfile) updateProfile(user);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     user?.id,
     user?.username,
@@ -47,6 +49,7 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   const resolveDisplayedOutlet = () => {
     if (profile?.outlet) return profile.outlet;
     if (user?.outlet) return user.outlet;
+
     try {
       const stored = JSON.parse(
         localStorage.getItem("staff_loggedInUser") || "{}",
@@ -78,17 +81,21 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       }
       return;
     }
+
     const url = profilePicture.startsWith("http")
       ? profilePicture
       : `${baseURL}${profilePicture}`;
     const profileChanged =
       profile?.profile_picture &&
       profile.profile_picture !== user?.profile_picture;
+
     if (profileChanged) setFailedUrls(new Set());
+
     if (!profileChanged && failedUrls.has(url)) {
       setProfileImageUrl(defaultProfile);
       return;
     }
+
     if (url !== profileImageUrl && !imageLoading) {
       setImageLoading(true);
       const img = new Image();
@@ -98,22 +105,25 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         setProfileImageUrl(defaultProfile);
         setImageLoading(false);
       }, 5000);
+
       img.onload = () => {
         clearTimeout(timeoutId);
         setProfileImageUrl(url);
         setImageLoading(false);
         setFailedUrls((prev) => {
-          const s = new Set(prev);
-          s.delete(url);
-          return s;
+          const next = new Set(prev);
+          next.delete(url);
+          return next;
         });
       };
+
       img.onerror = () => {
         clearTimeout(timeoutId);
         setFailedUrls((prev) => new Set([...prev, url]));
         setProfileImageUrl(defaultProfile);
         setImageLoading(false);
       };
+
       img.src = cacheBustedUrl;
     }
   }, [
@@ -128,16 +138,19 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   const handleLogout = () => {
     localStorage.setItem("FORCE_LOGOUT_IN_PROGRESS", "true");
     if (setIsLoggingOut) setIsLoggingOut(true);
+
     try {
       updateProfile(null);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
+
     try {
       Cookies.remove("email");
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
+
     [
       "staff_loggedInUser",
       "staff_token",
@@ -153,18 +166,20 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       "lastVisitedPage",
       "switchModeTimestamp",
       "FORCE_LOGOUT_IN_PROGRESS",
-    ].forEach((k) => {
+    ].forEach((key) => {
       try {
-        localStorage.removeItem(k);
-      } catch (e) {
-        console.error(e);
+        localStorage.removeItem(key);
+      } catch (error) {
+        console.error(error);
       }
     });
+
     try {
       sessionStorage.clear();
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
+
     setTimeout(() => {
       try {
         localStorage.removeItem("FORCE_LOGOUT_IN_PROGRESS");
@@ -183,13 +198,13 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
 
   const navItemCls = (isActive, disabled) =>
     [
-      "flex items-center px-5 py-1 mb-1 text-sm font-quicksand transition-all duration-200 list-none",
+      "mb-1 flex items-center gap-3 rounded-[10px] px-4 py-2.5 text-sm font-quicksand transition-all duration-200",
       isActive
-        ? "bg-huuk-accent text-huuk-card font-bold"
-        : "bg-huuk-card text-white",
+        ? "bg-huuk-accent font-bold text-huuk-card"
+        : "bg-transparent text-white/92",
       !disabled
-        ? "hover:bg-huuk-accent hover:text-huuk-card hover:font-bold cursor-pointer"
-        : "cursor-not-allowed",
+        ? "cursor-pointer hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
+        : "cursor-not-allowed opacity-50",
     ].join(" ");
 
   const footerItems = [
@@ -207,54 +222,54 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   ];
 
   return (
-    <div
+    <aside
       key={location.pathname}
-      className={`fixed left-0 top-0 h-screen bg-huuk-card text-white flex flex-col rounded-[25px] font-quicksand z-[1200] transition-all duration-300 ease-in-out overflow-hidden ${minimized ? "w-[72px]" : "w-[280px]"}`}
+      className={`fixed left-0 top-0 z-[1200] flex h-screen flex-col overflow-hidden rounded-r-[28px] bg-huuk-card font-quicksand text-white transition-all duration-300 ease-in-out ${minimized ? "w-[72px]" : "w-[236px]"}`}
     >
-      {/* Toggle button */}
       <button
-        className="absolute top-3 left-5 bg-white border-none rounded-full w-8 h-8 cursor-pointer flex justify-center items-center shadow z-[1100]"
+        className="absolute left-4 top-3 z-[1300] flex h-8 w-8 items-center justify-center rounded-full border-none bg-white shadow"
         onClick={toggleSidebar}
         title={minimized ? "Expand sidebar" : "Collapse sidebar"}
         aria-label="Toggle sidebar"
       >
-        <span className="material-icons text-base">
+        <span className="material-icons text-base text-black">
           {minimized ? "chevron_right" : "chevron_left"}
         </span>
       </button>
 
-      {/* Profile section */}
       <div
-        className={`flex flex-col items-center text-center cursor-pointer relative group ${minimized ? "pt-5 mt-6" : "mt-7 mb-2.5"}`}
+        className={`relative flex cursor-pointer flex-col items-center px-4 text-center ${minimized ? "mt-14" : "mt-6 pb-6 pt-3"}`}
         onClick={handleEditProfile}
       >
-        <div className="relative inline-block">
+        <div className="group relative inline-block">
           <img
             src={profileImageUrl}
             alt="Profile"
-            className={`${minimized ? "w-12 h-12" : "w-[130px] h-[130px]"} rounded-full object-cover transition-transform duration-300 hover:scale-105`}
-            onError={(e) => {
-              if (e.target.src !== defaultProfile)
-                e.target.src = defaultProfile;
+            className={`${minimized ? "h-12 w-12" : "h-[108px] w-[108px]"} rounded-full object-cover transition-transform duration-300 group-hover:scale-105`}
+            onError={(event) => {
+              if (event.target.src !== defaultProfile) {
+                event.target.src = defaultProfile;
+              }
             }}
           />
-          <div className="absolute inset-0 bg-black/70 rounded-full flex flex-col items-center justify-center text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-            <span className="material-icons text-xl mb-1">edit</span>
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-full bg-black/70 text-xs font-bold text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            <span className="material-icons mb-1 text-xl">edit</span>
             {!minimized && <span>Edit Profile</span>}
           </div>
         </div>
+
         {!minimized && (
           <>
-            <h2 className="text-white text-base font-bold mt-2 mb-0">
+            <h2 className="mb-0 mt-4 text-[17px] font-bold text-white">
               {profile?.username || user?.username || "User"}
             </h2>
-            <p className="text-white text-sm mb-4 mt-0">
+            <p className="m-0 text-sm font-semibold text-white/90">
               {rawRole
                 ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1)
                 : "Role"}
             </p>
             {shouldShowOutlet && (
-              <p className="text-white text-sm">
+              <p className="mt-4 text-sm text-white/85">
                 {displayedOutlet || "Outlet not assigned"}
               </p>
             )}
@@ -262,28 +277,21 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         )}
       </div>
 
-      {/* Main nav */}
-      <nav className="overflow-y-auto flex-1">
-        <ul className="list-none p-0 m-0">
+      <nav className="flex-1 overflow-y-auto px-3 pb-4">
+        <ul className="m-0 list-none p-0">
           {navItems.map((item) => {
             const hasSubNav = !!item.subNav;
             const isOpen = openDropdown === item.label;
             const isActive =
               item.path === location.pathname ||
               (hasSubNav &&
-                item.subNav.some((s) => s.path === location.pathname));
+                item.subNav.some((subItem) => subItem.path === location.pathname));
+
             return (
               <li key={item.label} className="list-none">
                 <div
                   className={navItemCls(isActive, item.disabled)}
-                  style={{ opacity: item.disabled ? 0.5 : 1 }}
-                  title={
-                    minimized
-                      ? item.disabled
-                        ? `${item.label} (Disabled)`
-                        : item.label
-                      : undefined
-                  }
+                  title={minimized ? item.label : undefined}
                   onClick={() => {
                     if (item.disabled) return;
                     if (hasSubNav) setOpenDropdown(isOpen ? null : item.label);
@@ -294,34 +302,34 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                   }}
                 >
                   <span
-                    className={`material-icons mr-2 text-xl transition-colors duration-200 ${isActive ? "text-huuk-card" : "text-white"}`}
+                    className={`material-icons text-xl ${isActive ? "text-huuk-card" : "text-white/90"}`}
                   >
                     {item.icon}
                   </span>
-                  {!minimized && item.label}
+                  {!minimized && <span>{item.label}</span>}
                 </div>
+
                 {isOpen && hasSubNav && !minimized && (
-                  <ul className="list-none m-0 mb-2.5 ml-10 pl-4 border-l-2 border-huuk-accent p-0">
-                    {item.subNav.map((sub) => (
+                  <ul className="mb-3 ml-10 mt-1 list-none border-l-2 border-huuk-accent pl-4">
+                    {item.subNav.map((subItem) => (
                       <li
-                        key={sub.label}
+                        key={subItem.label}
                         className={[
-                          "text-sm py-1 list-none",
-                          sub.path === location.pathname
-                            ? "text-huuk-accent font-bold"
-                            : "text-white",
-                          !sub.disabled
-                            ? "cursor-pointer hover:text-huuk-accent"
-                            : "cursor-not-allowed opacity-50",
+                          "py-1 text-sm",
+                          subItem.path === location.pathname
+                            ? "font-bold text-huuk-accent"
+                            : "text-white/90",
+                          subItem.disabled
+                            ? "cursor-not-allowed opacity-50"
+                            : "cursor-pointer hover:text-huuk-accent",
                         ].join(" ")}
-                        style={{ opacity: sub.disabled ? 0.5 : 1 }}
                         onClick={() => {
-                          if (sub.disabled) return;
-                          navigate(sub.path);
+                          if (subItem.disabled) return;
+                          navigate(subItem.path);
                           setOpenDropdown(null);
                         }}
                       >
-                        {sub.label}
+                        {subItem.label}
                       </li>
                     ))}
                   </ul>
@@ -332,25 +340,24 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         </ul>
       </nav>
 
-      {/* Footer nav */}
       {!openDropdown && (
-        <nav className="mt-auto pt-4 border-t border-gray-700">
-          <ul className="list-none p-0 m-0">
+        <nav className="mt-auto border-t border-white/10 px-3 py-4">
+          <ul className="m-0 list-none p-0">
             {footerItems.map(({ icon, label, onClick }) => (
               <li
                 key={label}
-                className="flex items-center px-5 py-1 mb-1 text-sm text-white bg-huuk-card cursor-pointer hover:bg-huuk-accent hover:text-huuk-card hover:font-bold transition-all duration-200 list-none"
+                className="mb-1 flex cursor-pointer items-center gap-3 rounded-[10px] px-4 py-2.5 text-sm text-white/92 transition-all duration-200 hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
                 title={minimized ? label : undefined}
                 onClick={onClick}
               >
-                <span className="material-icons mr-2 text-xl">{icon}</span>
-                {!minimized && label}
+                <span className="material-icons text-xl">{icon}</span>
+                {!minimized && <span>{label}</span>}
               </li>
             ))}
           </ul>
         </nav>
       )}
-    </div>
+    </aside>
   );
 };
 

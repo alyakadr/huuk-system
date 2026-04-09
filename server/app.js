@@ -20,29 +20,57 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
+
+const buildAllowedOrigins = () => {
+  const configuredOrigins = (process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return [
+    ...configuredOrigins,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+  ];
+};
+
+const isOriginAllowed = (origin) => {
+  if (!origin) {
+    return true;
+  }
+
+  const allowedOrigins = buildAllowedOrigins();
+  return allowedOrigins.some((allowedOrigin) =>
+    allowedOrigin.endsWith("*")
+      ? origin.startsWith(allowedOrigin.slice(0, -1))
+      : origin === allowedOrigin,
+  );
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  credentials: true,
+};
+
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      const allowedOrigins = [
-        undefined,
-        ...(process.env.ALLOWED_ORIGINS || "http://localhost:*")
-          .split(",")
-          .map((o) => o.trim()),
-      ];
-      const isAllowed = allowedOrigins.some((o) =>
-        o === undefined
-          ? !origin
-          : o.endsWith("*")
-            ? origin.startsWith(o.slice(0, -1))
-            : o === origin,
-      );
-      if (isAllowed) {
+      if (isOriginAllowed(origin)) {
         callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+        return;
       }
+
+      callback(new Error("Not allowed by CORS"));
     },
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   },
 });
 const port = process.env.PORT || 5000;
@@ -109,33 +137,9 @@ app.post(
   },
 );
 
-// Apply CORS for other routes
-app.use((req, res, next) => {
-  cors({
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        undefined,
-        ...(process.env.ALLOWED_ORIGINS || "http://localhost:*")
-          .split(",")
-          .map((o) => o.trim()),
-      ];
-      const isAllowed = allowedOrigins.some((o) =>
-        o === undefined
-          ? !origin
-          : o.endsWith("*")
-            ? origin.startsWith(o.slice(0, -1))
-            : o === origin,
-      );
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    credentials: true,
-  })(req, res, next);
-});
+// Apply CORS for API routes and handle browser preflight requests.
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 // Body parsing for non-webhook routes
 app.use(express.json({ limit: "50mb" }));
