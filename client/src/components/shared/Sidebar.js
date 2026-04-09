@@ -285,7 +285,9 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
             const isActive =
               item.path === location.pathname ||
               (hasSubNav &&
-                item.subNav.some((subItem) => subItem.path === location.pathname));
+                item.subNav.some(
+                  (subItem) => subItem.path === location.pathname,
+                ));
 
             return (
               <li key={item.label} className="list-none">

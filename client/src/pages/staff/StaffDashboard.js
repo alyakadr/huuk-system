@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import BarberSalesReport from "../../components/staff/BarberSalesReport";
 import { useNavigate } from "react-router-dom";
@@ -125,8 +125,12 @@ const PaymentManagementTable = ({
                     key={payment.id || index}
                     className="huuk-tr border-b border-white/10"
                   >
-                    <td className="huuk-td truncate">{payment.customer_name}</td>
-                    <td className="huuk-td truncate">{payment.payment_method}</td>
+                    <td className="huuk-td truncate">
+                      {payment.customer_name}
+                    </td>
+                    <td className="huuk-td truncate">
+                      {payment.payment_method}
+                    </td>
                     <td
                       className={`huuk-td truncate font-semibold ${payment.payment_status === "Paid" ? "text-green-400" : "text-yellow-300"}`}
                     >
@@ -823,13 +827,16 @@ const StaffDashboard = () => {
     }
     return (a.start_time || "").localeCompare(b.start_time || "");
   });
-  const limitedSchedule = sortedSchedule.slice(0, 5);
+  const sliced = sortedSchedule.slice(0, 3);
+  const emptyRow = { id: null, customer_name: "-", phone_number: "-", service_name: "-", start_time: "-", end_time: "-", _empty: true };
+  const limitedSchedule = [...sliced, ...Array(Math.max(0, 3 - sliced.length)).fill(null).map((_, i) => ({ ...emptyRow, _key: `empty-${i}` }))];
+  const hasActiveBooking = scheduleData.some((b) => !completedStatuses.includes(b.status));
 
   return (
     <div className="staff-dashboard min-w-0 overflow-x-hidden bg-huuk-bg text-white font-quicksand">
       <div className="w-full min-w-0">
-        <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-12">
+          <div className="xl:col-span-8 grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-4">
             {[
               {
                 img: summ1,
@@ -844,7 +851,9 @@ const StaffDashboard = () => {
               {
                 img: summ4,
                 label: "Cancelled",
-                value: loadingSummary ? "..." : summaryData.cancelled.toString(),
+                value: loadingSummary
+                  ? "..."
+                  : summaryData.cancelled.toString(),
               },
               {
                 img: summ2,
@@ -856,41 +865,34 @@ const StaffDashboard = () => {
             ].map(({ img, label, value }) => (
               <div
                 key={label}
-                className="card-dark flex min-h-[86px] min-w-0 items-center gap-3 rounded-huuk-lg"
+                className="card-dark flex min-w-0 items-center gap-2 rounded-[16px] px-3 py-2"
               >
-                <img src={img} alt={label} className="h-9 w-9 object-contain" />
+                <img src={img} alt={label} className="h-8 w-8 shrink-0 object-contain" />
                 <div className="min-w-0">
-                  <p className="m-0 text-sm font-bold">{label}</p>
-                  <p className="m-0 text-sm font-bold">{value}</p>
+                  <p className="m-0 truncate text-sm font-bold leading-snug">{label}</p>
+                  <p className="m-0 text-sm font-bold leading-snug">{value}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="w-full min-w-0">
-            <div className="card-dark flex min-h-[86px] items-center justify-between gap-3 rounded-huuk-lg">
-              <div className="flex min-w-0 items-center gap-3">
+          <div className="xl:col-span-4 xl:row-span-2 min-w-0 flex flex-col gap-3">
+            <div className="card-dark flex flex-col items-center justify-center gap-2 rounded-[16px] px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2">
                 <img
                   src={isTimeInConfirmed ? donereminder : remindreminder}
                   alt="Attendance Reminder"
-                  className="h-12 w-12 object-contain"
+                  className="h-5 w-5 shrink-0 object-contain"
                 />
-                <div className="min-w-0">
-                  <p className="m-0 text-sm font-bold">
-                    {isTimeInConfirmed
-                      ? "Already Updated Time-In"
-                      : "Not Yet Updated Time-In"}
-                  </p>
-                  {isTimeInConfirmed && (
-                    <p className="m-0 mt-1 text-xs text-huuk-muted">
-                      Great! Your time-in has been successfully recorded.
-                    </p>
-                  )}
-                </div>
+                <p className="m-0 text-base font-bold leading-snug">
+                  {isTimeInConfirmed
+                    ? "Already Updated Time-In"
+                    : "Not Yet Updated Time-In"}
+                </p>
               </div>
               {!isTimeInConfirmed && (
                 <button
-                  className="btn-primary min-w-[92px]"
+                  className="btn-primary shrink-0 px-5 py-1.5 text-sm"
                   onClick={() =>
                     alert(
                       "This feature is currently under maintenance. Please check back later.",
@@ -901,149 +903,17 @@ const StaffDashboard = () => {
                 </button>
               )}
             </div>
-          </div>
-        </div>
 
-        <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-12">
-          <div className="xl:col-span-8 min-w-0 space-y-4">
-            <div className="card-dark min-w-0 rounded-huuk-lg">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h3 className="flex items-center text-lg font-bold">
-                  My Schedule
-                  <>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: "8px",
-                        height: "8px",
-                        backgroundColor: "#00ff00",
-                        borderRadius: "50%",
-                        marginLeft: "8px",
-                        animation: "pulse 2s infinite",
-                      }}
-                      title="Real-time updates enabled"
-                    />
-                    <span className="ml-2 text-sm font-normal italic text-huuk-muted">
-                      Active Booking
-                    </span>
-                  </>
+            <div className="card-dark flex-1 rounded-huuk-lg">
+              <div>
+                <h3 className="m-0 text-base font-bold">
+                  Appointment Management
                 </h3>
-                <button
-                  className="btn-ghost text-sm"
-                  onClick={() => navigate("/staff/schedule")}
-                >
-                  View All
-                </button>
+                <p className="m-0 mt-0.5 text-xs text-huuk-muted">
+                  View Time Slots Status
+                </p>
               </div>
-              {isMobileView ? (
-                <div className="space-y-2">
-                  {loadingSchedule ? (
-                    <div className="huuk-td text-center">Loading...</div>
-                  ) : (
-                    limitedSchedule.map((booking, index) => (
-                      <div
-                        key={booking.id || index}
-                        className="rounded-huuk-sm border border-white/10 bg-white/5 p-3"
-                      >
-                        <div className="grid grid-cols-2 gap-y-1 text-sm">
-                          <span className="text-huuk-muted">Customer</span>
-                          <span>{booking.customer_name}</span>
-                          <span className="text-huuk-muted">Phone</span>
-                          <span>{booking.phone_number}</span>
-                          <span className="text-huuk-muted">Service</span>
-                          <span>{booking.service_name}</span>
-                          <span className="text-huuk-muted">Time</span>
-                          <span>
-                            {booking.start_time !== "-" && booking.end_time !== "-"
-                              ? `${booking.start_time} - ${booking.end_time}`
-                              : "-"}
-                          </span>
-                        </div>
-                        <div className="mt-3">{renderScheduleAction(booking)}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              ) : (
-                <div className="min-w-0">
-                  <table className="huuk-table w-full table-fixed">
-                    <thead>
-                      <tr>
-                        <th className="huuk-th w-[21%]">CUSTOMER NAME</th>
-                        <th className="huuk-th w-[20%]">PHONE NUMBER</th>
-                        <th className="huuk-th w-[25%]">SERVICE</th>
-                        <th className="huuk-th w-[18%]">TIME</th>
-                        <th className="huuk-th w-[16%] text-center">ACTION</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loadingSchedule ? (
-                        <tr>
-                          <td colSpan="5" className="huuk-td text-center">
-                            Loading...
-                          </td>
-                        </tr>
-                      ) : (
-                        limitedSchedule.map((booking, index) => (
-                          <tr
-                            key={booking.id || index}
-                            className="huuk-tr border-b border-white/10"
-                          >
-                            <td className="huuk-td truncate">{booking.customer_name}</td>
-                            <td className="huuk-td truncate">{booking.phone_number}</td>
-                            <td className="huuk-td truncate">{booking.service_name}</td>
-                            <td className="huuk-td truncate">
-                              {booking.start_time !== "-" && booking.end_time !== "-"
-                                ? `${booking.start_time} - ${booking.end_time}`
-                                : "-"}
-                            </td>
-                            <td
-                              className="huuk-td"
-                              style={{ textAlign: "center", verticalAlign: "middle" }}
-                            >
-                              {renderScheduleAction(booking)}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            <div className="grid min-w-0 grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.9fr)]">
-              <div className="min-w-0">
-                <PaymentManagementTable
-                  loadingPayment={loadingPayment}
-                  paymentData={paymentData}
-                  isMobileView={isMobileView}
-                  className="mt-0"
-                />
-              </div>
-              <div className="card-dark min-w-0 rounded-huuk-lg">
-                <BarberSalesReport />
-              </div>
-            </div>
-          </div>
-
-          <div className="xl:col-span-4 min-w-0 space-y-4">
-            <div className="card-dark rounded-huuk-lg">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="m-0 text-lg font-bold">Appointment Management</h3>
-                  <p className="m-0 mt-1 text-sm text-huuk-muted">
-                    View Time Slots Status
-                  </p>
-                </div>
-                <button
-                  className="btn-ghost text-sm"
-                  onClick={() => navigate("/staff/appointments")}
-                >
-                  View all
-                </button>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="mt-3 grid grid-cols-4 gap-1.5">
                 {availableSlots.map((time) => {
                   const isBooked = scheduleData.some((booking) => {
                     if (
@@ -1071,12 +941,12 @@ const StaffDashboard = () => {
                   const isClickable = !isBooked && isWithinHours && !isBlocked;
 
                   const buttonClass = isBooked
-                    ? "bg-[#b64049] text-white"
+                    ? "bg-[#c0392b] text-white"
                     : !isWithinHours
-                      ? "bg-white/10 text-white/55"
+                      ? "bg-[#454545] text-white/65"
                       : isBlocked
-                        ? "bg-[#3b82f6] text-white"
-                        : "bg-[#8ddd53] text-[#1b1b1b] hover:bg-[#a4eb67]";
+                        ? "bg-[#6f6f6f] text-white"
+                        : "bg-[#8ddd53] text-white hover:bg-[#a4eb67]";
 
                   return (
                     <button
@@ -1086,7 +956,7 @@ const StaffDashboard = () => {
                           toggleSlotBlocking(time);
                         }
                       }}
-                      className={`rounded-[14px] px-2 py-2.5 text-sm font-semibold transition-colors ${buttonClass}`}
+                      className={`rounded-full py-1 text-[18px] font-normal transition-colors ${buttonClass}`}
                       disabled={!isClickable}
                       style={{
                         cursor: isClickable ? "pointer" : "not-allowed",
@@ -1106,25 +976,166 @@ const StaffDashboard = () => {
                     </button>
                   );
                 })}
+                <button
+                  className="btn-ghost self-center text-center text-sm"
+                  onClick={() => navigate("/staff/appointments")}
+                >
+                  View all
+                </button>
               </div>
             </div>
+          </div>
 
-            <div className="card-dark min-h-[318px] rounded-huuk-lg">
+          <div className="xl:col-span-8 min-w-0">
+            <div className="card-dark min-w-0 rounded-huuk-lg">
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="m-0 text-lg font-bold leading-none">
+                  <span className="inline-flex items-center gap-2">
+                    <span>My Schedule</span>
+                    <span
+                      className={`inline-block h-[8px] w-[8px] rounded-full ${hasActiveBooking ? "bg-[#00ff00]" : "bg-[#ff0000]"}`}
+                      style={{ animation: "pulse 2s infinite", verticalAlign: "middle" }}
+                      title={hasActiveBooking ? "Active bookings" : "No active bookings"}
+                    />
+                    <span className="text-sm font-normal italic text-huuk-muted">
+                      Active Booking
+                    </span>
+                  </span>
+                </h3>
+                <button
+                  className="btn-ghost text-sm"
+                  onClick={() => navigate("/staff/schedule")}
+                >
+                  View All
+                </button>
+              </div>
+              {isMobileView ? (
+                <div className="space-y-2">
+                  {loadingSchedule ? (
+                    <div className="huuk-td text-center">Loading...</div>
+                  ) : (
+                    limitedSchedule.map((booking, index) => (
+                      <div
+                        key={booking._key || booking.id || index}
+                        className="rounded-huuk-sm border border-white/10 bg-white/5 p-3"
+                      >
+                        <div className="grid grid-cols-2 gap-y-1 text-sm">
+                          <span className="text-huuk-muted">Customer</span>
+                          <span>{booking.customer_name}</span>
+                          <span className="text-huuk-muted">Phone</span>
+                          <span>{booking.phone_number}</span>
+                          <span className="text-huuk-muted">Service</span>
+                          <span>{booking.service_name}</span>
+                          <span className="text-huuk-muted">Time</span>
+                          <span>
+                            {booking.start_time !== "-" &&
+                            booking.end_time !== "-"
+                              ? `${booking.start_time} - ${booking.end_time}`
+                              : "-"}
+                          </span>
+                        </div>
+                        {!booking._empty && (
+                          <div className="mt-3">
+                            {renderScheduleAction(booking)}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <div className="min-w-0 -mx-4 pb-4">
+                  <table className="huuk-table w-full table-fixed">
+                    <thead>
+                      <tr>
+                        <th className="huuk-th w-[21%]">CUSTOMER NAME</th>
+                        <th className="huuk-th w-[20%]">PHONE NUMBER</th>
+                        <th className="huuk-th w-[25%]">SERVICE</th>
+                        <th className="huuk-th w-[18%]">TIME</th>
+                        <th className="huuk-th w-[16%] text-center">ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loadingSchedule ? (
+                        <tr>
+                          <td colSpan="5" className="huuk-td text-center">
+                            Loading...
+                          </td>
+                        </tr>
+                      ) : (
+                        limitedSchedule.map((booking, index) => (
+                          <tr
+                            key={booking._key || booking.id || index}
+                            className="huuk-tr border-b border-white/10"
+                          >
+                            <td className="huuk-td truncate">
+                              {booking.customer_name}
+                            </td>
+                            <td className="huuk-td truncate">
+                              {booking.phone_number}
+                            </td>
+                            <td className="huuk-td truncate">
+                              {booking.service_name}
+                            </td>
+                            <td className="huuk-td truncate">
+                              {booking.start_time !== "-" &&
+                              booking.end_time !== "-"
+                                ? `${booking.start_time} - ${booking.end_time}`
+                                : "-"}
+                            </td>
+                            <td
+                              className="huuk-td"
+                              style={{
+                                textAlign: "center",
+                                verticalAlign: "middle",
+                              }}
+                            >
+                              {booking._empty ? "-" : renderScheduleAction(booking)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-12">
+          <div className="xl:col-span-8 min-w-0">
+            <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(240px,0.9fr)]">
+              <div className="min-w-0">
+                <PaymentManagementTable
+                  loadingPayment={loadingPayment}
+                  paymentData={paymentData}
+                  isMobileView={isMobileView}
+                  className="mt-0"
+                />
+              </div>
+              <div className="card-dark min-w-0 rounded-huuk-lg">
+                <BarberSalesReport />
+              </div>
+            </div>
+          </div>
+          <div className="xl:col-span-4 min-w-0">
+            <div className="card-dark min-h-[260px] rounded-huuk-lg">
               <div className="mb-2">
-                <h3 className="m-0 text-[18px] font-bold">
+                <h3 className="m-0 text-base font-bold">
                   Today's Appointments by All Staff
                 </h3>
               </div>
               {loadingBarChart ? (
-                <div className="flex min-h-[240px] flex-col items-center justify-center">
+                <div className="flex min-h-[200px] flex-col items-center justify-center">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
                   <p className="mt-3 text-sm text-huuk-muted">
                     Loading chart data...
                   </p>
                 </div>
               ) : !barChartData.labels || barChartData.labels.length === 0 ? (
-                <div className="flex min-h-[240px] flex-col items-center justify-center text-center">
-                  <div className="text-2xl">Chart</div>
+                <div className="flex min-h-[200px] flex-col items-center justify-center text-center">
+                  <i className="bi bi-bar-chart-line-fill text-3xl text-[#8fb6d0]"></i>
                   <p className="mt-2 text-sm">
                     No appointments scheduled for today
                   </p>
@@ -1133,7 +1144,7 @@ const StaffDashboard = () => {
                   </p>
                 </div>
               ) : (
-                <div className="h-[260px]">
+                <div className="h-[220px]">
                   <Bar
                     key={`bar-chart-${JSON.stringify(barChartData)}`}
                     data={todaysAppointmentBarData}
@@ -1214,7 +1225,8 @@ const StaffDashboard = () => {
                   }}
                 >
                   <strong>
-                    {paymentConfirmationData?.customerName || "Walk-in Customer"}
+                    {paymentConfirmationData?.customerName ||
+                      "Walk-in Customer"}
                   </strong>
                 </p>
                 <p

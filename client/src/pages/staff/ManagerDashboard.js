@@ -768,7 +768,7 @@ const ManagerDashboard = () => {
             </h2>
             <MaintenanceViewAllButton />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { img: summ1, label: "Done", value: doneCount },
               { img: summ3, label: "Pending", value: pendingCount },
@@ -777,12 +777,12 @@ const ManagerDashboard = () => {
             ].map(({ img, label, value }) => (
               <div
                 key={label}
-                className="card-dark rounded-huuk-lg flex items-center gap-2 min-h-[45px]"
+                className="card-dark flex min-h-[62px] items-center gap-2 rounded-[20px] px-3.5 py-2.5"
               >
-                <img src={img} alt={label} className="w-8 h-8 object-contain" />
-                <div>
-                  <p className="text-sm font-bold m-0">{label}</p>
-                  <p className="text-sm font-bold m-0">{value}</p>
+                <img src={img} alt={label} className="h-7 w-7 shrink-0 object-contain" />
+                <div className="min-w-0">
+                  <p className="m-0 truncate text-[16px] font-semibold leading-tight">{label}</p>
+                  <p className="m-0 text-[16px] font-bold leading-tight">{value}</p>
                 </div>
               </div>
             ))}

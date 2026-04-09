@@ -75,9 +75,10 @@ const StaffLayout = () => {
   };
 
   const token = getToken();
-  const sidebarWidth = isCompactLayout || isSidebarMinimized
-    ? COLLAPSED_SIDEBAR_WIDTH
-    : EXPANDED_SIDEBAR_WIDTH;
+  const sidebarWidth =
+    isCompactLayout || isSidebarMinimized
+      ? COLLAPSED_SIDEBAR_WIDTH
+      : EXPANDED_SIDEBAR_WIDTH;
 
   const toggleSidebar = () => {
     setIsSidebarMinimized((prev) => !prev);
@@ -87,7 +88,9 @@ const StaffLayout = () => {
     if (location.pathname === "/staff") {
       return `Welcome back, ${user?.username || "User"}!`;
     }
-    const currentItem = staffNavItems.find((item) => item.path === location.pathname);
+    const currentItem = staffNavItems.find(
+      (item) => item.path === location.pathname,
+    );
     return currentItem
       ? currentItem.label
       : `Welcome back, ${user?.username || "User"}!`;
@@ -231,7 +234,8 @@ const StaffLayout = () => {
       const allowedPaths = ["/staff", "/staff/schedule", "/staff/appointments"];
       const isAllowed = allowedPaths.some(
         (path) =>
-          location.pathname === path || location.pathname.startsWith(`${path}/`),
+          location.pathname === path ||
+          location.pathname.startsWith(`${path}/`),
       );
       if (!isAllowed) {
         navigate("/staff");
@@ -256,10 +260,10 @@ const StaffLayout = () => {
     overflowX: "hidden",
     backgroundColor: "#0e0d0f",
     padding: isPhone
-      ? "104px 10px 14px"
+      ? "120px 10px 14px"
       : isTablet
-        ? "126px 18px 20px"
-        : "148px 24px 24px 18px",
+        ? "148px 18px 20px"
+        : "185px 24px 24px 18px",
     marginLeft: `${sidebarWidth}px`,
     width: `calc(100% - ${sidebarWidth}px)`,
     boxSizing: "border-box",
