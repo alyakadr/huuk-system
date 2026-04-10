@@ -20,7 +20,9 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         item.subNav.some((subItem) => subItem.path === location.pathname),
     );
 
-    setOpenDropdown(parentWithActiveSubNav ? parentWithActiveSubNav.label : null);
+    setOpenDropdown(
+      parentWithActiveSubNav ? parentWithActiveSubNav.label : null,
+    );
   }, [location.pathname, navItems]);
 
   useEffect(() => {
@@ -303,11 +305,14 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                     if (item.disabled) return;
                     if (hasSubNav) {
                       setOpenDropdown(isOpen ? null : item.label);
-                      if (!isOpen && item.path && item.path !== location.pathname) {
+                      if (
+                        !isOpen &&
+                        item.path &&
+                        item.path !== location.pathname
+                      ) {
                         navigate(item.path);
                       }
-                    }
-                    else if (item.path) {
+                    } else if (item.path) {
                       navigate(item.path);
                       setOpenDropdown(null);
                     }
@@ -319,7 +324,9 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                     >
                       {item.icon}
                     </span>
-                    {!minimized && <span className="truncate">{item.label}</span>}
+                    {!minimized && (
+                      <span className="truncate">{item.label}</span>
+                    )}
                   </span>
                   {hasSubNav && !minimized && (
                     <span
@@ -370,7 +377,9 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
               title={minimized ? label : undefined}
               onClick={onClick}
             >
-              <span className="material-icons shrink-0 text-[21px]">{icon}</span>
+              <span className="material-icons shrink-0 text-[21px]">
+                {icon}
+              </span>
               {!minimized && <span className="truncate">{label}</span>}
             </li>
           ))}

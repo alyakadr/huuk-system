@@ -420,26 +420,28 @@ const CustomerHomepage = () => {
       <section className="cust-hero" ref={heroRef}>
         <img src={heroImage} alt="Barbershop" className="cust-img" />
         <div className="cust-hero-content">
-          <img src={logo} alt="HUUK Logo" className="cust-hero-logo" />
-          <h1>HUUK HAIRCUT, SHAVE & POMADE</h1>
-          <p>
-            A barbershop isn’t just a place to get a haircut—it’s a sanctuary
-            where conversations flow, friendships bloom, and every client walks
-            out feeling refreshed, confident, and ready to take on the world.
-          </p>
-          <div className="cust-hero-buttons">
-            <button
-              onClick={() => scrollToSection(bookingRef)}
-              className="cust-btn cust-book-now"
-            >
-              BOOK NOW
-            </button>
-            <button
-              onClick={() => scrollToSection(servicesRef)}
-              className="cust-btn cust-view-services"
-            >
-              VIEW SERVICES
-            </button>
+          <div className="cust-hero-main">
+            <img src={logo} alt="HUUK Logo" className="cust-hero-logo" />
+            <h1>HUUK HAIRCUT, SHAVE & POMADE</h1>
+            <p>
+              A barbershop isn’t just a place to get a haircut—it’s a sanctuary
+              where conversations flow, friendships bloom, and every client walks
+              out feeling refreshed, confident, and ready to take on the world.
+            </p>
+            <div className="cust-hero-buttons">
+              <button
+                onClick={() => scrollToSection(bookingRef)}
+                className="cust-btn cust-book-now"
+              >
+                BOOK NOW
+              </button>
+              <button
+                onClick={() => scrollToSection(servicesRef)}
+                className="cust-btn cust-view-services"
+              >
+                VIEW SERVICES
+              </button>
+            </div>
           </div>
           <div className="cust-cta-section">
             <button

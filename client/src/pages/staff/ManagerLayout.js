@@ -64,9 +64,10 @@ const ManagerLayout = () => {
   const isPhone = viewportWidth <= 768;
   const isCompactLayout = viewportWidth <= 1024;
   const isTablet = viewportWidth > 768 && viewportWidth <= 1100;
-  const sidebarWidth = isCompactLayout || isSidebarMinimized
-    ? COLLAPSED_SIDEBAR_WIDTH
-    : EXPANDED_SIDEBAR_WIDTH;
+  const sidebarWidth =
+    isCompactLayout || isSidebarMinimized
+      ? COLLAPSED_SIDEBAR_WIDTH
+      : EXPANDED_SIDEBAR_WIDTH;
 
   const toggleSidebar = () => {
     setIsSidebarMinimized((prev) => !prev);
