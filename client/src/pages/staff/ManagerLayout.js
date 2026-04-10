@@ -51,7 +51,7 @@ const managerNavItems = [
 ];
 
 const COLLAPSED_SIDEBAR_WIDTH = 72;
-const EXPANDED_SIDEBAR_WIDTH = 236;
+const EXPANDED_SIDEBAR_WIDTH = 248;
 
 const ManagerLayout = () => {
   const [user, setUser] = useState(null);

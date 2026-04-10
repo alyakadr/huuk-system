@@ -81,6 +81,7 @@ const Homepage = () => {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] =
     useState(false);
+  const isAuthModalOpen = isSignInOpen || isSignUpOpen;
 
   const preloadRememberedEmail = () => {
     const rememberedEmail =
@@ -466,7 +467,7 @@ const Homepage = () => {
       <div className={styles["homepage-container"]}>
         <div className={styles["header-homepage"]}>
           <img src={logo} alt="Huuk Logo" className={styles["logo-homepage"]} />
-          {profile && !isCleanLoginInterface() && (
+          {profile && !isCleanLoginInterface() && !isAuthModalOpen && (
             <button
               onClick={handleLogout}
               className={styles["logout-btn-homepage"]}
@@ -483,7 +484,7 @@ const Homepage = () => {
             Please sign in or create an account to access your dashboard.
           </p>
           <div className={styles["auth-buttons-homepage"]}>
-            {profile && !isCleanLoginInterface() ? (
+            {profile && !isCleanLoginInterface() && !isAuthModalOpen ? (
               <div>
                 <p style={{ color: "#1a1a1a", marginBottom: "10px" }}>
                   Already signed in as {profile.role}:{" "}

@@ -35,7 +35,7 @@ const staffNavItems = [
 ];
 
 const COLLAPSED_SIDEBAR_WIDTH = 72;
-const EXPANDED_SIDEBAR_WIDTH = 236;
+const EXPANDED_SIDEBAR_WIDTH = 248;
 
 const StaffLayout = () => {
   const [user, setUser] = useState(null);

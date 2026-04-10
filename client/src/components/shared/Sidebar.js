@@ -204,12 +204,12 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
 
   const navItemCls = (isActive, disabled) =>
     [
-      "mb-1 flex items-center gap-3 rounded-[10px] px-4 py-2.5 text-sm font-quicksand transition-all duration-200",
+      "mb-0.5 box-border flex w-full min-h-[34px] items-center gap-2.5 rounded-[2px] px-3 py-1.5 text-[15px] md:text-[14px] font-quicksand leading-none transition-all duration-150",
       isActive
-        ? "bg-huuk-accent font-bold text-huuk-card"
+        ? "rounded-[2px] bg-huuk-accent font-bold text-huuk-card"
         : "bg-transparent text-white/92",
       !disabled
-        ? "cursor-pointer hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
+        ? "cursor-pointer hover:rounded-[2px] hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
         : "cursor-not-allowed opacity-50",
     ].join(" ");
 
@@ -230,7 +230,7 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   return (
     <aside
       key={location.pathname}
-      className={`fixed left-0 top-0 z-[1200] flex h-screen flex-col overflow-hidden rounded-r-[28px] bg-huuk-card font-quicksand text-white transition-all duration-300 ease-in-out ${minimized ? "w-[72px]" : "w-[236px]"}`}
+      className={`fixed left-0 top-0 z-[1200] flex h-screen min-h-0 flex-col overflow-x-hidden rounded-r-[28px] bg-huuk-card font-quicksand text-white transition-all duration-300 ease-in-out ${minimized ? "w-[72px]" : "w-[248px]"}`}
     >
       <button
         className="absolute left-4 top-3 z-[1300] flex h-8 w-8 items-center justify-center rounded-full border-none bg-white shadow"
@@ -244,7 +244,7 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       </button>
 
       <div
-        className={`relative flex cursor-pointer flex-col items-center px-4 text-center ${minimized ? "mt-14" : "mt-6 pb-6 pt-3"}`}
+        className={`relative flex cursor-pointer flex-col items-center border-b border-white/10 px-4 text-center ${minimized ? "mt-14 pb-4 pt-2" : "mt-6 pb-5 pt-3"}`}
         onClick={handleEditProfile}
       >
         <div className="group relative inline-block">
@@ -283,7 +283,7 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-4">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <ul className="m-0 list-none p-0">
           {navItems.map((item) => {
             const hasSubNav = !!item.subNav;
@@ -313,17 +313,17 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                     }
                   }}
                 >
-                  <span className="flex min-w-0 items-center gap-3">
+                  <span className="flex min-w-0 items-center gap-2.5">
                     <span
-                      className={`material-icons text-xl ${isParentOrSelfActive ? "text-huuk-card" : "text-white/90"}`}
+                      className={`material-icons shrink-0 text-[21px] ${isParentOrSelfActive ? "text-huuk-card" : "text-white/90"}`}
                     >
                       {item.icon}
                     </span>
-                    {!minimized && <span>{item.label}</span>}
+                    {!minimized && <span className="truncate">{item.label}</span>}
                   </span>
                   {hasSubNav && !minimized && (
                     <span
-                      className={`material-icons text-lg ${isParentOrSelfActive ? "text-huuk-card" : "text-white/90"}`}
+                      className={`material-icons shrink-0 text-[20px] ${isParentOrSelfActive ? "text-huuk-card" : "text-white/90"}`}
                     >
                       {isOpen ? "expand_less" : "expand_more"}
                     </span>
@@ -331,15 +331,15 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                 </div>
 
                 {isOpen && hasSubNav && !minimized && (
-                  <ul className="mb-3 ml-10 mt-1 list-none border-l-2 border-huuk-accent pl-4">
+                  <ul className="mb-1 ml-[18px] mt-0.5 list-none border-l-2 border-huuk-accent pl-3">
                     {item.subNav.map((subItem) => (
                       <li
                         key={subItem.label}
                         className={[
-                          "my-1 rounded-md px-3 py-2 text-sm transition-colors duration-200",
+                          "my-0.5 min-h-[30px] rounded-[2px] px-3 py-1 text-[15px] leading-none transition-colors duration-150",
                           subItem.path === location.pathname
                             ? "bg-huuk-accent font-bold text-huuk-card"
-                            : "text-white/90 hover:bg-white/10",
+                            : "text-white/90 hover:rounded-[2px] hover:bg-huuk-accent hover:font-bold hover:text-huuk-card",
                           subItem.disabled
                             ? "cursor-not-allowed opacity-50"
                             : "cursor-pointer",
@@ -361,17 +361,17 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         </ul>
       </nav>
 
-      <nav className="mt-auto border-t border-white/10 px-3 py-4">
+      <nav className="mt-auto shrink-0 border-t border-white/10 px-3 pb-4 pt-5">
         <ul className="m-0 list-none p-0">
           {footerItems.map(({ icon, label, onClick }) => (
             <li
               key={label}
-              className="mb-1 flex cursor-pointer items-center gap-3 rounded-[10px] px-4 py-2.5 text-sm text-white/92 transition-all duration-200 hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
+              className="mb-0.5 flex min-h-[34px] cursor-pointer items-center gap-2.5 rounded-[2px] px-3 py-1.5 text-[15px] text-white/92 transition-all duration-150 hover:rounded-[2px] hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
               title={minimized ? label : undefined}
               onClick={onClick}
             >
-              <span className="material-icons text-xl">{icon}</span>
-              {!minimized && <span>{label}</span>}
+              <span className="material-icons shrink-0 text-[21px]">{icon}</span>
+              {!minimized && <span className="truncate">{label}</span>}
             </li>
           ))}
         </ul>

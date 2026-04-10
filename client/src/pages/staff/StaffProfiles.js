@@ -173,7 +173,9 @@ const StaffProfiles = () => {
 
   if (!profile || profile.role !== "manager") {
     return (
-      <div className="text-white">You do not have permission to view this page.</div>
+      <div className="text-white">
+        You do not have permission to view this page.
+      </div>
     );
   }
 
@@ -220,7 +222,8 @@ const StaffProfiles = () => {
                   type="checkbox"
                   checked={selectedOutlets.length === outlets.length}
                   onChange={() => {
-                    const allSelected = selectedOutlets.length === outlets.length;
+                    const allSelected =
+                      selectedOutlets.length === outlets.length;
                     setSelectedOutlets(allSelected ? [] : outlets);
                   }}
                 />
