@@ -10,13 +10,12 @@ const managerNavItems = [
   {
     icon: "group",
     label: "Staff Management",
-    disabled: true,
+    path: "/manager/staff-profile",
     subNav: [
-      { label: "Profiles", path: "/manager/staff-profile", disabled: true },
+      { label: "Profiles", path: "/manager/staff-profile" },
       {
-        label: "Staff Attendance",
+        label: "Attendance",
         path: "/manager/staff-attendance",
-        disabled: true,
       },
     ],
   },

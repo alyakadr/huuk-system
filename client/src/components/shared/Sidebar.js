@@ -14,8 +14,14 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   const baseURL = "http://localhost:5000";
 
   useEffect(() => {
-    setOpenDropdown(null);
-  }, [location.pathname]);
+    const parentWithActiveSubNav = navItems.find(
+      (item) =>
+        item.subNav &&
+        item.subNav.some((subItem) => subItem.path === location.pathname),
+    );
+
+    setOpenDropdown(parentWithActiveSubNav ? parentWithActiveSubNav.label : null);
+  }, [location.pathname, navItems]);
 
   useEffect(() => {
     if (!user || !user.id) return;
@@ -282,33 +288,46 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
           {navItems.map((item) => {
             const hasSubNav = !!item.subNav;
             const isOpen = openDropdown === item.label;
-            const isActive =
-              item.path === location.pathname ||
-              (hasSubNav &&
-                item.subNav.some(
-                  (subItem) => subItem.path === location.pathname,
-                ));
+            const hasActiveSubNav =
+              hasSubNav &&
+              item.subNav.some((subItem) => subItem.path === location.pathname);
+            const isActive = item.path === location.pathname;
+            const isParentOrSelfActive = isActive || hasActiveSubNav;
 
             return (
               <li key={item.label} className="list-none">
                 <div
-                  className={navItemCls(isActive, item.disabled)}
+                  className={navItemCls(isParentOrSelfActive, item.disabled)}
                   title={minimized ? item.label : undefined}
                   onClick={() => {
                     if (item.disabled) return;
-                    if (hasSubNav) setOpenDropdown(isOpen ? null : item.label);
+                    if (hasSubNav) {
+                      setOpenDropdown(isOpen ? null : item.label);
+                      if (!isOpen && item.path && item.path !== location.pathname) {
+                        navigate(item.path);
+                      }
+                    }
                     else if (item.path) {
                       navigate(item.path);
                       setOpenDropdown(null);
                     }
                   }}
                 >
-                  <span
-                    className={`material-icons text-xl ${isActive ? "text-huuk-card" : "text-white/90"}`}
-                  >
-                    {item.icon}
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`material-icons text-xl ${isParentOrSelfActive ? "text-huuk-card" : "text-white/90"}`}
+                    >
+                      {item.icon}
+                    </span>
+                    {!minimized && <span>{item.label}</span>}
                   </span>
-                  {!minimized && <span>{item.label}</span>}
+                  {hasSubNav && !minimized && (
+                    <span
+                      className={`material-icons text-lg ${isParentOrSelfActive ? "text-huuk-card" : "text-white/90"}`}
+                    >
+                      {isOpen ? "expand_less" : "expand_more"}
+                    </span>
+                  )}
                 </div>
 
                 {isOpen && hasSubNav && !minimized && (
@@ -317,13 +336,13 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                       <li
                         key={subItem.label}
                         className={[
-                          "py-1 text-sm",
+                          "my-1 rounded-md px-3 py-2 text-sm transition-colors duration-200",
                           subItem.path === location.pathname
-                            ? "font-bold text-huuk-accent"
-                            : "text-white/90",
+                            ? "bg-huuk-accent font-bold text-huuk-card"
+                            : "text-white/90 hover:bg-white/10",
                           subItem.disabled
                             ? "cursor-not-allowed opacity-50"
-                            : "cursor-pointer hover:text-huuk-accent",
+                            : "cursor-pointer",
                         ].join(" ")}
                         onClick={() => {
                           if (subItem.disabled) return;
@@ -342,23 +361,21 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         </ul>
       </nav>
 
-      {!openDropdown && (
-        <nav className="mt-auto border-t border-white/10 px-3 py-4">
-          <ul className="m-0 list-none p-0">
-            {footerItems.map(({ icon, label, onClick }) => (
-              <li
-                key={label}
-                className="mb-1 flex cursor-pointer items-center gap-3 rounded-[10px] px-4 py-2.5 text-sm text-white/92 transition-all duration-200 hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
-                title={minimized ? label : undefined}
-                onClick={onClick}
-              >
-                <span className="material-icons text-xl">{icon}</span>
-                {!minimized && <span>{label}</span>}
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
+      <nav className="mt-auto border-t border-white/10 px-3 py-4">
+        <ul className="m-0 list-none p-0">
+          {footerItems.map(({ icon, label, onClick }) => (
+            <li
+              key={label}
+              className="mb-1 flex cursor-pointer items-center gap-3 rounded-[10px] px-4 py-2.5 text-sm text-white/92 transition-all duration-200 hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
+              title={minimized ? label : undefined}
+              onClick={onClick}
+            >
+              <span className="material-icons text-xl">{icon}</span>
+              {!minimized && <span>{label}</span>}
+            </li>
+          ))}
+        </ul>
+      </nav>
     </aside>
   );
 };

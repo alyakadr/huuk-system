@@ -1,113 +1,138 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BsThreeDots } from "react-icons/bs";
+import { FaEnvelope, FaFilter, FaPhoneAlt } from "react-icons/fa";
 import { useProfile } from "../../ProfileContext";
-import http from "../../utils/httpClient";
-import { FaEnvelope, FaPhoneAlt } from "react-icons/fa"; // Import the icons
 import { OUTLET_NAMES_TITLE } from "../../constants/outlets";
+import http from "../../utils/httpClient";
+
+const DEFAULT_PROFILE_IMAGE =
+  "data:image/svg+xml,%3Csvg width='160' height='160' viewBox='0 0 160 160' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='80' cy='80' r='80' fill='%23d1d5db'/%3E%3Ccircle cx='80' cy='54' r='22' fill='%236b7280'/%3E%3Cpath d='M32 136c0-26.51 21.49-48 48-48s48 21.49 48 48v8H32v-8z' fill='%236b7280'/%3E%3C/svg%3E";
+
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const ITEMS_PER_PAGE = 6;
 
 const StaffProfiles = () => {
-  // Show alert when component is accessed
-  React.useEffect(() => {
-    alert("display only");
-  }, []);
+  const navigate = useNavigate();
+  const outlets = OUTLET_NAMES_TITLE;
 
   const {
     profile,
     loading: profileLoading,
     error: profileError,
   } = useProfile();
+
   const [staffList, setStaffList] = useState([]);
-  const [filteredStaffList, setFilteredStaffList] = useState([]);
   const [selectedOutlets, setSelectedOutlets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6; // Set to 6 profiles per page
-  const navigate = useNavigate();
-
-  const outlets = OUTLET_NAMES_TITLE;
+  const [menuOpen, setMenuOpen] = useState(null);
 
   useEffect(() => {
     const fetchStaffList = async () => {
       try {
         setLoading(true);
         setErr("");
-        const token = localStorage.getItem("token");
-        console.log("Token in StaffProfiles:", token);
+
+        const token =
+          localStorage.getItem("staff_token") || localStorage.getItem("token");
+
         if (!token) {
-          console.log("No token found, redirecting to login");
-          navigate("/login");
+          navigate("/staff-login");
           return;
         }
-        const config = {
+
+        const response = await http.get(`${API_BASE}/api/users/staffs`, {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 5000,
-        };
-        console.log("Request config:", config);
-        const response = await http.get(
-          "http://localhost:5000/api/users/staffs",
-          config,
-        );
-        console.log(
-          "Staff fetch response type:",
-          typeof response.data,
-          "isArray:",
-          Array.isArray(response.data),
-        );
-        console.log("Staff fetch response:", response.data);
+        });
+
         const data = Array.isArray(response.data)
           ? response.data
           : response.data?.data || response.data?.staff || [];
+
         if (!Array.isArray(data)) {
-          console.warn("Fetched data is not an array:", data);
           setErr("Unexpected data format from server");
           setStaffList([]);
-          setFilteredStaffList([]);
-        } else {
-          setStaffList([...data]);
-          setFilteredStaffList([...data]);
-          setErr("");
-          console.log("Staff list state updated:", data);
+          return;
         }
+
+        setStaffList(data);
       } catch (error) {
-        console.error("Error fetching staff list:", error, error.response);
-        const errorMessage =
+        const message =
           error.response?.data?.message ||
           error.message ||
           "Failed to fetch staff list";
-        setErr(errorMessage);
+        setErr(message);
+
         if (
-          errorMessage.toLowerCase().includes("token") ||
-          errorMessage.toLowerCase().includes("login") ||
+          message.toLowerCase().includes("token") ||
+          message.toLowerCase().includes("login") ||
           error.response?.status === 401
         ) {
-          console.log("Token-related error, redirecting to login");
-          navigate("/login");
+          navigate("/staff-login");
         }
       } finally {
-        console.log("Fetch complete, setting loading to false");
         setLoading(false);
       }
     };
+
     fetchStaffList();
   }, [navigate]);
 
-  const handlePagination = (direction) => {
-    setCurrentPage((prevPage) => prevPage + direction);
-  };
+  useEffect(() => {
+    const handleOutsideClick = () => setMenuOpen(null);
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, []);
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredStaffList.slice(
-    indexOfFirstItem,
-    indexOfLastItem,
+  const filteredStaffList = useMemo(() => {
+    if (selectedOutlets.length === 0) {
+      return staffList;
+    }
+
+    return staffList.filter((staff) => {
+      const outlet = (staff.outlet || "").trim().toLowerCase();
+      return selectedOutlets.some(
+        (selected) => outlet === selected.trim().toLowerCase(),
+      );
+    });
+  }, [selectedOutlets, staffList]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredStaffList.length / ITEMS_PER_PAGE),
   );
 
-  const [menuOpen, setMenuOpen] = useState(null);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedOutlets]);
 
-  const handleToggleMenu = (id) => {
-    setMenuOpen((prev) => (prev === id ? null : id));
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const currentItems = useMemo(() => {
+    const endIndex = currentPage * ITEMS_PER_PAGE;
+    const startIndex = endIndex - ITEMS_PER_PAGE;
+    return filteredStaffList.slice(startIndex, endIndex);
+  }, [currentPage, filteredStaffList]);
+
+  const toggleOutlet = (outlet) => {
+    setSelectedOutlets((prev) =>
+      prev.includes(outlet)
+        ? prev.filter((item) => item !== outlet)
+        : [...prev, outlet],
+    );
+  };
+
+  const handleToggleMenu = (event, staffId) => {
+    event.stopPropagation();
+    setMenuOpen((prev) => (prev === staffId ? null : staffId));
   };
 
   const viewProfile = (id) => {
@@ -115,41 +140,28 @@ const StaffProfiles = () => {
   };
 
   const deleteProfile = (id) => {
-    console.log("Delete profile ID:", id);
-    // You can implement a delete confirmation here
+    // Preserve current behavior until delete endpoint is confirmed.
+    console.log("Delete profile requested:", id);
   };
 
-  useEffect(() => {
-    console.log("Selected outlets:", selectedOutlets);
-    console.log("Staff list before filtering:", staffList);
-    if (selectedOutlets.length === 0) {
-      setFilteredStaffList([...staffList]);
-      console.log("Filtered staff list (all):", staffList);
-    } else {
-      const filtered = staffList.filter((staff) =>
-        selectedOutlets.some(
-          (outlet) =>
-            staff.outlet &&
-            staff.outlet.trim().toLowerCase() === outlet.trim().toLowerCase(),
-        ),
-      );
-      setFilteredStaffList([...filtered]);
-      console.log("Filtered staff list (by outlets):", filtered);
+  const getProfileImage = (staff) => {
+    if (
+      !staff.profile_picture ||
+      staff.profile_picture === "/uploads/profile_pictures/null"
+    ) {
+      return DEFAULT_PROFILE_IMAGE;
     }
-  }, [selectedOutlets, staffList]);
 
-  useEffect(() => {
-    console.log("Loading state:", loading);
-    console.log("Error state:", err);
-    console.log("Staff list:", staffList);
-    console.log("Filtered staff list:", filteredStaffList);
-  }, [loading, err, staffList, filteredStaffList]);
+    if (staff.profile_picture.startsWith("http")) {
+      return staff.profile_picture;
+    }
 
-  console.log("Profile:", profile, "Profile loading:", profileLoading);
+    return `${API_BASE}${staff.profile_picture}`;
+  };
 
   if (profileLoading) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center text-white">
+      <div className="flex min-h-[50vh] items-center justify-center text-white">
         Loading profile...
       </div>
     );
@@ -159,28 +171,15 @@ const StaffProfiles = () => {
     return <div className="text-red-400">Error: {profileError}</div>;
   }
 
-  if (!profile || !profile.role) {
-    console.log(
-      "Profile or role missing, redirecting to login. Profile:",
-      profile,
-    );
-    navigate("/login");
-    return null;
-  }
-
-  console.log("Profile role:", profile.role);
-
-  if (profile.role !== "manager") {
+  if (!profile || profile.role !== "manager") {
     return (
-      <div className="text-white">
-        You do not have permission to view this page.
-      </div>
+      <div className="text-white">You do not have permission to view this page.</div>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center text-white">
+      <div className="flex min-h-[50vh] items-center justify-center text-white">
         Loading staff list...
       </div>
     );
@@ -190,132 +189,163 @@ const StaffProfiles = () => {
     return <div className="text-red-400">Error: {err}</div>;
   }
 
-  console.log("Rendering filteredStaffList:", filteredStaffList);
-
   return (
-    <div className="max-w-6xl mx-auto px-5 py-8 font-quicksand text-white">
-      <h2 className="text-center mb-7 text-3xl font-bold">Staff Profiles</h2>
-      <div>
-        <button
-          onClick={() => setShowFilter(!showFilter)}
-          className="btn-primary"
-        >
-          {showFilter ? "Close Filter" : "Filter by Outlet"}
-        </button>
-        {showFilter && (
-          <div className="mt-3 bg-huuk-card rounded-huuk-md p-4 grid grid-cols-2 md:grid-cols-3 gap-2">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={selectedOutlets.length === outlets.length}
-                onChange={() => {
-                  const isChecked = selectedOutlets.length === outlets.length;
-                  setSelectedOutlets(isChecked ? [] : outlets);
-                }}
-              />
-              Select All
-            </label>
-            {outlets.map((outlet, index) => (
-              <label key={index} className="flex items-center gap-2 text-sm">
+    <div className="mx-auto w-full max-w-[1120px] px-2 pb-6 pt-1 font-quicksand text-white">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="m-0 text-[36px] font-bold leading-tight text-white">
+            Staff Profiles
+          </h2>
+          <p className="mt-1 text-[24px] font-bold leading-tight text-huuk-accent">
+            Staff Management &gt; Profiles
+          </p>
+        </div>
+
+        <div className="relative">
+          <button
+            onClick={() => setShowFilter((prev) => !prev)}
+            className="flex items-center gap-3 rounded-lg bg-[#1f2126] px-4 py-2 text-[22px] font-semibold text-white transition-colors hover:bg-[#2a2d34]"
+          >
+            <FaFilter className="text-[18px]" />
+            Filter
+            <span className="material-icons text-[22px]">
+              {showFilter ? "expand_less" : "expand_more"}
+            </span>
+          </button>
+
+          {showFilter && (
+            <div className="absolute right-0 z-30 mt-2 w-[260px] rounded-xl border border-white/10 bg-[#171717] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.45)]">
+              <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-semibold">
                 <input
                   type="checkbox"
-                  value={outlet}
-                  checked={selectedOutlets.includes(outlet)}
-                  onChange={(e) => {
-                    const isChecked = e.target.checked;
-                    setSelectedOutlets((prev) =>
-                      isChecked
-                        ? [...prev, outlet]
-                        : prev.filter((o) => o !== outlet),
-                    );
+                  checked={selectedOutlets.length === outlets.length}
+                  onChange={() => {
+                    const allSelected = selectedOutlets.length === outlets.length;
+                    setSelectedOutlets(allSelected ? [] : outlets);
                   }}
                 />
-                {outlet}
+                Select all outlets
               </label>
-            ))}
-          </div>
-        )}
+
+              <div className="max-h-[220px] overflow-auto pr-1">
+                {outlets.map((outlet) => (
+                  <label
+                    key={outlet}
+                    className="mb-2 flex cursor-pointer items-center gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedOutlets.includes(outlet)}
+                      onChange={() => toggleOutlet(outlet)}
+                    />
+                    {outlet}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-5 mt-5">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {currentItems.length === 0 ? (
-          <p>No staff members found.</p>
+          <div className="col-span-full rounded-xl bg-[#171717] p-10 text-center text-white/85">
+            No staff members found.
+          </div>
         ) : (
           currentItems.map((staff) => (
-            <div
-              className="bg-huuk-card rounded-huuk-md p-5 w-[280px] relative shadow-lg"
+            <article
               key={staff.id}
+              className="relative min-h-[220px] rounded-[18px] bg-[#171717] px-6 py-5 shadow-[0_10px_22px_rgba(0,0,0,0.35)]"
             >
-              <div
-                className="absolute top-3 right-3 cursor-pointer text-white z-20"
-                onClick={() => handleToggleMenu(staff.id)}
+              <button
+                type="button"
+                onClick={(event) => handleToggleMenu(event, staff.id)}
+                className="absolute right-5 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg border-none bg-transparent text-xl text-white/90"
               >
-                &#8942; {/* Three dots */}
-              </div>
+                <BsThreeDots />
+              </button>
 
-              {/* Make sure menuOpen is set correctly */}
               {menuOpen === staff.id && (
-                <div className="absolute top-11 right-3 bg-huuk-bg rounded-huuk-sm overflow-hidden shadow-xl z-10">
+                <div
+                  className="absolute right-5 top-12 z-20 overflow-hidden rounded-lg bg-[#45464a] text-[14px] shadow-xl"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <button
+                    type="button"
                     onClick={() => viewProfile(staff.id)}
-                    className="block w-full px-4 py-2 bg-transparent border-none text-white text-left cursor-pointer hover:bg-white/20"
+                    className="block w-full border-none bg-transparent px-4 py-2 text-left text-white hover:bg-black/20"
                   >
                     View full profile
                   </button>
                   <button
+                    type="button"
                     onClick={() => deleteProfile(staff.id)}
-                    className="block w-full px-4 py-2 bg-transparent border-none text-white text-left cursor-pointer hover:bg-white/20"
+                    className="block w-full border-none bg-transparent px-4 py-2 text-left text-white hover:bg-black/20"
                   >
                     Delete profile
                   </button>
                 </div>
               )}
 
-              <img
-                src={
-                  staff.profile_picture &&
-                  staff.profile_picture !== "/uploads/profile_pictures/null"
-                    ? `http://localhost:5000${staff.profile_picture}`
-                    : "http://localhost:5000/uploads/profile_pictures/default.jpg"
-                }
-                alt={`${staff.fullname}'s Profile`}
-                onError={(e) => {
-                  e.target.src =
-                    "http://localhost:5000/uploads/profile_pictures/default.jpg";
-                }}
-                className="w-[70px] h-[70px] rounded-full object-cover mb-2.5 bg-[#ccc]"
-              />
-              <p className="my-1.5">
-                <strong>Name:</strong> {staff.username}
+              <div className="mb-4 flex items-center gap-4">
+                <img
+                  src={getProfileImage(staff)}
+                  alt={`${staff.fullname || staff.username || "Staff"} profile`}
+                  onError={(event) => {
+                    if (event.currentTarget.src !== DEFAULT_PROFILE_IMAGE) {
+                      event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+                    }
+                  }}
+                  className="h-[84px] w-[84px] rounded-full bg-[#d1d5db] object-cover"
+                />
+                <div>
+                  <h3 className="m-0 text-[36px] font-bold leading-none text-white">
+                    {staff.fullname || staff.username || "Name"}
+                  </h3>
+                  <p className="mt-2 text-[34px] font-medium text-white/90">
+                    {staff.outlet || "Outlet"}
+                  </p>
+                </div>
+              </div>
+
+              <p className="mb-2 flex items-center gap-3 text-[16px] text-white">
+                <FaEnvelope className="text-[17px]" />
+                <strong className="font-bold">Email:</strong>
+                <span className="truncate">{staff.email || "-"}</span>
               </p>
-              <p className="my-1.5">
-                <strong>Outlet:</strong> {staff.outlet}
+
+              <p className="m-0 flex items-center gap-3 text-[16px] text-white">
+                <FaPhoneAlt className="text-[16px]" />
+                <strong className="font-bold">Phone:</strong>
+                <span>{staff.phone_number || ""}</span>
               </p>
-              <p className="my-1.5 flex items-center gap-1">
-                <FaEnvelope /> <strong>Email:</strong> {staff.email}
-              </p>
-              <p className="my-1.5 flex items-center gap-1">
-                <FaPhoneAlt /> <strong>Phone:</strong>{" "}
-                {staff.phone_number || "Not set"}
-              </p>
-            </div>
+            </article>
           ))
         )}
       </div>
 
-      <div className="flex justify-center mt-7 gap-2.5 items-center">
+      <div className="mt-9 flex items-center justify-center gap-6">
         <button
-          onClick={() => handlePagination(-1)}
+          type="button"
+          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
           disabled={currentPage === 1}
-          className="px-4 py-2 bg-white/20 text-white border-none rounded-huuk-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          className="min-w-[108px] rounded-lg border-none bg-[#1b1f24] px-5 py-2 text-[36px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-55"
         >
           Prev
         </button>
-        <span className="text-sm">Page {currentPage}</span>
+
+        <span className="min-w-[92px] text-center text-[36px] font-bold text-white">
+          {currentPage}/{totalPages}
+        </span>
+
         <button
-          onClick={() => handlePagination(1)}
-          disabled={currentPage * itemsPerPage >= filteredStaffList.length}
-          className="px-4 py-2 bg-white/20 text-white border-none rounded-huuk-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          type="button"
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+          }
+          disabled={currentPage === totalPages}
+          className="min-w-[108px] rounded-lg border-none bg-[#3f3f44] px-5 py-2 text-[36px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-55"
         >
           Next
         </button>

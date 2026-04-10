@@ -779,10 +779,18 @@ const ManagerDashboard = () => {
                 key={label}
                 className="card-dark flex min-h-[62px] items-center gap-2 rounded-[20px] px-3.5 py-2.5"
               >
-                <img src={img} alt={label} className="h-7 w-7 shrink-0 object-contain" />
+                <img
+                  src={img}
+                  alt={label}
+                  className="h-7 w-7 shrink-0 object-contain"
+                />
                 <div className="min-w-0">
-                  <p className="m-0 truncate text-[16px] font-semibold leading-tight">{label}</p>
-                  <p className="m-0 text-[16px] font-bold leading-tight">{value}</p>
+                  <p className="m-0 truncate text-[16px] font-semibold leading-tight">
+                    {label}
+                  </p>
+                  <p className="m-0 text-[16px] font-bold leading-tight">
+                    {value}
+                  </p>
                 </div>
               </div>
             ))}

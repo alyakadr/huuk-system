@@ -828,9 +828,24 @@ const StaffDashboard = () => {
     return (a.start_time || "").localeCompare(b.start_time || "");
   });
   const sliced = sortedSchedule.slice(0, 3);
-  const emptyRow = { id: null, customer_name: "-", phone_number: "-", service_name: "-", start_time: "-", end_time: "-", _empty: true };
-  const limitedSchedule = [...sliced, ...Array(Math.max(0, 3 - sliced.length)).fill(null).map((_, i) => ({ ...emptyRow, _key: `empty-${i}` }))];
-  const hasActiveBooking = scheduleData.some((b) => !completedStatuses.includes(b.status));
+  const emptyRow = {
+    id: null,
+    customer_name: "-",
+    phone_number: "-",
+    service_name: "-",
+    start_time: "-",
+    end_time: "-",
+    _empty: true,
+  };
+  const limitedSchedule = [
+    ...sliced,
+    ...Array(Math.max(0, 3 - sliced.length))
+      .fill(null)
+      .map((_, i) => ({ ...emptyRow, _key: `empty-${i}` })),
+  ];
+  const hasActiveBooking = scheduleData.some(
+    (b) => !completedStatuses.includes(b.status),
+  );
 
   return (
     <div className="staff-dashboard min-w-0 overflow-x-hidden bg-huuk-bg text-white font-quicksand">
@@ -867,9 +882,15 @@ const StaffDashboard = () => {
                 key={label}
                 className="card-dark flex min-w-0 items-center gap-2 rounded-[16px] px-3 py-2"
               >
-                <img src={img} alt={label} className="h-8 w-8 shrink-0 object-contain" />
+                <img
+                  src={img}
+                  alt={label}
+                  className="h-8 w-8 shrink-0 object-contain"
+                />
                 <div className="min-w-0">
-                  <p className="m-0 truncate text-sm font-bold leading-snug">{label}</p>
+                  <p className="m-0 truncate text-sm font-bold leading-snug">
+                    {label}
+                  </p>
                   <p className="m-0 text-sm font-bold leading-snug">{value}</p>
                 </div>
               </div>
@@ -994,8 +1015,15 @@ const StaffDashboard = () => {
                     <span>My Schedule</span>
                     <span
                       className={`inline-block h-[8px] w-[8px] rounded-full ${hasActiveBooking ? "bg-[#00ff00]" : "bg-[#ff0000]"}`}
-                      style={{ animation: "pulse 2s infinite", verticalAlign: "middle" }}
-                      title={hasActiveBooking ? "Active bookings" : "No active bookings"}
+                      style={{
+                        animation: "pulse 2s infinite",
+                        verticalAlign: "middle",
+                      }}
+                      title={
+                        hasActiveBooking
+                          ? "Active bookings"
+                          : "No active bookings"
+                      }
                     />
                     <span className="text-sm font-normal italic text-huuk-muted">
                       Active Booking
@@ -1090,7 +1118,9 @@ const StaffDashboard = () => {
                                 verticalAlign: "middle",
                               }}
                             >
-                              {booking._empty ? "-" : renderScheduleAction(booking)}
+                              {booking._empty
+                                ? "-"
+                                : renderScheduleAction(booking)}
                             </td>
                           </tr>
                         ))
@@ -1120,7 +1150,7 @@ const StaffDashboard = () => {
             </div>
           </div>
           <div className="xl:col-span-4 min-w-0">
-            <div className="card-dark min-h-[260px] rounded-huuk-lg">
+            <div className="card-dark min-h-[200px] rounded-huuk-lg">
               <div className="mb-2">
                 <h3 className="m-0 text-base font-bold">
                   Today's Appointments by All Staff
