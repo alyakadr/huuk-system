@@ -60,8 +60,6 @@ client.interceptors.request.use(
 
     if (selectedToken) {
       config.headers.Authorization = `Bearer ${selectedToken}`;
-    } else {
-      console.warn("[API] No token available for request to:", config.url);
     }
     return config;
   },
@@ -134,14 +132,16 @@ const createApiClientWithTimeout = (timeout) => {
         const token =
           localStorage.getItem(tokenKey) ||
           localStorage.getItem(legacyTokenKey);
-        if (token) {
+        const hasStoredUser =
+          localStorage.getItem(userKey) || localStorage.getItem(legacyUserKey);
+        if (token || hasStoredUser) {
           try {
             // Try to refresh the token
             const refreshResponse = await http.post(
               `${API_BASE_URL}/auth/refresh`,
               {},
               {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
               },
             );
 
@@ -171,9 +171,12 @@ const createApiClientWithTimeout = (timeout) => {
               originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.token}`;
               return clientInstance(originalRequest);
             }
+            if (refreshResponse.data.success) {
+              delete originalRequest.headers.Authorization;
+              return clientInstance(originalRequest);
+            }
           } catch (refreshError) {
             console.error("Token refresh failed:", refreshError);
-            // If refresh fails, clear storage and redirect to appropriate login
             localStorage.removeItem(userKey);
             localStorage.removeItem(tokenKey);
             localStorage.removeItem(userIdKey);
@@ -183,7 +186,6 @@ const createApiClientWithTimeout = (timeout) => {
             window.location.href = isCustomerEndpoint ? "/" : "/staff-login";
           }
         } else {
-          // No token available, redirect to appropriate login
           localStorage.removeItem(userKey);
           localStorage.removeItem(tokenKey);
           localStorage.removeItem(userIdKey);

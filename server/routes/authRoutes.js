@@ -9,6 +9,13 @@ const {
   isPasswordValid,
 } = require("../utils/passwordPolicy");
 const { sendPasswordResetEmail } = require("../utils/email");
+const {
+  setCustomerAuthCookie,
+  setStaffAuthCookie,
+  clearAllAuthCookies,
+  getRawAccessTokenFromRequest,
+  refreshAuthCookieForRole,
+} = require("../utils/authCookies");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL =
@@ -266,6 +273,8 @@ const handleSignIn = async (req, res, allowedRoles) => {
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
 
+    setStaffAuthCookie(res, token);
+
     res.status(200).json({
       success: true,
       user: {
@@ -278,7 +287,6 @@ const handleSignIn = async (req, res, allowedRoles) => {
         profile_picture:
           user.profile_picture || "/Uploads/profile_pictures/default.jpg",
       },
-      token,
     });
   } catch (err) {
     console.error("Database error:", err.message);
@@ -349,6 +357,8 @@ router.post("/customer/signin", authWriteLimiter, async (req, res) => {
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
 
+    setCustomerAuthCookie(res, token);
+
     res.status(200).json({
       success: true,
       user: {
@@ -361,7 +371,6 @@ router.post("/customer/signin", authWriteLimiter, async (req, res) => {
         profile_picture:
           user.profile_picture || "/Uploads/profile_pictures/default.jpg",
       },
-      token,
     });
   } catch (err) {
     console.error("Database error:", err.message);
@@ -380,6 +389,11 @@ router.post("/forgot-password", authResetLimiter, (req, res) =>
 );
 router.get("/reset-password/validate", validatePasswordResetToken);
 router.post("/reset-password", authResetLimiter, resetPasswordWithToken);
+
+router.post("/logout", authWriteLimiter, (req, res) => {
+  clearAllAuthCookies(res);
+  res.json({ success: true, message: "Logged out" });
+});
 
 // Staff/Manager Signup route
 router.post("/signup", authWriteLimiter, async (req, res) => {
@@ -510,13 +524,7 @@ router.post("/customer/signup", authWriteLimiter, async (req, res) => {
 
 // Validate token endpoint
 router.get("/validate", authReadLimiter, async (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
-  const token = authHeader.split(" ")[1];
+  const token = getRawAccessTokenFromRequest(req);
 
   if (!token) {
     return res.status(401).json({ message: "No token provided" });
@@ -560,13 +568,7 @@ router.get("/validate", authReadLimiter, async (req, res) => {
 
 // Token validation endpoint
 router.get("/validate-token", authReadLimiter, async (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
-  const token = authHeader.split(" ")[1];
+  const token = getRawAccessTokenFromRequest(req);
 
   if (!token) {
     return res.status(401).json({ message: "No token provided" });
@@ -604,7 +606,7 @@ router.get("/validate-token", authReadLimiter, async (req, res) => {
 
 // Token refresh endpoint
 router.post("/refresh", authWriteLimiter, async (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = getRawAccessTokenFromRequest(req);
 
   if (!token) {
     return res.status(401).json({ message: "No token provided" });
@@ -640,13 +642,14 @@ router.post("/refresh", authWriteLimiter, async (req, res) => {
 
       const newToken = jwt.sign(newPayload, JWT_SECRET, { expiresIn: "1h" });
 
+      refreshAuthCookieForRole(res, user.role, newToken);
+
       console.log(
         `Token refreshed for user: ${user._id} (${user.email || user.phone_number})`,
       );
 
       res.json({
         success: true,
-        token: newToken,
         user: {
           id: user._id.toString(),
           role: user.role,

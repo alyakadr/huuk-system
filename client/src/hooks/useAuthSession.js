@@ -80,7 +80,7 @@ export const useAuthSession = (preferredRole) => {
     token: session.token,
     user: session.user,
     role: session.role,
-    isAuthenticated: Boolean(session.token && session.user?.id),
+    isAuthenticated: Boolean(session.user?.id),
     authHeaders,
     clearSession,
   };

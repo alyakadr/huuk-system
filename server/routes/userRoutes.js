@@ -12,7 +12,11 @@ const {
   toProfilePayload,
   resolveProfilePictureFile,
 } = require("../utils/userResponse");
-const { attachJwtUserIds } = require("../utils/attachJwtUser");
+const verifyToken = require("../middlewares/authMiddleware");
+const {
+  setCustomerAuthCookie,
+  setStaffAuthCookie,
+} = require("../utils/authCookies");
 const {
   PASSWORD_POLICY_MESSAGE,
   isPasswordValid,
@@ -41,26 +45,6 @@ const authReadLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: "Too many requests. Please try again later." },
 });
-
-const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: "Invalid or expired token" });
-    }
-    if (!decoded.userId || !decoded.role) {
-      return res.status(401).json({ message: "Invalid token payload" });
-    }
-    if (!attachJwtUserIds(req, decoded.userId)) {
-      return res.status(401).json({ message: "Invalid token payload" });
-    }
-    req.role = decoded.role;
-    next();
-  });
-};
 
 router.post("/auth/signup", authWriteLimiter, async (req, res) => {
   const { email, password, userType, fullname, outlet, username } = req.body;
@@ -122,9 +106,13 @@ router.post("/auth/signin", authWriteLimiter, async (req, res) => {
       JWT_SECRET,
       { expiresIn: "1h" },
     );
+    if (user.role === "customer") {
+      setCustomerAuthCookie(res, token);
+    } else {
+      setStaffAuthCookie(res, token);
+    }
     res.json({
       success: true,
-      token,
       user: {
         id: user._id.toString(),
         email: user.email,

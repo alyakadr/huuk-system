@@ -1,46 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
 const bookingController = require("../controllers/bookingController");
 const paymentController = require("../utils/payment");
 const { sendBookingReceipt } = require("../utils/email");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
-const { attachJwtUserIds } = require("../utils/attachJwtUser");
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is not set in environment variables");
-}
-
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ message: "Invalid token" });
-      }
-
-      if (!decoded.userId || !decoded.role) {
-        return res.status(401).json({ message: "Invalid token payload" });
-      }
-      if (!attachJwtUserIds(req, decoded.userId)) {
-        return res.status(401).json({ message: "Invalid token payload" });
-      }
-      req.role = decoded.role;
-      next();
-    });
-};
+const verifyToken = require("../middlewares/authMiddleware");
 
 router.get("/outlets", bookingController.getOutlets);
 router.get("/services", bookingController.getServices);

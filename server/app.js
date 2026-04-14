@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const { getRawAccessTokenFromRequest } = require("./utils/authCookies");
 const authRoutes = require("./routes/authRoutes");
 const phoneAuthRoutes = require("./routes/phoneAuthRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -93,7 +95,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 const authenticateManager = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = getRawAccessTokenFromRequest(req);
   if (!token) {
     console.error("No token provided in request");
     return res.status(401).json({ message: "No token provided" });
@@ -140,6 +142,8 @@ app.post(
 // Apply CORS for API routes and handle browser preflight requests.
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
+
+app.use(cookieParser());
 
 // Body parsing for non-webhook routes
 app.use(express.json({ limit: "50mb" }));

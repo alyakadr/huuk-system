@@ -6,6 +6,10 @@ const {
   sendOTP,
   formatPhoneNumber,
 } = require("../utils/smsService");
+const { refreshAuthCookieForRole } = require("../utils/authCookies");
+
+const JWT_SECRET = process.env.JWT_SECRET;
+const PHONE_AUTH_COOKIE_MAX_MS = 24 * 60 * 60 * 1000;
 
 // Request OTP for phone number
 exports.requestOTP = async (req, res) => {
@@ -53,10 +57,19 @@ exports.verifyOTPAndAuth = async (req, res) => {
     const existingUser = await User.findOne({ phone_number: formattedPhone }).lean();
 
     if (existingUser) {
+      if (!JWT_SECRET) {
+        return res.status(500).json({ message: "Server configuration error" });
+      }
       const token = jwt.sign(
         { userId: existingUser._id.toString(), role: existingUser.role },
-        process.env.JWT_SECRET || "fallback_secret",
-        { expiresIn: "24h" }
+        JWT_SECRET,
+        { expiresIn: "24h" },
+      );
+      refreshAuthCookieForRole(
+        res,
+        existingUser.role,
+        token,
+        PHONE_AUTH_COOKIE_MAX_MS,
       );
       return res.status(200).json({
         success: true,
@@ -66,7 +79,6 @@ exports.verifyOTPAndAuth = async (req, res) => {
           email: existingUser.email,
           role: existingUser.role,
           fullname: existingUser.fullname,
-          token,
         },
         message: "Sign in successful",
       });
@@ -75,11 +87,16 @@ exports.verifyOTPAndAuth = async (req, res) => {
     if (!fullname) return res.status(400).json({ message: "Full name is required for new users" });
 
     const newUser = await User.create({ phone_number: formattedPhone, role: "customer", fullname, isApproved: 1 });
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: "Server configuration error" });
+    }
     const token = jwt.sign(
       { userId: newUser._id.toString(), role: "customer" },
-      process.env.JWT_SECRET || "fallback_secret",
-      { expiresIn: "24h" }
+      JWT_SECRET,
+      { expiresIn: "24h" },
     );
+
+    refreshAuthCookieForRole(res, "customer", token, PHONE_AUTH_COOKIE_MAX_MS);
 
     res.status(201).json({
       success: true,
@@ -89,7 +106,6 @@ exports.verifyOTPAndAuth = async (req, res) => {
         email: null,
         role: "customer",
         fullname,
-        token,
       },
       message: "Account created successfully",
     });

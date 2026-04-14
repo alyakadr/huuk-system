@@ -330,38 +330,37 @@ export const handleSignIn = async (
       hasToken: !!response.data.token,
     });
 
-    if (response.data.success && response.data.user && response.data.token) {
-      // Store customer-specific tokens for proper authentication
-      const userWithToken = {
-        ...response.data.user,
-        token: response.data.token,
-      };
+    if (response.data.success && response.data.user) {
+      const userRecord = { ...response.data.user };
+      delete userRecord.token;
 
       console.log("[SIGN IN] Storing authentication data:", {
-        userId: userWithToken.id,
-        role: userWithToken.role,
-        hasToken: !!userWithToken.token,
+        userId: userRecord.id,
+        role: userRecord.role,
+        hasLegacyToken: !!response.data.token,
       });
 
-      // Primary storage for customer session
       localStorage.setItem(
         "customer_loggedInUser",
-        JSON.stringify(userWithToken),
+        JSON.stringify(userRecord),
       );
-      localStorage.setItem("customer_token", response.data.token);
       localStorage.setItem("customer_userId", String(response.data.user.id));
-
-      // Keep legacy storage for backward compatibility
-      localStorage.setItem("loggedInUser", JSON.stringify(userWithToken));
-      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("loggedInUser", JSON.stringify(userRecord));
       localStorage.setItem("userId", String(response.data.user.id));
+      if (response.data.token) {
+        localStorage.setItem("customer_token", response.data.token);
+        localStorage.setItem("token", response.data.token);
+      } else {
+        localStorage.removeItem("customer_token");
+        localStorage.removeItem("token");
+      }
 
       console.log("[SIGN IN] Authentication data stored successfully");
 
       // Update profile context immediately after successful sign-in
       if (updateProfile) {
         console.log("[SIGN IN] Updating profile context");
-        updateProfile(userWithToken);
+        updateProfile(userRecord);
       }
 
       // Close sign-in modal and clear form

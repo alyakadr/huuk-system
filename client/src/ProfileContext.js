@@ -75,18 +75,16 @@ export const ProfileProvider = ({ children }) => {
         phone_number: signInPhoneNumber,
         password: signInPassword,
       });
-      if (response.data.success) {
-        const userWithToken = {
-          ...response.data.user,
-          token: response.data.token,
-        };
-        localStorage.setItem("customer_token", response.data.token);
+      if (response.data.success && response.data.user) {
+        const userRecord = { ...response.data.user };
+        delete userRecord.token;
         localStorage.setItem(
           "customer_loggedInUser",
-          JSON.stringify(userWithToken),
+          JSON.stringify(userRecord),
         );
+        localStorage.setItem("customer_userId", String(userRecord.id));
 
-        updateProfile(userWithToken);
+        updateProfile(userRecord);
 
         if (rememberSignInPhone) {
           localStorage.setItem(CUSTOMER_REMEMBER_PHONE_KEY, signInPhoneNumber);
@@ -205,14 +203,13 @@ export const ProfileProvider = ({ children }) => {
           currentPath.includes("/staff") || currentPath.includes("/manager");
         const isCustomerInterface = !isStaffInterface; // Default to customer if not staff
 
-        if (isStaffInterface && staffToken && staffProfile) {
+        if (isStaffInterface && staffProfile) {
           token = staffToken;
           storedProfile = staffProfile;
           debugLog("Loading staff session for staff interface");
-        } else if (isCustomerInterface && customerToken && customerProfile) {
+        } else if (isCustomerInterface && customerProfile) {
           token = customerToken;
           storedProfile = customerProfile;
-          // Reduced logging frequency
           if (Math.random() < 0.1)
             debugLog("Loading customer session for customer interface");
         }
@@ -224,78 +221,71 @@ export const ProfileProvider = ({ children }) => {
           try {
             const parsedProfile = JSON.parse(storedProfile);
             if (parsedProfile && parsedProfile.id && parsedProfile.role) {
+              if (Math.random() < 0.1)
+                debugLog("Validating session for user:", parsedProfile.id);
+              const validateConfig = {};
               if (token) {
-                // Reduce validation logging frequency
-                if (Math.random() < 0.1)
-                  debugLog("Validating token for user:", parsedProfile.id);
-                http
-                  .get(`${API_BASE_URL}/auth/validate`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                  })
-                  .then(() => {
-                    // Only log successful validation occasionally
-                    if (Math.random() < 0.1)
-                      debugLog("Token validated for user:", parsedProfile.id);
-                    debounceSetProfile(parsedProfile);
-                  })
-                  .catch((error) => {
-                    console.warn(
-                      "Token validation failed, clearing storage for current session.",
-                      error.response?.status,
+                validateConfig.headers = {
+                  Authorization: `Bearer ${token}`,
+                };
+              }
+              http
+                .get(`${API_BASE_URL}/auth/validate`, validateConfig)
+                .then(() => {
+                  if (Math.random() < 0.1)
+                    debugLog("Session validated for user:", parsedProfile.id);
+                  debounceSetProfile(parsedProfile);
+                })
+                .catch((error) => {
+                  console.warn(
+                    "Session validation failed, clearing storage for current session.",
+                    error.response?.status,
+                  );
+
+                  if (isStaffInterface && staffProfile) {
+                    debugLog("Clearing expired staff session");
+                    localStorage.removeItem("staff_token");
+                    localStorage.removeItem("staff_loggedInUser");
+                    localStorage.removeItem("staff_userId");
+                  } else if (isCustomerInterface && customerProfile) {
+                    debugLog("Clearing expired customer session");
+                    localStorage.removeItem("customer_token");
+                    localStorage.removeItem("customer_loggedInUser");
+                    localStorage.removeItem("customer_userId");
+                  } else {
+                    debugLog("Clearing expired legacy tokens as fallback");
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("loggedInUser");
+                    localStorage.removeItem("userId");
+                  }
+
+                  localStorage.removeItem("isTimeInConfirmed");
+                  localStorage.removeItem("timeIn");
+
+                  debounceSetProfile(null);
+
+                  if (error.response?.status === 401) {
+                    debugLog(
+                      "Session expired (401), forcing redirect where appropriate",
                     );
-
-                    // Clear storage based on which session was actually being validated
-                    if (isStaffInterface && staffToken && staffProfile) {
-                      debugLog("Clearing expired staff session tokens");
-                      localStorage.removeItem("staff_token");
-                      localStorage.removeItem("staff_loggedInUser");
-                      localStorage.removeItem("staff_userId");
-                    } else if (
-                      isCustomerInterface &&
-                      customerToken &&
-                      customerProfile
-                    ) {
-                      debugLog("Clearing expired customer session tokens");
-                      localStorage.removeItem("customer_token");
-                      localStorage.removeItem("customer_loggedInUser");
-                      localStorage.removeItem("customer_userId");
-                    } else {
-                      // Fallback for legacy tokens or edge cases
-                      debugLog("Clearing expired legacy tokens as fallback");
-                      localStorage.removeItem("token");
-                      localStorage.removeItem("loggedInUser");
-                      localStorage.removeItem("userId");
-                    }
-
-                    // Clear additional session data
-                    localStorage.removeItem("isTimeInConfirmed");
-                    localStorage.removeItem("timeIn");
-
-                    debounceSetProfile(null);
-
-                    // Force redirect to clean login after token expiry
-                    if (error.response?.status === 401) {
-                      debugLog(
-                        "Token expired (401), forcing redirect to clean login",
-                      );
-                      // Only redirect if not already on the staff-login page
-                      setTimeout(() => {
+                    setTimeout(() => {
+                      if (isStaffInterface) {
                         if (
                           !window.location.pathname.startsWith("/staff-login")
                         ) {
                           window.location.href =
                             "/staff-login?sessionExpired=true";
                         }
-                        // If already on /staff-login, do nothing (prevents unwanted ?sessionExpired=true on fresh visits)
-                      }, 100);
-                    }
-                  })
-                  .finally(() => setLoading(false));
-                return;
-              } else {
-                console.warn("No token found, clearing profile.");
-                debounceSetProfile(null);
-              }
+                      } else if (
+                        window.location.pathname.startsWith("/booking-history")
+                      ) {
+                        window.location.href = "/?sessionExpired=true";
+                      }
+                    }, 100);
+                  }
+                })
+                .finally(() => setLoading(false));
+              return;
             } else {
               console.warn("Invalid profile in localStorage:", parsedProfile);
               debounceSetProfile(null);
@@ -410,6 +400,10 @@ export const ProfileProvider = ({ children }) => {
         debugLog("Clearing profile data and all session storage");
         debounceSetProfile(null);
 
+        http
+          .post(`${API_BASE_URL}/auth/logout`, {})
+          .catch(() => {});
+
         // Clear ALL possible storage keys to prevent re-login
         const keysToRemove = [
           "loggedInUser",
@@ -469,30 +463,23 @@ export const ProfileProvider = ({ children }) => {
         return;
       }
 
-      // Store based on role - ONLY use role-specific keys (allow concurrent sessions)
+      const profileForStorage = { ...mergedProfile };
+      delete profileForStorage.token;
+
       if (updatedProfile.role === "customer") {
-        debugLog("Setting customer session tokens");
+        debugLog("Setting customer session");
         localStorage.setItem(
           "customer_loggedInUser",
-          JSON.stringify(mergedProfile),
+          JSON.stringify(profileForStorage),
         );
-        if (updatedProfile.token) {
-          localStorage.setItem("customer_token", updatedProfile.token);
-        }
         localStorage.setItem("customer_userId", String(mergedProfile.id));
-        debugLog("Customer session tokens set");
       } else {
-        // Staff or manager
-        debugLog("Setting staff session tokens");
+        debugLog("Setting staff session");
         localStorage.setItem(
           "staff_loggedInUser",
-          JSON.stringify(mergedProfile),
+          JSON.stringify(profileForStorage),
         );
-        if (updatedProfile.token) {
-          localStorage.setItem("staff_token", updatedProfile.token);
-        }
         localStorage.setItem("staff_userId", String(mergedProfile.id));
-        debugLog("Staff session tokens set");
       }
 
       // Use role-specific storage event to prevent cross-role conflicts
@@ -503,7 +490,7 @@ export const ProfileProvider = ({ children }) => {
       window.dispatchEvent(
         new StorageEvent("storage", {
           key: storageKey,
-          newValue: JSON.stringify(mergedProfile),
+          newValue: JSON.stringify(profileForStorage),
         }),
       );
     },

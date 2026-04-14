@@ -218,12 +218,9 @@ const Homepage = () => {
         password,
       });
       if (response.data.success) {
-        const { token, user } = response.data;
-        const userData = {
-          ...user,
-          token,
-        };
-        // Let ProfileContext handle all storage - it will use role-specific keys
+        const { user } = response.data;
+        const userData = { ...user };
+        delete userData.token;
         updateProfile(userData);
         if (isChecked) {
           localStorage.setItem(STAFF_REMEMBER_EMAIL_KEY, normalizedEmail);

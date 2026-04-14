@@ -58,8 +58,6 @@ api.interceptors.request.use(
 
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
-    } else {
-      console.warn("[API] No token available for request to:", config.url);
     }
     return config;
   },
@@ -78,24 +76,28 @@ api.interceptors.response.use(
     if (normalizedError.isUnauthorized && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      // Determine which token to use based on the URL
-      const isCustomerEndpoint =
-        originalRequest.url && originalRequest.url.includes("/auth/customer/");
-      const tokenKey = isCustomerEndpoint ? "customer_token" : "staff_token";
-      const userKey = isCustomerEndpoint
-        ? "customer_loggedInUser"
-        : "staff_loggedInUser";
-      const userIdKey = isCustomerEndpoint ? "customer_userId" : "staff_userId";
+      const currentPath = window.location.pathname;
+      const isStaffInterface =
+        currentPath.includes("/staff") || currentPath.includes("/manager");
+      const tokenKey = isStaffInterface ? "staff_token" : "customer_token";
+      const userKey = isStaffInterface
+        ? "staff_loggedInUser"
+        : "customer_loggedInUser";
+      const userIdKey = isStaffInterface ? "staff_userId" : "customer_userId";
 
       const token = localStorage.getItem(tokenKey);
-      if (token) {
+      const hasStoredUser = localStorage.getItem(userKey);
+
+      if (token || hasStoredUser) {
         try {
-          // Try to refresh the token
+          const refreshHeaders = token
+            ? { Authorization: `Bearer ${token}` }
+            : {};
           const refreshResponse = await http.post(
             `${API_BASE_URL}/auth/refresh`,
             {},
             {
-              headers: { Authorization: `Bearer ${token}` },
+              headers: refreshHeaders,
             },
           );
 
@@ -104,24 +106,26 @@ api.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.token}`;
             return api(originalRequest);
           }
+          if (refreshResponse.data.success) {
+            delete originalRequest.headers.Authorization;
+            return api(originalRequest);
+          }
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
-          // If refresh fails, clear storage and redirect to clean login interface
           localStorage.removeItem(userKey);
           localStorage.removeItem(tokenKey);
           localStorage.removeItem(userIdKey);
-          window.location.href = isCustomerEndpoint
-            ? "/"
-            : "/staff-login?sessionExpired=true";
+          window.location.href = isStaffInterface
+            ? "/staff-login?sessionExpired=true"
+            : "/";
         }
       } else {
-        // No token available, redirect to clean login interface
         localStorage.removeItem(userKey);
         localStorage.removeItem(tokenKey);
         localStorage.removeItem(userIdKey);
-        window.location.href = isCustomerEndpoint
-          ? "/"
-          : "/staff-login?sessionExpired=true";
+        window.location.href = isStaffInterface
+          ? "/staff-login?sessionExpired=true"
+          : "/";
       }
     }
 

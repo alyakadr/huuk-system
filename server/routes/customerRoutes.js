@@ -1,37 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
 const moment = require("moment");
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Booking = require("../models/Booking");
-const { attachJwtUserIds } = require("../utils/attachJwtUser");
-
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.error("JWT_SECRET not set");
-  process.exit(1);
-}
-
-const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: "Invalid or expired token" });
-    }
-    if (!decoded.userId || !decoded.role) {
-      return res.status(401).json({ message: "Invalid token payload" });
-    }
-    if (!attachJwtUserIds(req, decoded.userId)) {
-      return res.status(401).json({ message: "Invalid token payload" });
-    }
-    req.role = decoded.role;
-    next();
-  });
-};
+const verifyToken = require("../middlewares/authMiddleware");
 
 router.get("/total-all", verifyToken, async (req, res) => {
   if (req.role !== "manager") {

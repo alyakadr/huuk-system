@@ -83,6 +83,9 @@ const createInstance = (defaults = {}) => {
       ...defaults,
       ...config,
     };
+    if (mergedConfig.credentials === undefined) {
+      mergedConfig.credentials = "include";
+    }
 
     const method = (mergedConfig.method || "get").toUpperCase();
     const baseURL = mergedConfig.baseURL || defaults.baseURL || "";

@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const BlockedSlot = require("../models/BlockedSlot");
-const { attachJwtUserIds } = require("../utils/attachJwtUser");
+const verifyToken = require("../middlewares/authMiddleware");
 
 function parseStaffObjectId(staffId, res) {
   if (!staffId) return null;
@@ -13,36 +12,6 @@ function parseStaffObjectId(staffId, res) {
   }
   return new mongoose.Types.ObjectId(staffId);
 }
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is not set in environment variables");
-}
-
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-  const token = authHeader.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: "Invalid or expired token" });
-    }
-    if (!decoded.userId || !decoded.role) {
-      return res.status(401).json({ message: "Invalid token payload" });
-    }
-    if (!attachJwtUserIds(req, decoded.userId)) {
-      return res.status(401).json({ message: "Invalid token payload" });
-    }
-    req.role = decoded.role;
-    next();
-  });
-};
 
 function formatTimeSlot(timeSlot) {
   if (typeof timeSlot === "string") {

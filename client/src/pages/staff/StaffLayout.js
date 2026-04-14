@@ -53,7 +53,11 @@ const StaffLayout = () => {
     if (staffUser) {
       try {
         const parsed = JSON.parse(staffUser);
-        return parsed.token;
+        return (
+          parsed.token ||
+          localStorage.getItem("staff_token") ||
+          localStorage.getItem("token")
+        );
       } catch (error) {
         console.error("Error parsing staff_loggedInUser:", error);
       }
@@ -107,13 +111,16 @@ const StaffLayout = () => {
   const validateAttendance = async (userId) => {
     const staffId = getUserId() || userId;
     try {
+      const attendanceHeaders = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
       const response = await api.get("/users/attendance", {
         params: {
           date: moment().format("YYYY-MM-DD"),
           staff_id: staffId,
           page: 1,
         },
-        headers: { Authorization: `Bearer ${token}` },
+        headers: attendanceHeaders,
       });
       const data = response.data.attendance || [];
       const todayRecord = data.find(
@@ -157,9 +164,8 @@ const StaffLayout = () => {
     }
 
     const staffUser = localStorage.getItem("staff_loggedInUser");
-    const staffToken = localStorage.getItem("staff_token");
 
-    if (!token || !staffUser || !staffToken) {
+    if (!staffUser) {
       setUser(null);
       localStorage.removeItem("staff_loggedInUser");
       localStorage.removeItem("staff_token");
@@ -190,14 +196,17 @@ const StaffLayout = () => {
           }
         }
 
+        const profileHeaders = token
+          ? { Authorization: `Bearer ${token}` }
+          : {};
         const response = await api.get("/users/profile", {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: profileHeaders,
         });
         const fetchedUser = {
           ...response.data,
           profilePicture: response.data.profile_picture || null,
-          token: currentUser?.token || token,
         };
+        delete fetchedUser.token;
 
         if (fetchedUser.role !== "staff" && fetchedUser.role !== "manager") {
           setUser(null);
@@ -209,7 +218,6 @@ const StaffLayout = () => {
             "staff_loggedInUser",
             JSON.stringify(fetchedUser),
           );
-          localStorage.setItem("token", fetchedUser.token);
           validateAttendance(fetchedUser.id);
         }
       } catch (error) {
