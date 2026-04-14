@@ -67,7 +67,7 @@ router.get("/total-revenue-today", verifyToken, async (req, res) => {
     res.json({ total });
   } catch (err) {
     console.error("Error fetching total revenue today:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -81,7 +81,7 @@ router.get("/total-revenue-yesterday", verifyToken, async (req, res) => {
     res.json({ total });
   } catch (err) {
     console.error("Error fetching total revenue yesterday:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -124,7 +124,7 @@ router.get("/payment-management", verifyToken, async (req, res) => {
     res.json(formatted);
   } catch (err) {
     console.error("Error fetching payment management data:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -159,7 +159,7 @@ router.post("/update-payment-status", verifyToken, async (req, res) => {
     res.json({ message: "Payment status updated successfully" });
   } catch (err) {
     console.error("Error updating payment status:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

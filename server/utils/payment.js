@@ -33,7 +33,7 @@ const createSession = async (req, res) => {
   if (invalidIds.length > 0) {
     return res.status(400).json({
       message: "Invalid booking ID format",
-      detail: `Invalid booking ID(s): ${invalidIds.join(", ")}`,
+      invalidBookingIds: invalidIds,
     });
   }
 
@@ -42,7 +42,6 @@ const createSession = async (req, res) => {
     if (!stripe) {
       return res.status(500).json({
         message: "Payment provider configuration error",
-        detail: configError,
       });
     }
 
@@ -61,9 +60,7 @@ const createSession = async (req, res) => {
       const missingIds = bookingIds.filter((id) => !foundIds.has(String(id)));
       return res.status(404).json({
         message: "One or more bookings not found",
-        detail: missingIds.length
-          ? `Missing booking ID(s): ${missingIds.join(", ")}`
-          : undefined,
+        missingBookingIds: missingIds,
       });
     }
 
@@ -81,7 +78,7 @@ const createSession = async (req, res) => {
     if (invalidPriceBooking) {
       return res.status(400).json({
         message: "Invalid booking price",
-        detail: `Booking ${invalidPriceBooking._id} has an invalid price`,
+        invalidBookingId: invalidPriceBooking._id,
       });
     }
 
@@ -145,8 +142,7 @@ const createSession = async (req, res) => {
     });
   } catch (err) {
     console.error("Error creating payment session:", err.message);
-    const stripeDetail = err?.raw?.message || err?.message || "Unknown error";
-    res.status(500).json({ message: "Server error", detail: stripeDetail });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -172,7 +168,7 @@ const updateStatus = async (req, res) => {
     res.json({ message: "Payment status updated" });
   } catch (err) {
     console.error("Error updating payment status:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -216,7 +212,7 @@ const checkStatus = async (req, res) => {
     });
   } catch (err) {
     console.error("Error checking payment status:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 

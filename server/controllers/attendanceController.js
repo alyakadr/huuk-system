@@ -272,7 +272,7 @@ exports.listAttendanceFiltered = async (req, res) => {
     res.json({ attendance, page: Number(page), totalPages, total });
   } catch (err) {
     console.error("Error fetching attendance:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -404,7 +404,7 @@ exports.createNewDayAttendance = async (req, res) => {
     });
   } catch (err) {
     console.error("Error creating new day record:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 

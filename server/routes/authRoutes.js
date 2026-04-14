@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -22,6 +23,22 @@ if (!JWT_SECRET) {
   console.error("JWT_SECRET is not set in environment variables");
   process.exit(1);
 }
+
+const authWriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please try again later." },
+});
+
+const authResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please try again later." },
+});
 
 const normalizeEmail = (email) =>
   typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -262,7 +279,7 @@ const handleSignIn = async (req, res, allowedRoles) => {
 };
 
 // Customer Sign-In route (phone-based)
-router.post("/customer/signin", async (req, res) => {
+router.post("/customer/signin", authWriteLimiter, async (req, res) => {
   if (!req.body) {
     return res.status(400).json({ message: "Request body is missing" });
   }
@@ -345,19 +362,19 @@ router.post("/customer/signin", async (req, res) => {
 });
 
 // Staff/Manager Sign-In route
-router.post("/staff/signin", (req, res) => {
+router.post("/staff/signin", authWriteLimiter, (req, res) => {
   handleSignIn(req, res, ["staff", "manager"]);
 });
 
 // Generic forgot/reset endpoints for all account types with email/password.
-router.post("/forgot-password", (req, res) =>
+router.post("/forgot-password", authResetLimiter, (req, res) =>
   requestPasswordReset(req, res, PASSWORD_RESET_ELIGIBLE_ROLES),
 );
 router.get("/reset-password/validate", validatePasswordResetToken);
-router.post("/reset-password", resetPasswordWithToken);
+router.post("/reset-password", authResetLimiter, resetPasswordWithToken);
 
 // Staff/Manager Signup route
-router.post("/signup", async (req, res) => {
+router.post("/signup", authWriteLimiter, async (req, res) => {
   if (!req.body) {
     return res.status(400).json({ message: "Request body is missing" });
   }
@@ -429,7 +446,7 @@ router.post("/signup", async (req, res) => {
 });
 
 // Customer Signup route
-router.post("/customer/signup", async (req, res) => {
+router.post("/customer/signup", authWriteLimiter, async (req, res) => {
   if (!req.body) {
     return res.status(400).json({ message: "Request body is missing" });
   }
@@ -578,7 +595,7 @@ router.get("/validate-token", async (req, res) => {
 });
 
 // Token refresh endpoint
-router.post("/refresh", async (req, res) => {
+router.post("/refresh", authWriteLimiter, async (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {

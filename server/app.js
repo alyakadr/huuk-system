@@ -145,6 +145,21 @@ app.options(/.*/, cors(corsOptions));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+// Ensure 5xx responses never leak internal implementation details.
+app.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    if (res.statusCode >= 500 && body && typeof body === "object") {
+      const sanitized = { ...body };
+      delete sanitized.detail;
+      delete sanitized.error;
+      return originalJson(sanitized);
+    }
+    return originalJson(body);
+  };
+  next();
+});
+
 // Health check endpoint for Railway (without database dependency)
 app.get("/", (req, res) => {
   res.json({

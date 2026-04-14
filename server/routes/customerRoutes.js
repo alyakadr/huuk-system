@@ -42,7 +42,7 @@ router.get("/total-all", verifyToken, async (req, res) => {
     res.json({ count });
   } catch (err) {
     console.error("Error fetching total customers:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -59,7 +59,7 @@ router.get("/total-up-to-yesterday", verifyToken, async (req, res) => {
     res.json({ count });
   } catch (err) {
     console.error("Error fetching customers up to yesterday:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -83,7 +83,7 @@ router.get("/list", verifyToken, async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching customer list:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -108,7 +108,7 @@ router.get("/recent", verifyToken, async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching recent customers:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -142,7 +142,7 @@ router.get("/search", verifyToken, async (req, res) => {
     );
   } catch (err) {
     console.error("Error searching customers:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -179,7 +179,7 @@ router.get("/today", verifyToken, async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching today's customers:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -220,7 +220,7 @@ router.get("/frequent", verifyToken, async (req, res) => {
     res.json(ordered);
   } catch (err) {
     console.error("Error fetching frequent customers:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

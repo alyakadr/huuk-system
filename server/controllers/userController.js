@@ -46,7 +46,7 @@ exports.getTotalCustomersAll = async (req, res) => {
     res.json({ count });
   } catch (err) {
     console.error("Error fetching total customers:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -58,7 +58,7 @@ exports.getTotalCustomersUpToYesterday = async (req, res) => {
     res.json({ count });
   } catch (err) {
     console.error("Error fetching customers up to yesterday:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -71,6 +71,6 @@ exports.getCustomerList = async (req, res) => {
     res.json(customers.map((c) => ({ ...c, id: c._id.toString() })));
   } catch (err) {
     console.error("Error fetching customer list:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

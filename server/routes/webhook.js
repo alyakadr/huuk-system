@@ -28,7 +28,6 @@ router.post("/", async (req, res) => {
     if (!stripe) {
       return res.status(500).json({
         message: "Payment provider configuration error",
-        detail: configError,
       });
     }
 
@@ -48,7 +47,6 @@ router.post("/", async (req, res) => {
       );
       return res.status(400).json({
         message: "Stripe webhook signature verification failed",
-        error: err.message,
       });
     }
 
@@ -123,9 +121,7 @@ router.post("/", async (req, res) => {
     return res.json({ received: true });
   } catch (err) {
     console.error("Webhook error:", err.message);
-    return res
-      .status(500)
-      .json({ message: "Server error", detail: err.message });
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

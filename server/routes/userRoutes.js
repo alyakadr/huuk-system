@@ -85,7 +85,7 @@ router.post("/auth/signup", async (req, res) => {
     res.json({ message: "User registered successfully" });
   } catch (error) {
     console.error("Sign-up error:", error.message);
-    res.status(500).json({ message: "Server error", detail: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -119,7 +119,7 @@ router.post("/auth/signin", async (req, res) => {
     });
   } catch (error) {
     console.error("Signin error:", error.message);
-    res.status(500).json({ message: "Server error", detail: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -150,7 +150,7 @@ router.get("/all-approvals", verifyToken, async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching approvals:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -178,7 +178,7 @@ router.post("/update-status/:id", verifyToken, async (req, res) => {
     res.json({ message: `User ${status} successfully` });
   } catch (err) {
     console.error("Error updating status:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -206,7 +206,7 @@ router.get("/pending-approval", verifyToken, async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching pending approvals:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -228,7 +228,7 @@ router.post("/approve/:id", verifyToken, async (req, res) => {
     res.json({ message: "User approved" });
   } catch (err) {
     console.error("Error approving user:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -258,7 +258,7 @@ router.get("/list", verifyToken, async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching user list:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -278,7 +278,7 @@ router.post("/checkUsername", async (req, res) => {
     res.json({ exists: false });
   } catch (err) {
     console.error("Error checking username:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -289,7 +289,7 @@ router.get("/check-username/:username", async (req, res) => {
     res.json({ exists: count > 0 });
   } catch (err) {
     console.error("Error checking username:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -303,7 +303,7 @@ router.post("/checkEmail", async (req, res) => {
     res.json({ exists: count > 0 });
   } catch (err) {
     console.error("Error checking email:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -335,7 +335,7 @@ router.post("/change-password/:id", verifyToken, async (req, res) => {
     res.json({ message: "Password updated successfully" });
   } catch (err) {
     console.error("Error updating password:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -348,7 +348,7 @@ router.get("/profile", verifyToken, async (req, res) => {
     res.json(toProfilePayload(user, serverRoot));
   } catch (err) {
     console.error("Error fetching profile:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -399,7 +399,7 @@ router.patch(
       res.json(toProfilePayload(user, serverRoot));
     } catch (err) {
       console.error("Error updating profile:", err.message);
-      res.status(500).json({ message: "Server error", detail: err.message });
+      res.status(500).json({ message: "Server error" });
     }
   },
 );
@@ -429,7 +429,7 @@ router.get("/staffs", verifyToken, async (req, res) => {
     res.json(payload);
   } catch (err) {
     console.error("Error fetching staff list:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -450,7 +450,7 @@ router.get("/outlets", verifyToken, async (req, res) => {
     res.json({ outlets });
   } catch (err) {
     console.error("Error fetching outlets:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -503,7 +503,7 @@ router.get("/services", verifyToken, async (req, res) => {
     res.json(list);
   } catch (err) {
     console.error("Error fetching services:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -519,7 +519,7 @@ router.get("/services/available", verifyToken, async (req, res) => {
     res.json(list);
   } catch (err) {
     console.error("Error fetching available services:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -547,7 +547,7 @@ router.get("/by-phone/:phoneNumber", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching user by phone:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
