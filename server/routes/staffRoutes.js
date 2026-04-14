@@ -14,7 +14,11 @@ function parseStaffObjectId(staffId, res) {
   return new mongoose.Types.ObjectId(staffId);
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not set in environment variables");
+}
 
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -98,8 +102,8 @@ router.get("/blocked-slots", verifyToken, async (req, res) => {
     });
     res.json(blockedSlots);
   } catch (error) {
-    console.error("Error fetching blocked slots:", error);
-    res.status(500).json({ message: "Server error", detail: error.message });
+    console.error("Error fetching blocked slots:", error.message);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -140,8 +144,8 @@ router.post("/toggle-slot-blocking", verifyToken, async (req, res) => {
       action,
     });
   } catch (error) {
-    console.error("Error toggling slot blocking:", error);
-    res.status(500).json({ message: "Server error", detail: error.message });
+    console.error("Error toggling slot blocking:", error.message);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

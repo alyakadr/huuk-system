@@ -16,7 +16,7 @@ const attendanceSchema = new mongoose.Schema(
     reason: { type: String },
     outlet: { type: String, default: "default" },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Attendance", attendanceSchema);

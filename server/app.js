@@ -221,9 +221,7 @@ app.post("/", (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error("Server error:", err.stack);
-  res
-    .status(500)
-    .json({ message: "Internal server error", detail: err.message });
+  res.status(500).json({ message: "Internal server error" });
 });
 
 app.use((req, res) => {

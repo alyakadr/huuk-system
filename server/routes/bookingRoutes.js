@@ -7,54 +7,39 @@ const { sendBookingReceipt } = require("../utils/email");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
 const { attachJwtUserIds } = require("../utils/attachJwtUser");
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not set in environment variables");
+}
 
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log("[BOOKING ROUTES] Authorization header:", authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    console.log("[BOOKING ROUTES] No token provided or invalid format");
     return res.status(401).json({ message: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
-  console.log("[BOOKING ROUTES] Token extracted:", token);
 
   if (!token) {
-    console.log("[BOOKING ROUTES] No token found after split");
     return res.status(401).json({ message: "No token provided" });
   }
 
-  jwt.verify(
-    token,
-    process.env.JWT_SECRET || "your_jwt_secret_key",
-    (err, decoded) => {
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
       if (err) {
-        console.log("[BOOKING ROUTES] Token verification error:", err.message);
         return res.status(401).json({ message: "Invalid token" });
       }
 
-      console.log("[BOOKING ROUTES] Decoded token:", decoded);
-
       if (!decoded.userId || !decoded.role) {
-        console.log(
-          "[BOOKING ROUTES] Invalid token payload, missing userId or role",
-        );
         return res.status(401).json({ message: "Invalid token payload" });
       }
       if (!attachJwtUserIds(req, decoded.userId)) {
         return res.status(401).json({ message: "Invalid token payload" });
       }
       req.role = decoded.role;
-      console.log(
-        "[BOOKING ROUTES] User role:",
-        req.role,
-        "User ID:",
-        req.userId,
-      );
       next();
-    },
-  );
+    });
 };
 
 router.get("/outlets", bookingController.getOutlets);
@@ -81,97 +66,7 @@ router.get("/", (req, res, next) => {
   );
 });
 // Enhanced booking creation route with detailed logging
-router.post(
-  "/",
-  verifyToken,
-  (req, res, next) => {
-    console.log("\n=== BOOKING CREATION REQUEST DEBUG ===");
-    console.log(
-      "[BOOKING ROUTES] Full request body:",
-      JSON.stringify(req.body, null, 2),
-    );
-    console.log(
-      "[BOOKING ROUTES] Request headers:",
-      JSON.stringify(req.headers, null, 2),
-    );
-    console.log("[BOOKING ROUTES] Content-Type:", req.headers["content-type"]);
-    console.log("[BOOKING ROUTES] User ID from token:", req.userId);
-    console.log("[BOOKING ROUTES] User role from token:", req.role);
-    console.log("[BOOKING ROUTES] Request method:", req.method);
-    console.log("[BOOKING ROUTES] Request URL:", req.url);
-    console.log(
-      "[BOOKING ROUTES] Request params:",
-      JSON.stringify(req.params, null, 2),
-    );
-    console.log(
-      "[BOOKING ROUTES] Request query:",
-      JSON.stringify(req.query, null, 2),
-    );
-
-    // Log each field individually for better visibility
-    const fields = [
-      "outlet_id",
-      "service_id",
-      "staff_id",
-      "date",
-      "time",
-      "customer_name",
-      "customer_phone",
-      "notes",
-      "duration_minutes",
-      "price",
-    ];
-    console.log("[BOOKING ROUTES] Individual field analysis:");
-    fields.forEach((field) => {
-      const value = req.body[field];
-      console.log(
-        `  - ${field}: ${JSON.stringify(value)} (type: ${typeof value})`,
-      );
-    });
-
-    // Check for required fields
-    const requiredFields = [
-      "outlet_id",
-      "service_id",
-      "staff_id",
-      "date",
-      "time",
-      "customer_name",
-    ];
-    console.log("[BOOKING ROUTES] Required field validation:");
-    const missingFields = [];
-    requiredFields.forEach((field) => {
-      const value = req.body[field];
-      const isPresent = value !== undefined && value !== null && value !== "";
-      console.log(
-        `  - ${field}: ${isPresent ? "PRESENT" : "MISSING"} (value: ${JSON.stringify(value)})`,
-      );
-      if (!isPresent) {
-        missingFields.push(field);
-      }
-    });
-
-    if (missingFields.length > 0) {
-      console.log(
-        "[BOOKING ROUTES] VALIDATION FAILED - Missing required fields:",
-        missingFields,
-      );
-      return res.status(400).json({
-        message: "Missing required fields",
-        missingFields: missingFields,
-        receivedData: req.body,
-      });
-    }
-
-    console.log(
-      "[BOOKING ROUTES] All required fields present, proceeding to controller...",
-    );
-    console.log("=== END BOOKING DEBUG ===");
-
-    next();
-  },
-  bookingController.createBooking,
-);
+router.post("/", verifyToken, bookingController.createBooking);
 router.put("/:bookingId", verifyToken, bookingController.updateBooking);
 router.post(
   "/:bookingId/finalize",
@@ -222,7 +117,7 @@ router.post("/send-receipt/:bookingId", verifyToken, async (req, res) => {
     res.json({ message: "Receipt sent" });
   } catch (err) {
     console.error("Error sending receipt:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 router.post(

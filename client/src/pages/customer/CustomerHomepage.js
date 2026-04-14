@@ -244,14 +244,6 @@ const CustomerHomepage = () => {
     }
 
     try {
-      console.log("[FRONTEND DEBUG] Sending signup request with data:", {
-        fullname: signUpFullName,
-        password: signUpPassword ? "[PROVIDED]" : "[MISSING]",
-        username: signUpUsername,
-        email: signUpEmail,
-        url: `${API_BASE_URL}/auth/customer/signup`,
-      });
-
       const response = await http.post(`${API_BASE_URL}/auth/customer/signup`, {
         fullname: signUpFullName,
         password: signUpPassword,

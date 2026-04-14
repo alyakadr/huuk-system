@@ -424,31 +424,17 @@ router.post("/signup", async (req, res) => {
     return res.json({ message: "User registered successfully" });
   } catch (err) {
     console.error("Signup error:", err.message);
-    return res
-      .status(500)
-      .json({ message: "Server error during signup", error: err.message });
+    return res.status(500).json({ message: "Server error during signup" });
   }
 });
 
 // Customer Signup route
 router.post("/customer/signup", async (req, res) => {
-  console.log("[CUSTOMER SIGNUP] Request received:", {
-    body: req.body,
-    timestamp: new Date().toISOString(),
-  });
-
   if (!req.body) {
-    console.log("[CUSTOMER SIGNUP] Error: Request body is missing");
     return res.status(400).json({ message: "Request body is missing" });
   }
 
   const { phone_number, password, email, username, fullname } = req.body;
-  console.log("[CUSTOMER SIGNUP] Extracted fields:", {
-    phone_number,
-    password: password ? "[PROVIDED]" : "[MISSING]",
-    email,
-    username,
-  });
 
   if (!password || !email || !username) {
     return res
@@ -493,55 +479,38 @@ router.post("/customer/signup", async (req, res) => {
     return res.json({ message: "Customer registered successfully" });
   } catch (err) {
     console.error("Customer signup error:", err.message);
-    return res
-      .status(500)
-      .json({ message: "Server error during signup", error: err.message });
+    return res.status(500).json({ message: "Server error during signup" });
   }
 });
 
 // Validate token endpoint
 router.get("/validate", async (req, res) => {
   const authHeader = req.headers.authorization;
-  console.log("[VALIDATE] Authorization header:", authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    console.log("[VALIDATE] No token provided or invalid format");
     return res.status(401).json({ message: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
-  console.log("[VALIDATE] Token extracted:", token?.substring(0, 20) + "...");
 
   if (!token) {
-    console.log("[VALIDATE] No token found after split");
     return res.status(401).json({ message: "No token provided" });
   }
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "your_jwt_secret_key",
-    );
-    console.log("[VALIDATE] Token validated successfully:", {
-      userId: decoded.userId,
-      role: decoded.role,
-      email: decoded.email,
-    });
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     try {
       const user = await User.findById(decoded.userId).lean();
 
       if (!user) {
-        console.log("[VALIDATE] User not found in database:", decoded.userId);
         return res.status(401).json({ message: "User not found" });
       }
 
       if (user.isApproved === 0) {
-        console.log("[VALIDATE] User not approved:", decoded.userId);
         return res.status(403).json({ message: "Account not approved" });
       }
 
-      console.log("[VALIDATE] Validation successful for user:", user._id);
       res.json({
         success: true,
         userId: user._id.toString(),
@@ -567,52 +536,31 @@ router.get("/validate", async (req, res) => {
 // Token validation endpoint
 router.get("/validate-token", async (req, res) => {
   const authHeader = req.headers.authorization;
-  console.log("[VALIDATE-TOKEN] Authorization header:", authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    console.log("[VALIDATE-TOKEN] No token provided or invalid format");
     return res.status(401).json({ message: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
-  console.log(
-    "[VALIDATE-TOKEN] Token extracted:",
-    token?.substring(0, 20) + "...",
-  );
 
   if (!token) {
-    console.log("[VALIDATE-TOKEN] No token found after split");
     return res.status(401).json({ message: "No token provided" });
   }
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "your_jwt_secret_key",
-    );
-    console.log("[VALIDATE-TOKEN] Token validated successfully:", {
-      userId: decoded.userId,
-      role: decoded.role,
-      email: decoded.email,
-    });
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     try {
       const user = await User.findById(decoded.userId).lean();
 
       if (!user) {
-        console.log(
-          "[VALIDATE-TOKEN] User not found in database:",
-          decoded.userId,
-        );
         return res.status(401).json({ message: "User not found" });
       }
 
       if (user.isApproved === 0) {
-        console.log("[VALIDATE-TOKEN] User not approved:", decoded.userId);
         return res.status(403).json({ message: "Account not approved" });
       }
 
-      console.log("[VALIDATE-TOKEN] Validation successful for user:", user._id);
       res.json({
         valid: true,
         userId: user._id.toString(),
