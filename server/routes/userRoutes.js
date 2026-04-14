@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
@@ -25,6 +26,22 @@ if (!JWT_SECRET) {
 
 const serverRoot = path.join(__dirname, "..");
 
+const authWriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please try again later." },
+});
+
+const authReadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please try again later." },
+});
+
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) {
@@ -45,7 +62,7 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-router.post("/auth/signup", async (req, res) => {
+router.post("/auth/signup", authWriteLimiter, async (req, res) => {
   const { email, password, userType, fullname, outlet, username } = req.body;
   if (!email || !password || !userType || !fullname || !username) {
     return res.status(400).json({ message: "All fields are required" });
@@ -89,7 +106,7 @@ router.post("/auth/signup", async (req, res) => {
   }
 });
 
-router.post("/auth/signin", async (req, res) => {
+router.post("/auth/signin", authWriteLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password required" });
@@ -262,7 +279,7 @@ router.get("/list", verifyToken, async (req, res) => {
   }
 });
 
-router.post("/checkUsername", async (req, res) => {
+router.post("/checkUsername", authReadLimiter, async (req, res) => {
   const { username, userType } = req.body;
   if (!username) {
     return res.status(400).json({ message: "Username required" });
@@ -282,7 +299,7 @@ router.post("/checkUsername", async (req, res) => {
   }
 });
 
-router.get("/check-username/:username", async (req, res) => {
+router.get("/check-username/:username", authReadLimiter, async (req, res) => {
   const username = req.params.username;
   try {
     const count = await User.countDocuments({ username });
@@ -293,7 +310,7 @@ router.get("/check-username/:username", async (req, res) => {
   }
 });
 
-router.post("/checkEmail", async (req, res) => {
+router.post("/checkEmail", authReadLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ message: "Email required" });
@@ -551,7 +568,7 @@ router.get("/by-phone/:phoneNumber", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/validate-token", verifyToken, (req, res) => {
+router.get("/validate-token", authReadLimiter, verifyToken, (req, res) => {
   res.json({ valid: true, userId: req.userId, role: req.role });
 });
 

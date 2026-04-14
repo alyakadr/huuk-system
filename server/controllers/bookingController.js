@@ -201,7 +201,7 @@ exports.getOutlets = async (req, res) => {
     res.json(results.map((o) => ({ ...o, id: o._id.toString() })));
   } catch (err) {
     console.error("Error fetching outlets:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -212,7 +212,7 @@ exports.getServices = async (req, res) => {
     res.json(results.map((s) => ({ ...s, id: s._id.toString() })));
   } catch (err) {
     console.error("Error fetching services:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -424,7 +424,7 @@ exports.getAvailableSlots = async (req, res) => {
       message: err.message,
       stack: err.stack,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -488,7 +488,7 @@ exports.reserveSlot = async (req, res) => {
     console.error("Error reserving slot:", { message: err.message });
     return res
       .status(500)
-      .json({ message: "Server error", error: err.message });
+      .json({ message: "Server error" });
   }
 };
 
@@ -523,7 +523,7 @@ exports.releaseSlot = async (req, res) => {
     console.error("Error releasing reservation:", { message: err.message });
     return res
       .status(500)
-      .json({ message: "Server error", error: err.message });
+      .json({ message: "Server error" });
   }
 };
 
@@ -567,7 +567,7 @@ exports.checkSlotAvailability = async (req, res) => {
     });
     return res
       .status(500)
-      .json({ message: "Server error", error: err.message });
+      .json({ message: "Server error" });
   }
 };
 
@@ -649,7 +649,7 @@ exports.getAvailableStaff = async (req, res) => {
     res.json(availableStaff.map((s) => ({ ...s, id: s._id.toString() })));
   } catch (err) {
     console.error("Error fetching staff:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -757,7 +757,7 @@ exports.getStaffByTime = async (req, res) => {
     res.json([{ ...selected, id: selected._id.toString() }]);
   } catch (err) {
     console.error("Error fetching staff by time:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -840,7 +840,7 @@ exports.getUserBookings = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Error fetching user bookings:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -966,7 +966,7 @@ exports.createBooking = async (req, res) => {
       message: err.message,
       stack: err.stack,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -999,7 +999,7 @@ exports.finalizeBooking = async (req, res) => {
     res.json({ message: "Booking finalized successfully", bookingId });
   } catch (err) {
     console.error("Error finalizing booking:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1112,7 +1112,7 @@ exports.createStaffAppointment = async (req, res) => {
       message: err.message,
       stack: err.stack,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1187,7 +1187,7 @@ exports.rescheduleStaffAppointment = async (req, res) => {
     });
   } catch (err) {
     console.error("Error rescheduling appointment:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1203,7 +1203,7 @@ exports.cancelStaffAppointment = async (req, res) => {
     res.json({ message: "Appointment cancelled successfully" });
   } catch (err) {
     console.error("Error cancelling appointment:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1300,7 +1300,7 @@ exports.cancelBooking = async (req, res) => {
     res.json({ message: "Booking cancelled" });
   } catch (err) {
     console.error("Error cancelling booking:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1327,7 +1327,7 @@ exports.deleteBooking = async (req, res) => {
     res.json({ message: "Booking deleted successfully" });
   } catch (err) {
     console.error("Error deleting booking:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1373,7 +1373,7 @@ exports.sendBookingReceipt = async (req, res) => {
     console.error("Error sending receipt:", { message: err.message });
     res
       .status(500)
-      .json({ message: "Failed to send receipt", error: err.message });
+      .json({ message: "Failed to send receipt" });
   }
 };
 
@@ -1461,7 +1461,7 @@ exports.setPayAtOutlet = async (req, res) => {
     });
     res
       .status(500)
-      .json({ message: "Failed to process request", error: err.message });
+      .json({ message: "Failed to process request" });
   }
 };
 
@@ -1630,7 +1630,7 @@ exports.confirmPayAtOutlet = async (req, res) => {
     });
     res
       .status(500)
-      .json({ message: "Failed to confirm payment", error: err.message });
+      .json({ message: "Failed to confirm payment" });
   }
 };
 
@@ -1703,7 +1703,7 @@ exports.getStaffSales = async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching sales:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1750,7 +1750,7 @@ exports.getStaffPayments = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Error fetching payments:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1811,7 +1811,7 @@ exports.getManagerSales = async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching manager sales:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1852,7 +1852,7 @@ exports.getManagerPayments = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("Error fetching manager payments:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1893,7 +1893,7 @@ exports.getSalesReport = async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching sales report:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -1933,7 +1933,7 @@ exports.getTodayTransactionsByOutlet = async (req, res) => {
     console.error("Error fetching today's transactions by outlet:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2015,7 +2015,7 @@ exports.getStaffAppointments = async (req, res) => {
     console.error("Error fetching staff appointments:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2082,7 +2082,7 @@ exports.getBookingDetails = async (req, res) => {
     res.json(bookingData);
   } catch (err) {
     console.error("Error fetching booking details:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2152,7 +2152,7 @@ exports.updateAppointmentStatus = async (req, res) => {
     console.error("Error updating appointment status:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2207,7 +2207,7 @@ exports.blockTime = async (req, res) => {
     res.json({ message: "Blocked time added", blockId: result._id.toString() });
   } catch (err) {
     console.error("Error adding blocked time:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2230,7 +2230,7 @@ exports.getBlockedTimes = async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching blocked times:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2275,7 +2275,7 @@ exports.submitReview = async (req, res) => {
     res.json({ message: "Review submitted", reviewId: result._id.toString() });
   } catch (err) {
     console.error("Error submitting review:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2297,7 +2297,7 @@ exports.getReview = async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching review:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2332,7 +2332,7 @@ exports.updateReview = async (req, res) => {
     res.json({ message: "Review updated" });
   } catch (err) {
     console.error("Error updating review:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2445,7 +2445,7 @@ exports.updateBooking = async (req, res) => {
     });
   } catch (err) {
     console.error("Error updating booking:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2542,7 +2542,7 @@ exports.rescheduleBooking = async (req, res) => {
     res.json({ message: "Booking rescheduled" });
   } catch (err) {
     console.error("Error rescheduling booking:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2610,7 +2610,7 @@ exports.getStaffSchedule = async (req, res) => {
     );
   } catch (err) {
     console.error("[STAFF SCHEDULE] ERROR:", err.message, err.stack);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2677,7 +2677,7 @@ exports.markBookingDone = async (req, res) => {
     res.json({ message: "Booking marked as done" });
   } catch (err) {
     console.error("Error marking booking as done:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2724,7 +2724,7 @@ exports.markBookingAbsent = async (req, res) => {
     res.json({ message: "Booking marked as absent" });
   } catch (err) {
     console.error("Error marking booking as absent:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2749,7 +2749,7 @@ exports.getTotalAppointmentsYesterday = async (req, res) => {
     console.error("Error fetching total appointments yesterday:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2792,7 +2792,7 @@ exports.getAllAppointments = async (req, res) => {
     res.json(results);
   } catch (err) {
     console.error("Error fetching all appointments:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2810,7 +2810,7 @@ exports.getTotalAppointmentsToday = async (req, res) => {
     console.error("Error fetching total appointments today:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2862,7 +2862,7 @@ exports.getStaffSummary = async (req, res) => {
     console.error("Error fetching summary statistics:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2910,7 +2910,7 @@ exports.getTodaysAppointmentsByStaff = async (req, res) => {
     console.error("Error fetching today's appointments by staff:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2939,7 +2939,7 @@ exports.getCustomerSatisfactionRatings = async (req, res) => {
     console.error("Error fetching customer satisfaction ratings:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2981,7 +2981,7 @@ exports.getBookingsByPhone = async (req, res) => {
     console.error("Error fetching bookings by phone:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -3021,7 +3021,7 @@ exports.getAppointmentsByUserId = async (req, res) => {
     console.error("Error fetching appointments by user ID:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -3051,7 +3051,7 @@ exports.getBookingsForDateOutlet = async (req, res) => {
     console.error("Error fetching bookings for date/outlet:", {
       message: err.message,
     });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -3077,7 +3077,7 @@ exports.claimGuestBooking = async (req, res) => {
     res.json({ message: "Booking successfully claimed by user." });
   } catch (err) {
     console.error("Error claiming guest booking:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -3159,7 +3159,7 @@ exports.managerRescheduleAppointment = async (req, res) => {
     });
   } catch (err) {
     console.error("Error rescheduling appointment:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -3229,6 +3229,6 @@ exports.managerCancelAppointment = async (req, res) => {
     res.json({ message: "Appointment cancelled successfully" });
   } catch (err) {
     console.error("Error cancelling appointment:", { message: err.message });
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

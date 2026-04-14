@@ -40,6 +40,14 @@ const authResetLimiter = rateLimit({
   message: { message: "Too many requests. Please try again later." },
 });
 
+const authReadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please try again later." },
+});
+
 const normalizeEmail = (email) =>
   typeof email === "string" ? email.trim().toLowerCase() : "";
 
@@ -501,7 +509,7 @@ router.post("/customer/signup", authWriteLimiter, async (req, res) => {
 });
 
 // Validate token endpoint
-router.get("/validate", async (req, res) => {
+router.get("/validate", authReadLimiter, async (req, res) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -551,7 +559,7 @@ router.get("/validate", async (req, res) => {
 });
 
 // Token validation endpoint
-router.get("/validate-token", async (req, res) => {
+router.get("/validate-token", authReadLimiter, async (req, res) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
