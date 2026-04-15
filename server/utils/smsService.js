@@ -329,7 +329,7 @@ const sendTestSMS = async (phoneNumber) => {
 module.exports = {
   sendSMS,
   generateOTP,
-  // formatPhoneNumber, // No longer used for sign-in/sign-up
+  formatPhoneNumber,
   sendOTP,
   sendBookingConfirmation,
   sendAppointmentReminder,

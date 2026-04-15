@@ -78,10 +78,41 @@ const io = new Server(server, {
 const port = process.env.PORT || 5000;
 
 const mongoose = require("./config/db");
+const verifyToken = require("./middlewares/authMiddleware");
 
 app.set("socketio", io);
 
 global.socketio = io;
+global.io = io;
+
+io.use((socket, next) => {
+  try {
+    const authToken =
+      socket.handshake.auth?.token ||
+      (typeof socket.handshake.headers?.authorization === "string" &&
+      socket.handshake.headers.authorization.startsWith("Bearer ")
+        ? socket.handshake.headers.authorization.slice(7).trim()
+        : null);
+    if (!authToken) {
+      next();
+      return;
+    }
+    const decoded = jwt.verify(authToken, process.env.JWT_SECRET);
+    const uid = decoded.userId;
+    if (uid) {
+      socket.join(`user:${String(uid)}`);
+      if (decoded.role === "staff" || decoded.role === "manager") {
+        socket.join("internal_staff");
+      }
+      if (decoded.role === "manager") {
+        socket.join("role:manager");
+      }
+    }
+  } catch {
+    // Expired or invalid token: still allow connection (no private rooms)
+  }
+  next();
+});
 
 io.on("connection", (socket) => {
   console.log("WebSocket client connected:", socket.id);
@@ -125,19 +156,28 @@ app.use(
   webhookRoutes,
 );
 
-// Debug route to confirm webhook endpoint
-app.post(
-  "/api/stripe/webhook/test",
-  express.raw({ type: "application/json" }),
-  (req, res) => {
-    console.log("Webhook test route hit:", {
-      headers: req.headers,
-      body: req.body ? req.body.toString() : "No body",
-      timestamp: new Date().toISOString(),
-    });
-    res.json({ message: "Test webhook received" });
-  },
-);
+// Debug route to confirm webhook endpoint (disabled in production unless explicitly enabled)
+if (
+  process.env.NODE_ENV !== "production" ||
+  process.env.ENABLE_STRIPE_WEBHOOK_TEST === "true"
+) {
+  app.post(
+    "/api/stripe/webhook/test",
+    express.raw({ type: "application/json" }),
+    (req, res) => {
+      if (process.env.NODE_ENV === "production") {
+        const secret = process.env.STRIPE_WEBHOOK_TEST_SECRET;
+        if (!secret || req.headers["x-webhook-test-secret"] !== secret) {
+          return res.status(404).json({ message: "Not found" });
+        }
+      }
+      console.log("Webhook test route hit:", {
+        timestamp: new Date().toISOString(),
+      });
+      res.json({ message: "Test webhook received" });
+    },
+  );
+}
 
 // Apply CORS for API routes and handle browser preflight requests.
 app.use(cors(corsOptions));
@@ -146,8 +186,8 @@ app.options(/.*/, cors(corsOptions));
 app.use(cookieParser());
 
 // Body parsing for non-webhook routes
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // Ensure 5xx responses never leak internal implementation details.
 app.use((req, res, next) => {
@@ -166,23 +206,33 @@ app.use((req, res, next) => {
 
 // Health check endpoint for Railway (without database dependency)
 app.get("/", (req, res) => {
-  res.json({
+  const payload = {
     status: "ok",
     message: "HUUK System API is running",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
-    port: process.env.PORT || 5000,
-  });
+  };
+  if (process.env.NODE_ENV !== "production") {
+    Object.assign(payload, {
+      environment: process.env.NODE_ENV || "development",
+      port: process.env.PORT || 5000,
+    });
+  }
+  res.json(payload);
 });
 
 app.get("/health", (req, res) => {
-  res.json({
+  const payload = {
     status: "healthy",
-    uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    memory: process.memoryUsage(),
-    version: "1.0.0",
-  });
+  };
+  if (process.env.NODE_ENV !== "production") {
+    Object.assign(payload, {
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      version: "1.0.0",
+    });
+  }
+  res.json(payload);
 });
 
 app.get("/health/db", async (req, res) => {
@@ -194,7 +244,9 @@ app.get("/health/db", async (req, res) => {
     res.json({
       status: "healthy",
       database: "connected",
-      name: mongoose.connection.name,
+      ...(process.env.NODE_ENV !== "production"
+        ? { name: mongoose.connection.name }
+        : {}),
     });
   } catch (error) {
     res.status(500).json({
@@ -205,10 +257,43 @@ app.get("/health/db", async (req, res) => {
   }
 });
 
-app.use(
-  "/Uploads",
-  express.static(path.join(__dirname, "Uploads"), { fallthrough: true }),
-);
+const uploadsRoot = path.join(__dirname, "Uploads");
+const attendanceUploadDir = path.join(uploadsRoot, "attendance");
+const profilePicturesDir = path.join(uploadsRoot, "profile_pictures");
+
+app.get("/Uploads/attendance/:filename", verifyToken, async (req, res) => {
+  const { filename } = req.params;
+  if (!filename || /[/\\]/.test(filename) || filename.includes("..")) {
+    return res.status(400).json({ message: "Invalid filename" });
+  }
+  const absFile = path.resolve(attendanceUploadDir, filename);
+  if (!absFile.startsWith(path.resolve(attendanceUploadDir))) {
+    return res.status(400).json({ message: "Invalid path" });
+  }
+  try {
+    const Attendance = require("./models/attendance");
+    const rel = `/Uploads/attendance/${filename}`;
+    const record = await Attendance.findOne({ document_path: rel }).lean();
+    if (!record) {
+      return res.status(404).json({ message: "Not found" });
+    }
+    if (req.role === "manager") {
+      return res.sendFile(absFile);
+    }
+    if (
+      req.role === "staff" &&
+      record.staff_id.toString() === req.userId
+    ) {
+      return res.sendFile(absFile);
+    }
+    return res.status(403).json({ message: "Forbidden" });
+  } catch (err) {
+    console.error("Attendance file serve error:", err.message);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.use("/Uploads/profile_pictures", express.static(profilePicturesDir));
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);

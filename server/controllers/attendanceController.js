@@ -218,6 +218,10 @@ function buildAttendanceListPipeline(filters) {
 }
 
 exports.listAttendanceFiltered = async (req, res) => {
+  if (!["staff", "manager"].includes(req.role)) {
+    return res.status(403).json({ message: "Staff or manager role required" });
+  }
+
   const { staff_id, outlet, date, page = 1, all } = req.query;
   const limit = 10;
   const skip = (Number(page) - 1) * limit;
@@ -231,6 +235,15 @@ exports.listAttendanceFiltered = async (req, res) => {
     if (staff_id) {
       staffObjectId = parseStaffObjectId(staff_id, res);
       if (!staffObjectId) return;
+    }
+
+    if (req.role !== "manager") {
+      if (staffObjectId && staffObjectId.toString() !== req.userId) {
+        return res
+          .status(403)
+          .json({ message: "You may only view your own attendance" });
+      }
+      staffObjectId = new mongoose.Types.ObjectId(req.userId);
     }
 
     const filters = { staffObjectId, outlet, date };

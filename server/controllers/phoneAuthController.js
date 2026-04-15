@@ -28,7 +28,6 @@ exports.requestOTP = async (req, res) => {
     );
 
     await sendOTP(formattedPhone, otp);
-    console.log(`OTP sent to ${formattedPhone}: ${otp}`);
 
     res.status(200).json({ message: "OTP sent successfully", phone_number: formattedPhone });
   } catch (error) {

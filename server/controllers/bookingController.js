@@ -20,6 +20,7 @@ const {
   sendBookingConfirmation,
   sendRescheduleConfirmationSMS,
   sendCancellationSMS,
+  formatPhoneNumber,
 } = require("../utils/smsService");
 const {
   sendNotificationAfterBooking,
@@ -2949,7 +2950,23 @@ exports.getBookingsByPhone = async (req, res) => {
   if (!phoneNumber)
     return res.status(400).json({ message: "Phone number is required" });
   try {
-    const user = await User.findOne({ phone_number: phoneNumber }).lean();
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+
+    if (req.role === "customer") {
+      const self = await User.findById(req.userObjectId)
+        .select("phone_number")
+        .lean();
+      const selfPhone = self?.phone_number
+        ? formatPhoneNumber(self.phone_number)
+        : null;
+      if (!selfPhone || selfPhone !== formattedPhone) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+    } else if (req.role !== "staff" && req.role !== "manager") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const user = await User.findOne({ phone_number: formattedPhone }).lean();
     if (!user) return res.json([]);
     const bookings = await Booking.find(
       buildVisibleBookingMatch({ user_id: user._id }),
@@ -2990,6 +3007,16 @@ exports.getAppointmentsByUserId = async (req, res) => {
   const { userId } = req.params;
   const { limit = 10 } = req.query;
   if (!userId) return res.status(400).json({ message: "User ID is required" });
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({ message: "Invalid user ID" });
+  }
+  if (
+    req.userId !== userId &&
+    req.role !== "manager" &&
+    req.role !== "staff"
+  ) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
   try {
     const bookings = await Booking.find(
       buildVisibleBookingMatch({ user_id: userId }),
@@ -3043,7 +3070,6 @@ exports.getBookingsForDateOutlet = async (req, res) => {
         time: b.time,
         service_id: b.service_id?._id.toString() || b.service_id.toString(),
         service_duration: b.service_id?.duration || 30,
-        customer_name: b.customer_name,
         status: b.status,
       })),
     );

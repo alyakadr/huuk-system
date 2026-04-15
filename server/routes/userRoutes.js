@@ -21,6 +21,8 @@ const {
   PASSWORD_POLICY_MESSAGE,
   isPasswordValid,
 } = require("../utils/passwordPolicy");
+const { formatPhoneNumber } = require("../utils/smsService");
+const { emitToInternalStaff } = require("../utils/socketEmit");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -51,6 +53,12 @@ router.post("/auth/signup", authWriteLimiter, async (req, res) => {
   if (!email || !password || !userType || !fullname || !username) {
     return res.status(400).json({ message: "All fields are required" });
   }
+  if (userType !== "customer") {
+    return res.status(400).json({
+      message:
+        "Staff and manager accounts must register through the staff signup flow.",
+    });
+  }
   if (!isPasswordValid(password)) {
     return res.status(400).json({ message: PASSWORD_POLICY_MESSAGE });
   }
@@ -61,27 +69,20 @@ router.post("/auth/signup", authWriteLimiter, async (req, res) => {
     if (emailExists > 0)
       return res.status(400).json({ message: "Email already registered" });
 
-    const usernameExists = await User.countDocuments({
-      username,
-      role: { $in: ["staff", "manager"] },
-    });
-    if (
-      usernameExists > 0 &&
-      (userType === "staff" || userType === "manager")
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Username already taken by staff or manager" });
+    const usernameExists = await User.countDocuments({ username });
+    if (usernameExists > 0) {
+      return res.status(400).json({ message: "Username already taken" });
     }
     const hashed = await bcrypt.hash(password, 10);
     await User.create({
       email: email.toLowerCase(),
       password: hashed,
-      role: userType,
+      role: "customer",
       fullname,
-      outlet,
+      outlet: outlet || "N/A",
       username,
-      isApproved: 0,
+      isApproved: 1,
+      status: "approved",
     });
     res.json({ message: "User registered successfully" });
   } catch (error) {
@@ -98,6 +99,11 @@ router.post("/auth/signin", authWriteLimiter, async (req, res) => {
   try {
     const user = await User.findOne({ email: email.toLowerCase() }).lean();
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
+    if (user.isApproved !== 1) {
+      return res.status(403).json({
+        message: "Account pending approval by manager",
+      });
+    }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
@@ -227,9 +233,7 @@ router.post("/approve/:id", verifyToken, async (req, res) => {
     });
     if (!result) return res.status(404).json({ message: "User not found" });
     const io = req.app.get("socketio");
-    if (io) {
-      io.emit("pendingStaffUpdate", { action: "remove", userId });
-    }
+    emitToInternalStaff(io, "pendingStaffUpdate", { action: "remove", userId });
     res.json({ message: "User approved" });
   } catch (err) {
     console.error("Error approving user:", err.message);
@@ -534,7 +538,23 @@ router.get("/by-phone/:phoneNumber", verifyToken, async (req, res) => {
     return res.status(400).json({ message: "Phone number is required" });
   }
   try {
-    const user = await User.findOne({ phone_number: phoneNumber })
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+
+    if (req.role === "customer") {
+      const self = await User.findById(req.userObjectId)
+        .select("phone_number")
+        .lean();
+      const selfPhone = self?.phone_number
+        ? formatPhoneNumber(self.phone_number)
+        : null;
+      if (!selfPhone || selfPhone !== formattedPhone) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+    } else if (req.role !== "staff" && req.role !== "manager") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const user = await User.findOne({ phone_number: formattedPhone })
       .sort({ createdAt: -1 })
       .lean();
     if (!user) {

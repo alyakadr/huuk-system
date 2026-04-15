@@ -7,6 +7,7 @@ const {
 } = require("../services/stripeBookingConfirmation");
 const { sendPaidBookingReceipt } = require("../utils/bookingReceiptEmail");
 const { getStripeClient } = require("../utils/stripeClient");
+const { emitToUser } = require("../utils/socketEmit");
 
 function parseBookingIds(metadata) {
   if (!metadata) return [];
@@ -82,7 +83,7 @@ router.post("/", async (req, res) => {
       try {
         const io = req.app.get("socketio");
         if (io && result.updatedIds[0]) {
-          io.emit("booking_updated", {
+          emitToUser(io, userId, "booking_updated", {
             bookingId: result.updatedIds[0],
             userId,
             payment_status: "Paid",

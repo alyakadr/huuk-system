@@ -2,6 +2,7 @@ const Booking = require("../models/Booking");
 const { confirmPaidFromStripe } = require("./stripeBookingConfirmation");
 const { sendPaidBookingReceipt } = require("../utils/bookingReceiptEmail");
 const { getStripeClient } = require("../utils/stripeClient");
+const { emitToUser } = require("../utils/socketEmit");
 
 class PaymentPollingService {
   constructor() {
@@ -48,12 +49,17 @@ class PaymentPollingService {
               try {
                 const io = global.socketio;
                 if (io && result.updatedIds[0]) {
-                  io.emit("booking_updated", {
-                    bookingId: result.updatedIds[0],
-                    userId: booking.user_id.toString(),
-                    payment_status: "Paid",
-                    status: "Confirmed",
-                  });
+                  emitToUser(
+                    io,
+                    booking.user_id.toString(),
+                    "booking_updated",
+                    {
+                      bookingId: result.updatedIds[0],
+                      userId: booking.user_id.toString(),
+                      payment_status: "Paid",
+                      status: "Confirmed",
+                    },
+                  );
                 }
               } catch (socketError) {
                 console.error("WebSocket emit error:", socketError.message);
