@@ -42,7 +42,8 @@ import SwitchModeButton from "../shared/SwitchModeButton";
 // DEBUG: Add this to check DatePicker
 
 import * as bookingUtils from "../../utils/bookingUtils";
-import { API_BASE_URL } from "../../utils/constants";
+import { API_BASE_URL, SOCKET_URL } from "../../utils/constants";
+import { getSocketConnectOptions } from "../../utils/socketClient";
 import client from "../../api/client";
 
 // Import getAuthToken at the top of the file
@@ -402,7 +403,7 @@ function Booking({ scrollToSection, bookingHistoryRef }) {
   }, [refreshRealtimeAvailability]);
 
   useEffect(() => {
-    const socket = io(API_BASE_URL);
+    const socket = io(SOCKET_URL, getSocketConnectOptions());
     const handleRealtimeUpdate = () => {
       latestRealtimeRefreshRef.current?.();
     };

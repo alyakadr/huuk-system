@@ -1,8 +1,20 @@
 import { loadStripe } from "@stripe/stripe-js";
 
-export const API_BASE_URL = process.env.REACT_APP_API_URL
-  ? `${process.env.REACT_APP_API_URL}/api`
-  : "http://localhost:5000/api";
+function normalizeApiOrigin(raw) {
+  let base = (raw || "http://localhost:5000").replace(/\/$/, "");
+  if (base.endsWith("/api")) {
+    base = base.slice(0, -4);
+  }
+  return base;
+}
+
+const RAW_API_ORIGIN = normalizeApiOrigin(process.env.REACT_APP_API_URL);
+
+/** REST API base (includes `/api`). */
+export const API_BASE_URL = `${RAW_API_ORIGIN}/api`;
+
+/** Socket.IO server origin (no `/api` path). */
+export const SOCKET_URL = RAW_API_ORIGIN;
 
 export const OPERATIONAL_HOURS = {
   start: { h: 9, m: 30 },

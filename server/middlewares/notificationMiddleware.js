@@ -1,4 +1,5 @@
 const notificationService = require('../services/notificationService');
+const { emitToUser, emitToInternalStaff } = require('../utils/socketEmit');
 
 // Middleware to send notifications after booking operations
 const sendNotificationAfterBooking = async (operation, bookingData) => {
@@ -113,7 +114,7 @@ const sendRealTimeNotification = async (userId, notification) => {
   try {
     // If using Socket.IO, emit the notification
     if (global.io) {
-      global.io.to(userId).emit('notification', {
+      emitToUser(global.io, userId, 'notification', {
         id: notification.id,
         type: notification.type,
         title: notification.title,
@@ -125,11 +126,13 @@ const sendRealTimeNotification = async (userId, notification) => {
       
       // Emit bookingUpdated event for appointment-related notifications
       if (notification.type === 'appointment') {
-        global.io.emit('bookingUpdated', {
+        const bookingUpdatedPayload = {
           userId: userId,
           notificationType: notification.type,
           timestamp: new Date()
-        });
+        };
+        emitToUser(global.io, userId, 'bookingUpdated', bookingUpdatedPayload);
+        emitToInternalStaff(global.io, 'bookingUpdated', bookingUpdatedPayload);
       }
     }
   } catch (error) {

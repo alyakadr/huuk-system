@@ -16,7 +16,8 @@ import AddBookingModal from "../../components/AddBookingModal";
 import RescheduleBookingModal from "../../components/RescheduleBookingModal";
 import { TIME_SLOTS } from "../../utils/timeSlotUtils";
 import { io } from "socket.io-client";
-import { API_BASE_URL } from "../../utils/constants";
+import { API_BASE_URL, SOCKET_URL } from "../../utils/constants";
+import { getSocketConnectOptions } from "../../utils/socketClient";
 
 const StaffAppointments = () => {
   const location = useLocation();
@@ -327,7 +328,7 @@ const StaffAppointments = () => {
   }, [appointments]);
 
   useEffect(() => {
-    const socket = io(API_BASE_URL);
+    const socket = io(SOCKET_URL, getSocketConnectOptions());
     socket.on("bookingUpdated", () => {
       fetchAppointments();
       fetchBlockedSlots();

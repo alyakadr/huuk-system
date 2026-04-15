@@ -32,10 +32,8 @@ import http from "../../utils/httpClient";
 import { debugLog } from "../../utils/debugLog";
 import io from "socket.io-client";
 import { jsPDF } from "jspdf";
-
-const API_BASE_URL = process.env.REACT_APP_API_URL
-  ? `${process.env.REACT_APP_API_URL}/api`
-  : "http://localhost:5000/api";
+import { API_BASE_URL, SOCKET_URL } from "../../utils/constants";
+import { getSocketConnectOptions } from "../../utils/socketClient";
 
 const BookingHistory = () => {
   const [bookings, setBookings] = useState([]);
@@ -97,7 +95,7 @@ const BookingHistory = () => {
       return;
     }
     fetchBookings();
-    const socket = io(API_BASE_URL);
+    const socket = io(SOCKET_URL, getSocketConnectOptions());
     socket.on("slotUpdate", (data) => {
       setSlotInfo((prev) => ({
         ...prev,

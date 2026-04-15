@@ -16,6 +16,7 @@ const {
   getRawAccessTokenFromRequest,
   refreshAuthCookieForRole,
 } = require("../utils/authCookies");
+const { emitToInternalStaff } = require("../utils/socketEmit");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL =
@@ -456,9 +457,7 @@ router.post("/signup", authWriteLimiter, async (req, res) => {
     };
 
     const io = req.app.get("socketio");
-    if (io) {
-      io.emit("pendingStaffUpdate", { action: "add", user: newUser });
-    }
+    emitToInternalStaff(io, "pendingStaffUpdate", { action: "add", user: newUser });
 
     return res.json({ message: "User registered successfully" });
   } catch (err) {
@@ -612,58 +611,70 @@ router.post("/refresh", authWriteLimiter, async (req, res) => {
     return res.status(401).json({ message: "No token provided" });
   }
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
-
-    const tokenAge = Date.now() / 1000 - decoded.iat;
-    if (tokenAge > 7 * 24 * 60 * 60) {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (verifyErr) {
+    if (verifyErr.name !== "TokenExpiredError") {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    try {
+      decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
+    } catch {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    const nowSec = Date.now() / 1000;
+    const maxGraceAfterExpirySec = 5 * 60;
+    if (
+      decoded.exp == null ||
+      Number.isNaN(decoded.exp) ||
+      nowSec - decoded.exp > maxGraceAfterExpirySec
+    ) {
       return res
         .status(401)
-        .json({ message: "Token too old, please login again" });
+        .json({ message: "Session expired, please login again" });
+    }
+  }
+
+  try {
+    const user = await User.findById(decoded.userId).lean();
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
     }
 
-    try {
-      const user = await User.findById(decoded.userId).lean();
+    if (user.isApproved === 0) {
+      return res.status(403).json({ message: "Account not approved" });
+    }
 
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
+    const newPayload = {
+      userId: user._id.toString(),
+      role: user.role,
+      email: user.email || undefined,
+      phone_number: user.phone_number || undefined,
+    };
 
-      if (user.isApproved === 0) {
-        return res.status(403).json({ message: "Account not approved" });
-      }
+    const newToken = jwt.sign(newPayload, JWT_SECRET, { expiresIn: "1h" });
 
-      const newPayload = {
-        userId: user._id.toString(),
+    refreshAuthCookieForRole(res, user.role, newToken);
+
+    console.log(
+      `Token refreshed for user: ${user._id} (${user.email || user.phone_number})`,
+    );
+
+    res.json({
+      success: true,
+      token: newToken,
+      user: {
+        id: user._id.toString(),
         role: user.role,
-        email: user.email || undefined,
-        phone_number: user.phone_number || undefined,
-      };
-
-      const newToken = jwt.sign(newPayload, JWT_SECRET, { expiresIn: "1h" });
-
-      refreshAuthCookieForRole(res, user.role, newToken);
-
-      console.log(
-        `Token refreshed for user: ${user._id} (${user.email || user.phone_number})`,
-      );
-
-      res.json({
-        success: true,
-        user: {
-          id: user._id.toString(),
-          role: user.role,
-          email: user.email,
-          phone_number: user.phone_number,
-        },
-      });
-    } catch (dbError) {
-      console.error("Database error during token refresh:", dbError);
-      return res.status(500).json({ message: "Server error" });
-    }
-  } catch (error) {
-    console.error("Token refresh error:", error.message);
-    return res.status(401).json({ message: "Invalid token" });
+        email: user.email,
+        phone_number: user.phone_number,
+      },
+    });
+  } catch (dbError) {
+    console.error("Database error during token refresh:", dbError);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

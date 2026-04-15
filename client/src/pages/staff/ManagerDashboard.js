@@ -23,6 +23,8 @@ import {
 } from "recharts";
 import moment from "moment";
 import http from "../../utils/httpClient";
+import { SOCKET_URL } from "../../utils/constants";
+import { getSocketConnectOptions } from "../../utils/socketClient";
 import { ensureStaffToken } from "../../utils/tokenUtils";
 import { debugLog } from "../../utils/debugLog";
 
@@ -228,11 +230,14 @@ const ManagerDashboard = () => {
   // Add back the initializeSocketAndData function
   const initializeSocketAndData = () => {
     // Initialize WebSocket
-    socketRef.current = io("http://localhost:5000", {
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    socketRef.current = io(
+      SOCKET_URL,
+      getSocketConnectOptions({
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      }),
+    );
 
     socketRef.current.on("connect", () => {
       debugLog("WebSocket connected");

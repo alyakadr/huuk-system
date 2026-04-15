@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import BarberSalesReport from "../../components/staff/BarberSalesReport";
 import { useNavigate } from "react-router-dom";
@@ -27,11 +27,13 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 import { io } from "socket.io-client";
 import {
   API_BASE_URL,
+  SOCKET_URL,
   OPERATIONAL_HOURS,
   BOOKING_STATUSES,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
 } from "../../utils/constants";
+import { getSocketConnectOptions } from "../../utils/socketClient";
 
 ChartJS.defaults.font.family = "Quicksand, sans-serif";
 ChartJS.register(
@@ -349,7 +351,7 @@ const StaffDashboard = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const socket = io(API_BASE_URL);
+    const socket = io(SOCKET_URL, getSocketConnectOptions());
     socket.on("bookingUpdated", () => {
       fetchAllData();
       fetchPaymentData();

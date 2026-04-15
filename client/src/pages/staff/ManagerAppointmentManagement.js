@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import http from "../../utils/httpClient";
 import moment from "moment";
-import { API_BASE_URL } from "../../utils/constants";
+import { API_BASE_URL, SOCKET_URL } from "../../utils/constants";
+import { getSocketConnectOptions } from "../../utils/socketClient";
 import RescheduleBookingModal from "../../components/RescheduleBookingModal";
 import { io } from "socket.io-client";
 import { fetchOutlets } from "../../utils/bookingUtils";
@@ -287,7 +288,7 @@ const ManagerAppointmentManagement = () => {
   }, []);
 
   useEffect(() => {
-    const socket = io(API_BASE_URL);
+    const socket = io(SOCKET_URL, getSocketConnectOptions());
     socket.on("bookingUpdated", () => {
       fetchAppointments();
     });

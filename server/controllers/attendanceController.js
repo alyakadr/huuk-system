@@ -3,6 +3,7 @@ const User = require("../models/User");
 const Attendance = require("../models/attendance");
 const moment = require("moment");
 const path = require("path");
+const { emitToUser, emitToManagers } = require("../utils/socketEmit");
 
 function parseStaffObjectId(staffId, res) {
   if (!staffId) return null;
@@ -346,15 +347,15 @@ exports.logAttendancePost = async (req, res) => {
 
     const fresh = await Attendance.findById(record._id).lean();
     const io = req.app.get("socketio");
-    if (io) {
-      io.emit("attendanceUpdate", {
-        staff_id: fresh.staff_id.toString(),
-        outlet: fresh.outlet,
-        time_in: fresh.time_in ? moment(fresh.time_in).format("YYYY-MM-DD HH:mm:ss") : null,
-        time_out: fresh.time_out ? moment(fresh.time_out).format("YYYY-MM-DD HH:mm:ss") : null,
-        created_date: moment(fresh.createdAt).format("YYYY-MM-DD HH:mm:ss"),
-      });
-    }
+    const attendancePayload = {
+      staff_id: fresh.staff_id.toString(),
+      outlet: fresh.outlet,
+      time_in: fresh.time_in ? moment(fresh.time_in).format("YYYY-MM-DD HH:mm:ss") : null,
+      time_out: fresh.time_out ? moment(fresh.time_out).format("YYYY-MM-DD HH:mm:ss") : null,
+      created_date: moment(fresh.createdAt).format("YYYY-MM-DD HH:mm:ss"),
+    };
+    emitToUser(io, fresh.staff_id.toString(), "attendanceUpdate", attendancePayload);
+    emitToManagers(io, "attendanceUpdate", attendancePayload);
 
     res.status(200).json({
       id: fresh._id,

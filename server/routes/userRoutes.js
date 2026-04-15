@@ -179,13 +179,11 @@ router.post("/update-status/:id", verifyToken, async (req, res) => {
     const result = await User.findByIdAndUpdate(userId, { status, isApproved });
     if (!result) return res.status(404).json({ message: "User not found" });
     const io = req.app.get("socketio");
-    if (io) {
-      io.emit("pendingStaffUpdate", {
-        action: status === "approved" ? "remove" : "update",
-        userId,
-        status,
-      });
-    }
+    emitToInternalStaff(io, "pendingStaffUpdate", {
+      action: status === "approved" ? "remove" : "update",
+      userId,
+      status,
+    });
     res.json({ message: `User ${status} successfully` });
   } catch (err) {
     console.error("Error updating status:", err.message);

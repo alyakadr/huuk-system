@@ -17,8 +17,15 @@ function emitToManagers(io, event, payload) {
   io.to("role:manager").emit(event, payload);
 }
 
+/** Customer payment events: notify the booker and staff dashboards. */
+function emitBookingUpdated(io, userId, payload) {
+  emitToUser(io, userId, "booking_updated", payload);
+  emitToInternalStaff(io, "booking_updated", payload);
+}
+
 module.exports = {
   emitToUser,
   emitToInternalStaff,
   emitToManagers,
+  emitBookingUpdated,
 };

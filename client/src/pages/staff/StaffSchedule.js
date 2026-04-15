@@ -6,7 +6,8 @@ import React, {
   useMemo,
 } from "react";
 import { io } from "socket.io-client";
-import { API_BASE_URL } from "../../utils/constants";
+import { API_BASE_URL, SOCKET_URL } from "../../utils/constants";
+import { getSocketConnectOptions } from "../../utils/socketClient";
 import AddBookingModal from "../../components/AddBookingModal";
 import { TIME_SLOTS } from "../../utils/timeSlotUtils";
 import { getCurrentWeekDates as getWeekDates } from "../../utils/dateUtils";
@@ -119,7 +120,7 @@ const StaffSchedule = () => {
   }, []);
 
   useEffect(() => {
-    socketRef.current = io(API_BASE_URL);
+    socketRef.current = io(SOCKET_URL, getSocketConnectOptions());
     const handleRealtimeUpdate = () => {
       latestFetchBookingsRef.current?.();
       latestFetchBlockedSlotsRef.current?.();
