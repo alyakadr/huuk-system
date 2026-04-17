@@ -127,8 +127,8 @@ const BarberSalesReport = () => {
   };
 
   return (
-    <div className="flex h-full min-h-[300px] flex-col">
-      <div className="mb-3 flex items-start justify-between gap-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="mb-3 flex shrink-0 items-start justify-between gap-3">
         <div>
           <h3 className="m-0 text-lg font-bold text-white">Sales Report</h3>
           <p className="m-0 mt-1 text-sm text-white/80">
@@ -147,9 +147,9 @@ const BarberSalesReport = () => {
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div className="flex min-h-0 flex-1 flex-col justify-start">
         {loadingSales ? (
-          <div className="flex flex-col items-center justify-center">
+          <div className="flex flex-1 flex-col items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
             <p className="m-0 mt-3 text-sm text-huuk-muted">Loading sales data...</p>
           </div>
@@ -162,7 +162,7 @@ const BarberSalesReport = () => {
             </p>
           </div>
         ) : (
-          <div className="h-[210px] w-full">
+          <div className="h-[180px] w-full shrink-0">
             <Pie data={chartData} options={options} />
           </div>
         )}

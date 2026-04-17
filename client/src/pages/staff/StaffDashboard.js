@@ -52,8 +52,10 @@ const PaymentManagementTable = ({
   className = "",
 }) => {
   return (
-    <div className={`card-dark h-full ${className}`.trim()}>
-      <div className="flex items-center justify-between gap-3">
+    <div
+      className={`card-dark flex h-full min-h-0 flex-col ${className}`.trim()}
+    >
+      <div className="flex shrink-0 items-center justify-between gap-3">
         <h3 className="text-lg font-bold">Payment Management</h3>
         <button
           className="btn-ghost text-sm"
@@ -67,7 +69,7 @@ const PaymentManagementTable = ({
         </button>
       </div>
       {isMobileView ? (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2">
           {loadingPayment ? (
             <div className="huuk-td text-center">Loading payment data...</div>
           ) : paymentData.length === 0 ? (
@@ -99,7 +101,7 @@ const PaymentManagementTable = ({
           )}
         </div>
       ) : (
-        <div className="mt-3">
+        <div className="mt-3 flex min-h-0 flex-1 flex-col">
           <table className="huuk-table w-full table-fixed">
             <thead>
               <tr>
@@ -852,7 +854,7 @@ const StaffDashboard = () => {
   return (
     <div className="staff-dashboard min-w-0 overflow-x-hidden bg-huuk-bg text-white font-quicksand">
       <div className="w-full min-w-0">
-        <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-12">
+        <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-12 xl:items-stretch">
           <div className="xl:col-span-8 grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-4">
             {[
               {
@@ -899,7 +901,7 @@ const StaffDashboard = () => {
             ))}
           </div>
 
-          <div className="xl:col-span-4 xl:row-span-2 min-w-0 flex flex-col gap-3">
+          <div className="flex min-w-0 flex-col gap-3 xl:col-span-4 xl:col-start-9 xl:row-span-2">
             <div className="card-dark flex flex-col items-center justify-center gap-2 rounded-[16px] px-4 py-3">
               <div className="flex min-w-0 items-center gap-2">
                 <img
@@ -1133,12 +1135,10 @@ const StaffDashboard = () => {
               )}
             </div>
           </div>
-        </div>
 
-        <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-12">
-          <div className="xl:col-span-8 min-w-0">
-            <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(240px,0.9fr)]">
-              <div className="min-w-0">
+          <div className="flex min-h-0 min-w-0 xl:col-span-8 xl:h-full">
+            <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-3 xl:h-full xl:grid-cols-[minmax(0,1.55fr)_minmax(240px,0.9fr)] xl:items-stretch xl:[grid-auto-rows:minmax(0,1fr)]">
+              <div className="flex min-h-0 min-w-0">
                 <PaymentManagementTable
                   loadingPayment={loadingPayment}
                   paymentData={paymentData}
@@ -1146,27 +1146,29 @@ const StaffDashboard = () => {
                   className="mt-0"
                 />
               </div>
-              <div className="card-dark min-w-0 rounded-huuk-lg">
-                <BarberSalesReport />
+              <div className="flex min-h-0 min-w-0">
+                <div className="card-dark flex min-h-0 min-w-0 flex-1 flex-col rounded-huuk-lg">
+                  <BarberSalesReport />
+                </div>
               </div>
             </div>
           </div>
-          <div className="xl:col-span-4 min-w-0">
-            <div className="card-dark min-h-[200px] rounded-huuk-lg">
-              <div className="mb-2">
+          <div className="min-h-0 min-w-0 w-full xl:col-span-4 xl:col-start-9 xl:h-full xl:self-stretch">
+            <div className="card-dark flex h-full min-h-[170px] w-full min-w-0 flex-col rounded-huuk-lg">
+              <div className="mb-2 shrink-0">
                 <h3 className="m-0 text-base font-bold">
                   Today's Appointments by All Staff
                 </h3>
               </div>
               {loadingBarChart ? (
-                <div className="flex min-h-[200px] flex-col items-center justify-center">
+                <div className="flex min-h-[170px] flex-1 flex-col items-center justify-center">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
                   <p className="mt-3 text-sm text-huuk-muted">
                     Loading chart data...
                   </p>
                 </div>
               ) : !barChartData.labels || barChartData.labels.length === 0 ? (
-                <div className="flex min-h-[200px] flex-col items-center justify-center text-center">
+                <div className="flex min-h-[170px] flex-1 flex-col items-center justify-center text-center">
                   <i className="bi bi-bar-chart-line-fill text-3xl text-[#8fb6d0]"></i>
                   <p className="mt-2 text-sm">
                     No appointments scheduled for today
@@ -1176,7 +1178,7 @@ const StaffDashboard = () => {
                   </p>
                 </div>
               ) : (
-                <div className="h-[220px]">
+                <div className="h-[190px] w-full shrink-0">
                   <Bar
                     key={`bar-chart-${JSON.stringify(barChartData)}`}
                     data={todaysAppointmentBarData}
