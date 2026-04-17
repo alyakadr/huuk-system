@@ -218,9 +218,22 @@ const Homepage = () => {
         password,
       });
       if (response.data.success) {
-        const { user } = response.data;
+        const { user, token: accessToken } = response.data;
         const userData = { ...user };
         delete userData.token;
+
+        if (accessToken) {
+          localStorage.setItem("staff_token", accessToken);
+          localStorage.setItem("token", accessToken);
+        } else {
+          localStorage.removeItem("staff_token");
+          localStorage.removeItem("token");
+        }
+        localStorage.setItem("staff_loggedInUser", JSON.stringify(userData));
+        localStorage.setItem("staff_userId", String(user.id));
+        localStorage.setItem("loggedInUser", JSON.stringify(userData));
+        localStorage.setItem("userId", String(user.id));
+
         updateProfile(userData);
         if (isChecked) {
           localStorage.setItem(STAFF_REMEMBER_EMAIL_KEY, normalizedEmail);

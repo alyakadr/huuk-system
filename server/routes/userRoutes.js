@@ -2,7 +2,6 @@ const express = require("express");
 const path = require("path");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Service = require("../models/Service");
@@ -13,22 +12,13 @@ const {
   resolveProfilePictureFile,
 } = require("../utils/userResponse");
 const verifyToken = require("../middlewares/authMiddleware");
-const {
-  setCustomerAuthCookie,
-  setStaffAuthCookie,
-} = require("../utils/authCookies");
+const { setAccessAndRefreshCookiesForUser } = require("../utils/authSession");
 const {
   PASSWORD_POLICY_MESSAGE,
   isPasswordValid,
 } = require("../utils/passwordPolicy");
 const { formatPhoneNumber } = require("../utils/smsService");
 const { emitToInternalStaff } = require("../utils/socketEmit");
-
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.error("JWT_SECRET not set");
-  process.exit(1);
-}
 
 const serverRoot = path.join(__dirname, "..");
 
@@ -107,18 +97,20 @@ router.post("/auth/signin", authWriteLimiter, async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
-    const token = jwt.sign(
-      { userId: user._id.toString(), role: user.role, fullname: user.fullname },
-      JWT_SECRET,
-      { expiresIn: "1h" },
+    const accessToken = await setAccessAndRefreshCookiesForUser(
+      res,
+      user,
+      {
+        userId: user._id.toString(),
+        role: user.role,
+        fullname: user.fullname,
+        ...(user.email && { email: user.email }),
+      },
+      "1h",
     );
-    if (user.role === "customer") {
-      setCustomerAuthCookie(res, token);
-    } else {
-      setStaffAuthCookie(res, token);
-    }
     res.json({
       success: true,
+      token: accessToken,
       user: {
         id: user._id.toString(),
         email: user.email,

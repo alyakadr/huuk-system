@@ -1,15 +1,11 @@
 const User = require("../models/User");
 const PhoneOTP = require("../models/PhoneOTP");
-const jwt = require("jsonwebtoken");
 const {
   generateOTP,
   sendOTP,
   formatPhoneNumber,
 } = require("../utils/smsService");
-const { refreshAuthCookieForRole } = require("../utils/authCookies");
-
-const JWT_SECRET = process.env.JWT_SECRET;
-const PHONE_AUTH_COOKIE_MAX_MS = 24 * 60 * 60 * 1000;
+const { setAccessAndRefreshCookiesForUser } = require("../utils/authSession");
 
 // Request OTP for phone number
 exports.requestOTP = async (req, res) => {
@@ -56,22 +52,19 @@ exports.verifyOTPAndAuth = async (req, res) => {
     const existingUser = await User.findOne({ phone_number: formattedPhone }).lean();
 
     if (existingUser) {
-      if (!JWT_SECRET) {
-        return res.status(500).json({ message: "Server configuration error" });
-      }
-      const token = jwt.sign(
-        { userId: existingUser._id.toString(), role: existingUser.role },
-        JWT_SECRET,
-        { expiresIn: "24h" },
-      );
-      refreshAuthCookieForRole(
+      const accessToken = await setAccessAndRefreshCookiesForUser(
         res,
-        existingUser.role,
-        token,
-        PHONE_AUTH_COOKIE_MAX_MS,
+        existingUser,
+        {
+          userId: existingUser._id.toString(),
+          role: existingUser.role,
+          phone_number: existingUser.phone_number,
+        },
+        "1h",
       );
       return res.status(200).json({
         success: true,
+        token: accessToken,
         user: {
           id: existingUser._id.toString(),
           phone_number: existingUser.phone_number,
@@ -86,19 +79,20 @@ exports.verifyOTPAndAuth = async (req, res) => {
     if (!fullname) return res.status(400).json({ message: "Full name is required for new users" });
 
     const newUser = await User.create({ phone_number: formattedPhone, role: "customer", fullname, isApproved: 1 });
-    if (!JWT_SECRET) {
-      return res.status(500).json({ message: "Server configuration error" });
-    }
-    const token = jwt.sign(
-      { userId: newUser._id.toString(), role: "customer" },
-      JWT_SECRET,
-      { expiresIn: "24h" },
+    const accessToken = await setAccessAndRefreshCookiesForUser(
+      res,
+      newUser,
+      {
+        userId: newUser._id.toString(),
+        role: "customer",
+        phone_number: formattedPhone,
+      },
+      "1h",
     );
-
-    refreshAuthCookieForRole(res, "customer", token, PHONE_AUTH_COOKIE_MAX_MS);
 
     res.status(201).json({
       success: true,
+      token: accessToken,
       user: {
         id: newUser._id.toString(),
         phone_number: formattedPhone,

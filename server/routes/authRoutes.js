@@ -10,13 +10,20 @@ const {
 } = require("../utils/passwordPolicy");
 const { sendPasswordResetEmail } = require("../utils/email");
 const {
-  setCustomerAuthCookie,
-  setStaffAuthCookie,
   clearAllAuthCookies,
   getRawAccessTokenFromRequest,
+  getRawRefreshTokenFromRequest,
   refreshAuthCookieForRole,
+  setRefreshCookieForRole,
 } = require("../utils/authCookies");
 const { emitToInternalStaff } = require("../utils/socketEmit");
+const {
+  rotateRefreshToken,
+  revokeRefreshToken,
+  revokeAllForUser,
+  issueRefreshToken,
+} = require("../utils/refreshTokenService");
+const { setAccessAndRefreshCookiesForUser } = require("../utils/authSession");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL =
@@ -202,6 +209,7 @@ const resetPasswordWithToken = async (req, res) => {
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
+    await revokeAllForUser(user._id);
 
     return res.status(200).json({
       success: true,
@@ -272,12 +280,16 @@ const handleSignIn = async (req, res, allowedRoles) => {
       email: user.email,
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
-
-    setStaffAuthCookie(res, token);
+    const accessToken = await setAccessAndRefreshCookiesForUser(
+      res,
+      user,
+      payload,
+      "1h",
+    );
 
     res.status(200).json({
       success: true,
+      token: accessToken,
       user: {
         id: user._id.toString(),
         fullname: user.fullname,
@@ -356,12 +368,16 @@ router.post("/customer/signin", authWriteLimiter, async (req, res) => {
       phone_number: user.phone_number,
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
-
-    setCustomerAuthCookie(res, token);
+    const accessToken = await setAccessAndRefreshCookiesForUser(
+      res,
+      user,
+      payload,
+      "1h",
+    );
 
     res.status(200).json({
       success: true,
+      token: accessToken,
       user: {
         id: user._id.toString(),
         fullname: user.fullname,
@@ -391,7 +407,15 @@ router.post("/forgot-password", authResetLimiter, (req, res) =>
 router.get("/reset-password/validate", validatePasswordResetToken);
 router.post("/reset-password", authResetLimiter, resetPasswordWithToken);
 
-router.post("/logout", authWriteLimiter, (req, res) => {
+router.post("/logout", authWriteLimiter, async (req, res) => {
+  try {
+    const rt = getRawRefreshTokenFromRequest(req);
+    if (rt) {
+      await revokeRefreshToken(rt);
+    }
+  } catch (e) {
+    console.error("Logout refresh revoke:", e.message);
+  }
   clearAllAuthCookies(res);
   res.json({ success: true, message: "Logged out" });
 });
@@ -603,10 +627,55 @@ router.get("/validate-token", authReadLimiter, async (req, res) => {
   }
 });
 
-// Token refresh endpoint
+// Token refresh endpoint (httpOnly refresh cookie preferred; access JWT fallback with short grace)
 router.post("/refresh", authWriteLimiter, async (req, res) => {
-  const token = getRawAccessTokenFromRequest(req);
+  const refreshRaw = getRawRefreshTokenFromRequest(req);
 
+  if (refreshRaw) {
+    const rotated = await rotateRefreshToken(refreshRaw);
+    if (!rotated) {
+      clearAllAuthCookies(res);
+      return res
+        .status(401)
+        .json({ message: "Session expired, please login again" });
+    }
+    try {
+      const user = await User.findById(rotated.userId).lean();
+      if (!user) {
+        clearAllAuthCookies(res);
+        return res.status(401).json({ message: "User not found" });
+      }
+      if (user.isApproved !== 1) {
+        clearAllAuthCookies(res);
+        return res.status(403).json({ message: "Account not approved" });
+      }
+      const newPayload = {
+        userId: user._id.toString(),
+        role: user.role,
+        email: user.email || undefined,
+        phone_number: user.phone_number || undefined,
+      };
+      const newToken = jwt.sign(newPayload, JWT_SECRET, { expiresIn: "1h" });
+      refreshAuthCookieForRole(res, user.role, newToken);
+      setRefreshCookieForRole(res, user.role, rotated.newRaw);
+      return res.json({
+        success: true,
+        token: newToken,
+        user: {
+          id: user._id.toString(),
+          role: user.role,
+          email: user.email,
+          phone_number: user.phone_number,
+        },
+      });
+    } catch (e) {
+      console.error("Refresh (cookie) error:", e.message);
+      clearAllAuthCookies(res);
+      return res.status(500).json({ message: "Server error" });
+    }
+  }
+
+  const token = getRawAccessTokenFromRequest(req);
   if (!token) {
     return res.status(401).json({ message: "No token provided" });
   }
@@ -657,10 +726,8 @@ router.post("/refresh", authWriteLimiter, async (req, res) => {
     const newToken = jwt.sign(newPayload, JWT_SECRET, { expiresIn: "1h" });
 
     refreshAuthCookieForRole(res, user.role, newToken);
-
-    console.log(
-      `Token refreshed for user: ${user._id} (${user.email || user.phone_number})`,
-    );
+    const { raw: newRefreshRaw } = await issueRefreshToken(user._id);
+    setRefreshCookieForRole(res, user.role, newRefreshRaw);
 
     res.json({
       success: true,
