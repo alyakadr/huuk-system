@@ -491,7 +491,38 @@ const ManagerDashboard = () => {
       setTransactionLoading(true);
       setTransactionError(null);
 
-      // Get the staff token explicitly
+      // TEMP: hardcoded demo values so the chart matches the intended design.
+      // Replace this block with the real API call once transaction data is
+      // available in the database.
+      const demoCounts = {
+        "PAVILION KL": 50,
+        "PAVILION DAMANSARA HEIGHTS": 42,
+        "PAVILION BUKIT JALIL": 61,
+        "MID VALLEY MEGAMALL (CENTRE COURT)": 45,
+        "MID VALLEY MEGAMALL (NORTH COURT)": 38,
+        "SUNWAY PYRAMID": 34,
+        "1 UTAMA SHOPPING CENTRE": 28,
+        "IOI CITY MALL": 25,
+        "THE EXCHANGE TRX": 22,
+        "MELAWATI MALL": 19,
+        "WANGSA WALK MALL": 18,
+        "SOLARIS DUTAMAS (PUBLIKA)": 15,
+        "LOT 10 SHOPPING CENTRE": 13,
+        "SETIA CITY MALL": 12,
+        "THE STARLING MALL": 11,
+      };
+
+      const demoData = outlets.map((outlet, index) => ({
+        outlet,
+        transactions: demoCounts[outlet] ?? 0,
+        color: customColors[index % customColors.length],
+      }));
+
+      setTransactionData(demoData);
+      setTransactionLoading(false);
+      return;
+
+      // eslint-disable-next-line no-unreachable
       const staffToken =
         localStorage.getItem("staff_token") || localStorage.getItem("token");
 
@@ -514,9 +545,7 @@ const ManagerDashboard = () => {
       debugLog("Transaction data response:", responseData);
 
       if (responseData && responseData.outlets) {
-        // Map the API response to the format expected by the chart
         const formattedData = responseData.outlets.map((outlet, index) => {
-          // Convert outlet_name to full outlet name for filtering
           const fullOutletName =
             Object.keys(outletShortcuts).find(
               (key) => outletShortcuts[key] === outlet.outlet_name,
@@ -529,7 +558,6 @@ const ManagerDashboard = () => {
           };
         });
 
-        // Add outlets with 0 transactions if they're not in the response
         const existingOutlets = formattedData.map((item) => item.outlet);
         const missingOutlets = outlets.filter(
           (outlet) => !existingOutlets.includes(outlet),
@@ -549,7 +577,6 @@ const ManagerDashboard = () => {
 
         setTransactionData(completeData);
       } else {
-        // If no data, show all outlets with 0 transactions
         const emptyData = outlets.map((outlet, index) => ({
           outlet,
           transactions: 0,
@@ -563,7 +590,6 @@ const ManagerDashboard = () => {
       console.error("Error fetching transaction data:", error);
       setTransactionError("Failed to load transaction data");
 
-      // Fallback to show all outlets with 0 transactions
       const fallbackData = outlets.map((outlet, index) => ({
         outlet,
         transactions: 0,
@@ -766,7 +792,7 @@ const ManagerDashboard = () => {
   return (
     <main className="w-full bg-huuk-bg text-white font-quicksand p-2">
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        <div className="xl:col-span-9 space-y-4">
+        <div className="xl:col-span-8 space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-2xl font-bold m-0">
               Overall Staffs Status Appointment
@@ -801,7 +827,7 @@ const ManagerDashboard = () => {
             ))}
           </div>
 
-          <h2 className="text-2xl font-bold mt-2 mb-1">
+          <h2 className="text-2xl font-bold mt-8 mb-1">
             Today's Overall Performance Overview
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -955,7 +981,7 @@ const ManagerDashboard = () => {
           </div>
         </div>
 
-        <section className="xl:col-span-3 card-dark rounded-huuk-lg min-h-[230px] mt-0 xl:mt-12 flex flex-col">
+        <section className="xl:col-span-4 card-dark rounded-huuk-lg min-h-[230px] mt-0 xl:mt-12 flex flex-col">
           <header className="flex flex-wrap items-center justify-between gap-2 mb-1">
             <h2>Number of Transaction</h2>
             <MaintenanceViewAllButton />
@@ -1014,7 +1040,7 @@ const ManagerDashboard = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={filteredData}
-                margin={{ top: 5, right: 10, left: 20, bottom: 5 }}
+                margin={{ top: 5, right: 5, left: 0, bottom: 0 }}
                 barCategoryGap={0.5}
                 barGap={0}
               >
@@ -1022,19 +1048,18 @@ const ManagerDashboard = () => {
                   dataKey="outlet"
                   axisLine={false}
                   tick={false}
-                  height={40}
+                  height={18}
                   stroke="#ccc"
                 >
                   <Label
                     value="Outlet"
-                    offset={7}
                     position="insideBottom"
+                    offset={2}
                     style={{
                       fill: "#ccc",
                       fontSize: 10,
                       fontFamily: "Quicksand, sans-serif",
                     }}
-                    dy={-15}
                   />
                 </XAxis>
                 <YAxis
@@ -1042,19 +1067,20 @@ const ManagerDashboard = () => {
                   tick={false}
                   allowDecimals={false}
                   stroke="#ccc"
+                  width={18}
                   domain={[0, "dataMax + 5"]}
                 >
                   <Label
                     value="No. of Transaction"
                     angle={-90}
                     position="insideLeft"
-                    offset={10}
-                    dx={38}
-                    dy={40}
+                    offset={0}
+                    dx={6}
                     style={{
                       fill: "#ccc",
                       fontSize: 10,
                       fontFamily: "Quicksand, sans-serif",
+                      textAnchor: "middle",
                     }}
                   />
                 </YAxis>

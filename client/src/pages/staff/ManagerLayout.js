@@ -170,10 +170,10 @@ const ManagerLayout = () => {
           overflowX: "hidden",
           backgroundColor: "#0e0d0f",
           padding: isPhone
-            ? "104px 10px 14px"
+            ? "112px 10px 14px 6px"
             : isTablet
-              ? "126px 18px 20px"
-              : "148px 24px 24px 18px",
+              ? "138px 18px 20px 12px"
+              : "172px 24px 24px 10px",
           marginLeft: `${sidebarWidth}px`,
           width: `calc(100% - ${sidebarWidth}px)`,
           boxSizing: "border-box",
