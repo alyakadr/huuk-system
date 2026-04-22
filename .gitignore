@@ -69,3 +69,8 @@ desktop.ini
 # Local backup copies
 huuk-system-live/
 client/huuk-system/
+
+# Markdown / docs (not committed)
+*.md
+**/*.md
+!README.md
