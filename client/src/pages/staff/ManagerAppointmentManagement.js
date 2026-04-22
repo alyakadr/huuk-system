@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import http from "../../utils/httpClient";
 import moment from "moment";
 import { API_BASE_URL, SOCKET_URL } from "../../utils/constants";
@@ -6,6 +6,7 @@ import { getSocketConnectOptions } from "../../utils/socketClient";
 import RescheduleBookingModal from "../../components/RescheduleBookingModal";
 import { io } from "socket.io-client";
 import { fetchOutlets } from "../../utils/bookingUtils";
+import { OUTLET_SHORTCUTS_TITLE } from "../../constants/outlets";
 import {
   Dialog,
   DialogActions,
@@ -15,6 +16,11 @@ import {
   Box,
   Button,
 } from "@mui/material";
+
+// Default outlet list shown before/when the /outlets API returns no data.
+const DEFAULT_OUTLETS = Object.entries(OUTLET_SHORTCUTS_TITLE).map(
+  ([name, shortform]) => ({ id: shortform, name, shortform }),
+);
 
 // Icon components (you can replace these with actual icon library imports)
 const CalendarIcon = () => (
@@ -87,9 +93,11 @@ const ManagerAppointmentManagement = () => {
   const [error, setError] = useState(null);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
-  // 1. Add a new state for the date picker
-  const [selectedDate, setSelectedDate] = useState("");
-  const [outlets, setOutlets] = useState([]);
+  // Filters
+  const [selectedStaff, setSelectedStaff] = useState("");
+  const [selectedService, setSelectedService] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [outlets, setOutlets] = useState(DEFAULT_OUTLETS);
   const [, setOutletLoading] = useState(false);
   const [, setOutletError] = useState("");
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
@@ -110,6 +118,58 @@ const ManagerAppointmentManagement = () => {
   }, []);
 
   const isCondensedView = isMobileView || isTabletView;
+
+  // Resolve the staff name for an appointment using the same priority as the table cell.
+  const getStaffName = (appointment) => {
+    const direct =
+      appointment?.username ||
+      appointment?.staff_username ||
+      appointment?.user_name;
+    if (direct) return direct;
+    const fallback = appointment?.staffName;
+    if (fallback && fallback !== "-" && String(fallback).trim() !== "") {
+      return fallback;
+    }
+    return "Unassigned";
+  };
+
+  // Build dropdown option sets from the appointments visible for the selected outlet.
+  const appointmentsForOutlet = useMemo(() => {
+    if (!selectedLocation) return appointments;
+    return appointments.filter(
+      (a) =>
+        a.outlet === selectedLocation ||
+        a.outlet_shortform === selectedLocation ||
+        a.shortform === selectedLocation ||
+        a.branch === selectedLocation,
+    );
+  }, [appointments, selectedLocation]);
+
+  const staffOptions = useMemo(() => {
+    const set = new Set();
+    appointmentsForOutlet.forEach((a) => {
+      const name = getStaffName(a);
+      if (name) set.add(name);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointmentsForOutlet]);
+
+  const serviceOptions = useMemo(() => {
+    const set = new Set();
+    appointmentsForOutlet.forEach((a) => {
+      if (a.service) set.add(a.service);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [appointmentsForOutlet]);
+
+  const statusOptions = useMemo(() => {
+    const set = new Set();
+    appointmentsForOutlet.forEach((a) => {
+      if (a.status) set.add(a.status);
+    });
+    return Array.from(set);
+  }, [appointmentsForOutlet]);
 
   // Function to handle submission from RescheduleBookingModal
   const handleRescheduleSubmit = async (rescheduleData) => {
@@ -161,7 +221,7 @@ const ManagerAppointmentManagement = () => {
   };
 
   // Pagination settings
-  const ITEMS_PER_PAGE = 4; // Changed from 5 to 4
+  const ITEMS_PER_PAGE = 6;
   const totalPages = Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
@@ -303,9 +363,18 @@ const ManagerAppointmentManagement = () => {
     };
   }, []);
 
-  // Fetch outlets on mount
+  // Fetch outlets on mount. Only overwrite defaults when the API returns a
+  // non-empty list; otherwise keep the DEFAULT_OUTLETS seed so the tabs
+  // always render.
   useEffect(() => {
-    fetchOutlets(setOutletLoading, setOutlets, setOutletError);
+    const guardedSetOutlets = (value) => {
+      const next =
+        typeof value === "function" ? value(DEFAULT_OUTLETS) : value;
+      if (Array.isArray(next) && next.length > 0) {
+        setOutlets(next);
+      }
+    };
+    fetchOutlets(setOutletLoading, guardedSetOutlets, setOutletError);
   }, []);
 
   // Dynamic filtering function for appointments by outlet and date
@@ -332,35 +401,24 @@ const ManagerAppointmentManagement = () => {
         );
       }
 
-      // Dynamic date filtering
-      if (selectedDate) {
-        const beforeFilter = filtered.length;
+      // Staff filter
+      if (selectedStaff) {
+        filtered = filtered.filter(
+          (appointment) => getStaffName(appointment) === selectedStaff,
+        );
+      }
 
-        filtered = filtered.filter((appointment) => {
-          if (!appointment.date) return false;
+      // Service filter
+      if (selectedService) {
+        filtered = filtered.filter(
+          (appointment) => (appointment.service || "") === selectedService,
+        );
+      }
 
-          const appointmentDate = moment(appointment.date);
-
-          if (!appointmentDate.isValid()) {
-            console.log(
-              "Invalid date for appointment:",
-              appointment.id,
-              appointment.date,
-            );
-            return false;
-          }
-
-          const selectedDateMoment = moment(selectedDate);
-
-          if (selectedDateMoment.isSame(appointmentDate, "day")) {
-            return true;
-          }
-
-          return false;
-        });
-
-        console.log(
-          `Date filter '${selectedDate}': ${beforeFilter} -> ${filtered.length} appointments`,
+      // Status filter
+      if (selectedStatus) {
+        filtered = filtered.filter(
+          (appointment) => (appointment.status || "") === selectedStatus,
         );
       }
 
@@ -409,19 +467,24 @@ const ManagerAppointmentManagement = () => {
         total: appointments.length,
         filtered: sortedFiltered.length,
         outlet: selectedLocation || "ALL",
-        dateFilter: selectedDate,
       });
 
       setFilteredAppointments(sortedFiltered);
     };
 
     filterAppointments();
-  }, [appointments, selectedLocation, selectedDate]);
+  }, [
+    appointments,
+    selectedLocation,
+    selectedStaff,
+    selectedService,
+    selectedStatus,
+  ]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedLocation, selectedDate]);
+  }, [selectedLocation, selectedStaff, selectedService, selectedStatus]);
 
   const handleReschedule = (appointmentId) => {
     const appointment = appointments.find((apt) => apt.id === appointmentId);
@@ -471,45 +534,40 @@ const ManagerAppointmentManagement = () => {
   };
 
   const getActionButtons = (appointment) => {
-    if (
-      ["Completed", "Cancelled", "Absent", "Rescheduled"].includes(
-        appointment.status,
-      )
-    ) {
-      return (
-        <div className="flex items-center justify-center">
-          <span
-            className="italic font-normal text-xs"
-            style={{
-              fontStyle: "italic",
-              fontFamily: "Quicksand, sans-serif",
-              fontWeight: 400,
-              fontSize: "12px",
-              color:
-                appointment.status === "Completed"
-                  ? "#4caf50"
-                  : appointment.status === "Rescheduled"
-                    ? "#ff9800"
-                    : "#f44336",
-            }}
-          >
-            {appointment.status}
-          </span>
-        </div>
-      );
-    }
+    const disabled = [
+      "Completed",
+      "Cancelled",
+      "Absent",
+      "Rescheduled",
+      "Overdue",
+    ].includes(appointment.status);
+
+    const baseBtn =
+      "px-3 py-1.5 rounded text-[13px] font-bold font-quicksand min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block";
 
     return (
-      <div className="flex gap-1 justify-center items-center flex-wrap m-0">
+      <div className="flex gap-2 justify-center items-center flex-wrap m-0">
         <button
-          className="bg-white text-huuk-card border border-[#ddd] px-3 py-1.5 rounded text-[13px] font-bold font-quicksand cursor-pointer mr-2 min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block hover:bg-[#f5f5f5] hover:border-[#999]"
-          onClick={() => handleReschedule(appointment.id)}
+          disabled={disabled}
+          aria-disabled={disabled}
+          className={`${baseBtn} ${
+            disabled
+              ? "bg-[#3a3a3a] text-[#9a9a9a] border border-[#3a3a3a] cursor-not-allowed"
+              : "bg-[#1e7cff] text-white border border-[#1e7cff] cursor-pointer hover:bg-[#1668d6]"
+          }`}
+          onClick={() => !disabled && handleReschedule(appointment.id)}
         >
           Reschedule
         </button>
         <button
-          className="bg-[#d32f2f] text-white border border-[#d32f2f] px-3 py-1.5 rounded text-[13px] font-bold font-quicksand cursor-pointer min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block hover:bg-[#b71c1c] hover:border-[#b71c1c]"
-          onClick={() => handleOpenCancelDialog(appointment.id)}
+          disabled={disabled}
+          aria-disabled={disabled}
+          className={`${baseBtn} ${
+            disabled
+              ? "bg-[#3a3a3a] text-[#9a9a9a] border border-[#3a3a3a] cursor-not-allowed"
+              : "bg-[#e53935] text-white border border-[#e53935] cursor-pointer hover:bg-[#c62828]"
+          }`}
+          onClick={() => !disabled && handleOpenCancelDialog(appointment.id)}
         >
           Cancel
         </button>
@@ -528,458 +586,270 @@ const ManagerAppointmentManagement = () => {
     return `${day}-${month}-${year}`;
   };
 
+  const outletTitle = selectedLocation
+    ? `${outlets.find((o) => (o.shortform || o.name) === selectedLocation)?.name || selectedLocation} (${selectedLocation})`
+    : "All Locations";
+
+  const formatTimeRange = (appointment) => {
+    if (!appointment.start_time || !appointment.end_time || !appointment.date) {
+      return "N/A";
+    }
+    const dateOnly = appointment.date.split("T")[0];
+    const startDateTime = moment(`${dateOnly}T${appointment.start_time}`);
+    const endDateTime = moment(`${dateOnly}T${appointment.end_time}`);
+    if (!startDateTime.isValid() || !endDateTime.isValid()) return "Invalid Time";
+    return `${startDateTime.format("HH:mm")} - ${endDateTime.format("HH:mm")}`;
+  };
+
+  const renderStatusCell = (status) => {
+    if (!status) return <span className="font-bold text-white/70">--</span>;
+    return <span className="font-bold text-white">{status}</span>;
+  };
+
   return (
     <div
-      className="bg-transparent text-white p-4 font-quicksand relative flex flex-col gap-4 box-border"
-      style={{
-        height: isMobileView ? "auto" : "calc(100vh - 160px)",
-        overflow: isMobileView ? "visible" : "hidden",
-      }}
+      className="w-full pb-3 pl-0 pr-1 pt-3 font-quicksand text-white relative"
+      style={{ marginLeft: "3px" }}
     >
-      {/* Location Tabs */}
-      {/* 2. Outlet filter bar: show all unique outlets as filter buttons */}
-      {/* Use locations array for outlet filter bar, so all outlets are shown even if they have no bookings */}
-      <div
-        className="flex gap-1 flex-nowrap shrink-0 p-0 mb-0 rounded-huuk-sm box-border w-full overflow-hidden"
-        style={{
-          background: "#1a1a1a",
-          color: "white",
-          width: "100%",
-          marginBottom: 8,
-          borderRadius: 8,
-          display: "flex",
-          flexWrap: isMobileView ? "wrap" : "nowrap",
-          padding: "0 4px",
-          gap: "4px",
-          overflow: isMobileView ? "visible" : "hidden",
-        }}
-      >
+      {/* Outlet tabs (ICM, PKL, ... , WW2) */}
+      <div className="mb-3 flex flex-wrap gap-1">
         <button
-          className="font-bold font-quicksand border-none whitespace-nowrap min-w-0 flex-1 py-2.5 rounded-[6px] cursor-pointer transition-all duration-200"
-          style={{
-            background: selectedLocation === "" ? "#ffa500" : "#232323",
-            color: selectedLocation === "" ? "#1a1a1a" : "#fff",
-            fontWeight: "bold",
-            fontFamily: "Quicksand, sans-serif",
-            border: "none",
-            whiteSpace: "nowrap",
-            minWidth: isMobileView ? "calc(50% - 2px)" : 0,
-            flex: isMobileView ? "1 1 calc(50% - 2px)" : 1,
-            padding: isMobileView ? "11px 8px" : "10px 0",
-            borderRadius: 6,
-            cursor: "pointer",
-            transition: "all 0.2s",
-            minHeight: 44,
-          }}
+          type="button"
           onClick={() => setSelectedLocation("")}
+          className="inline-flex min-w-[54px] items-center justify-center rounded-[6px] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.5px] transition-colors"
+          style={{
+            background: selectedLocation === "" ? "#ffc800" : "#1a1a1a",
+            color: selectedLocation === "" ? "#1a1a1a" : "#fff",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
         >
           ALL
         </button>
-        {outlets.map((outlet) => (
-          <button
-            key={outlet.shortform || outlet.id || outlet.name}
-            className="font-bold font-quicksand border-none whitespace-nowrap min-w-0 flex-1 py-2.5 rounded-[6px] cursor-pointer transition-all duration-200"
-            style={{
-              background:
-                selectedLocation === (outlet.shortform || outlet.name)
-                  ? "#ffa500"
-                  : "#232323",
-              color:
-                selectedLocation === (outlet.shortform || outlet.name)
-                  ? "#1a1a1a"
-                  : "#fff",
-              fontWeight: "bold",
-              fontFamily: "Quicksand, sans-serif",
-              border: "none",
-              whiteSpace: "nowrap",
-              minWidth: isMobileView ? "calc(50% - 2px)" : 0,
-              flex: isMobileView ? "1 1 calc(50% - 2px)" : 1,
-              padding: isMobileView ? "11px 8px" : "10px 0",
-              borderRadius: 6,
-              cursor: "pointer",
-              transition: "all 0.2s",
-              minHeight: 44,
-            }}
-            onClick={() => setSelectedLocation(outlet.shortform || outlet.name)}
-          >
-            {outlet.shortform || outlet.name}
-          </button>
-        ))}
+        {outlets.map((outlet) => {
+          const code = outlet.shortform || outlet.name;
+          const active = selectedLocation === code;
+          return (
+            <button
+              key={outlet.shortform || outlet.id || outlet.name}
+              type="button"
+              onClick={() => setSelectedLocation(code)}
+              className="inline-flex min-w-[54px] items-center justify-center rounded-[6px] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.5px] transition-colors"
+              style={{
+                background: active ? "#ffc800" : "#1a1a1a",
+                color: active ? "#1a1a1a" : "#fff",
+                border: "1px solid rgba(255,255,255,0.06)",
+              }}
+            >
+              {code}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Selected Location Header */}
-      {/* In location-header, move the date filter to the right side, next to the appointment count badge */}
-      <div
-        className="flex justify-between items-center w-full"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: isCondensedView ? "wrap" : "nowrap",
-          gap: isCondensedView ? "10px" : "0",
-          width: "100%",
-        }}
-      >
-        {/* Header text container: only as wide as needed */}
-        <div
-          className="inline-flex flex-col items-start min-w-0"
-          style={{
-            display: "inline-flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            minWidth: 0,
-          }}
-        >
-          <h2
-            style={{
-              whiteSpace: isCondensedView ? "normal" : "nowrap",
-              margin: 0,
-              lineHeight: 1.2,
-            }}
-          >
-            {selectedLocation
-              ? `${outlets.find((outlet) => (outlet.shortform || outlet.name) === selectedLocation)?.name || selectedLocation} (${selectedLocation})`
-              : "All Locations"}
-          </h2>
-          <div className="flex items-center gap-2">
-            <span className="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-xs font-semibold border border-orange-500/30">
+      {/* Main card */}
+      <div className="rounded-[18px] bg-[#171717] p-5 shadow-[0_10px_22px_rgba(0,0,0,0.35)]">
+        {/* Header row: title (left) + filter pills (right) */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-1">
+            <h2
+              className="m-0 text-[18px] font-bold uppercase tracking-[0.5px]"
+              style={{ color: "#ffc800", lineHeight: 1.2 }}
+            >
+              {outletTitle}
+            </h2>
+            <span className="rounded-full border border-orange-500/30 bg-orange-500/20 px-3 py-[3px] text-[11px] font-semibold text-orange-400">
               {filteredAppointments.length} appointments
             </span>
           </div>
-        </div>
-        {/* Date filter at far right */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "#232323",
-            borderRadius: 6,
-            padding: isCondensedView ? "10px 12px" : "6px 12px",
-            marginLeft: "auto",
-            width: isCondensedView ? "100%" : "auto",
-          }}
-        >
-          <CalendarIcon />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            style={{
-              background: "transparent",
-              color: "white",
-              border: "none",
-              outline: "none",
-              fontFamily: "Quicksand, sans-serif",
-              fontWeight: "bold",
-              fontSize: 15,
-              padding: isCondensedView ? "8px 0" : "4px 0",
-              minWidth: isCondensedView ? 0 : 120,
-              width: isCondensedView ? "100%" : "auto",
-              cursor: "pointer",
-            }}
-          />
-        </div>
-      </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-12 card-dark rounded-huuk-md">
-          <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-          <p>Loading appointments and outlets...</p>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-600/20 border border-red-500 text-red-300 px-4 py-3 rounded-huuk-sm">
-          <p>⚠️ {error}</p>
-        </div>
-      )}
-
-      {/* Appointments Table */}
-      {!loading && !error && (
-        <div
-          className="min-h-[340px] h-[340px] max-h-[340px] overflow-hidden box-border w-full mb-0 bg-[rgba(25,25,25,0.8)] rounded-huuk-sm border border-white/10 flex flex-col"
-          style={{
-            minHeight: isCondensedView ? "auto" : "340px",
-            height: isCondensedView ? "auto" : "340px",
-            maxHeight: isCondensedView ? "none" : "340px",
-            overflow: isCondensedView ? "visible" : "hidden",
-            boxSizing: "border-box",
-            width: "100%",
-            marginBottom: 0,
-            background: "rgba(25, 25, 25, 0.8)",
-            borderRadius: 8,
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          {isMobileView ? (
-            <div className="space-y-2 p-2">
-              {paginatedAppointments.length === 0 ? (
-                <div className="text-center text-sm text-gray-300 py-4">
-                  No appointments found.
-                </div>
-              ) : (
-                paginatedAppointments.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="rounded-huuk-sm border border-white/10 bg-white/5 p-3"
-                  >
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
-                      <span className="text-gray-300">Date</span>
-                      <span>
-                        {appointment.date
-                          ? formatDateForDisplay(appointment.date)
-                          : "N/A"}
-                      </span>
-                      <span className="text-gray-300">Time</span>
-                      <span>
-                        {(() => {
-                          if (
-                            !appointment.start_time ||
-                            !appointment.end_time ||
-                            !appointment.date
-                          )
-                            return "N/A";
-                          const dateOnly = appointment.date.split("T")[0];
-                          const startDateTime = moment(
-                            `${dateOnly}T${appointment.start_time}`,
-                          );
-                          const endDateTime = moment(
-                            `${dateOnly}T${appointment.end_time}`,
-                          );
-                          if (
-                            !startDateTime.isValid() ||
-                            !endDateTime.isValid()
-                          )
-                            return "Invalid Time";
-                          return `${startDateTime.format("HH:mm")} - ${endDateTime.format("HH:mm")}`;
-                        })()}
-                      </span>
-                      <span className="text-gray-300">Staff</span>
-                      <span>
-                        {appointment.username ||
-                        appointment.staff_username ||
-                        appointment.user_name
-                          ? appointment.username ||
-                            appointment.staff_username ||
-                            appointment.user_name
-                          : appointment.staffName &&
-                              appointment.staffName !== "-" &&
-                              appointment.staffName.trim() !== ""
-                            ? appointment.staffName
-                            : "Unassigned"}
-                      </span>
-                      <span className="text-gray-300">Service</span>
-                      <span>{appointment.service}</span>
-                    </div>
-                    <div className="mt-3 flex justify-stretch">
-                      {getActionButtons(appointment)}
-                    </div>
-                  </div>
-                ))
-              )}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Staff filter */}
+            <div className="relative">
+              <select
+                value={selectedStaff}
+                onChange={(e) => setSelectedStaff(e.target.value)}
+                className="h-[42px] w-[200px] appearance-none rounded-[10px] border border-white/15 bg-white px-4 pr-10 text-[13px] font-semibold uppercase tracking-[0.5px] text-[#171717] outline-none"
+              >
+                <option value="">BY ALL STAFF</option>
+                {staffOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#171717]">
+                <i className="bi bi-chevron-down text-[12px]" />
+              </span>
             </div>
-          ) : (
-            <>
-              <div
-                className="grid bg-orange-500/10 px-4 py-3 font-semibold text-[11px] text-white uppercase tracking-wide border-b border-orange-500/30 shrink-0 w-full max-w-full box-border"
-                style={{
-                  gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
-                  overflow: "hidden",
-                }}
-              >
-                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
-                  <CalendarIcon />
-                  <span>DATE</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
-                  <ClockIcon />
-                  <span>TIME</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
-                  <UserIcon />
-                  <span>STAFF NAME</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
-                  <ScissorsIcon />
-                  <span>SERVICE</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap justify-center">
-                  <span>ACTIONS</span>
-                </div>
-              </div>
-              <div
-                className="flex-1 overflow-hidden bg-transparent"
-                style={{
-                  flex: 1,
-                  overflow: "hidden",
-                  background: "transparent",
-                }}
-              >
-                {Array.from({ length: 4 }).map((_, i) => {
-                  // Changed from 5 to 4
-                  const appointment = paginatedAppointments[i];
-                  if (appointment) {
-                    return (
-                      <div
-                        key={appointment.id}
-                        className="grid px-4 py-3 border-b border-white/5 items-center transition-all duration-200 hover:bg-white/5 w-full max-w-full box-border relative"
-                        style={{
-                          gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
-                          minHeight: 0,
-                          height: "80px",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {appointment.date
-                            ? formatDateForDisplay(appointment.date)
-                            : "N/A"}
-                        </div>
-                        <div
-                          className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {(() => {
-                            if (
-                              !appointment.start_time ||
-                              !appointment.end_time ||
-                              !appointment.date
-                            )
-                              return "N/A";
-                            const dateOnly = appointment.date.split("T")[0];
-                            const startDateTime = moment(
-                              `${dateOnly}T${appointment.start_time}`,
-                            );
-                            const endDateTime = moment(
-                              `${dateOnly}T${appointment.end_time}`,
-                            );
-                            if (
-                              !startDateTime.isValid() ||
-                              !endDateTime.isValid()
-                            )
-                              return "Invalid Time";
-                            const startTime = startDateTime.format("HH:mm");
-                            const endTime = endDateTime.format("HH:mm");
-                            return `${startTime} - ${endTime}`;
-                          })()}
-                        </div>
-                        <div
-                          className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {appointment.username ||
-                          appointment.staff_username ||
-                          appointment.user_name
-                            ? appointment.username ||
-                              appointment.staff_username ||
-                              appointment.user_name
-                            : appointment.staffName &&
-                                appointment.staffName !== "-" &&
-                                appointment.staffName.trim() !== ""
-                              ? appointment.staffName
-                              : "Unassigned"}
-                        </div>
-                        <div
-                          className="text-[13px] text-white font-medium flex items-center whitespace-nowrap overflow-hidden text-ellipsis"
-                          style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {appointment.service}
-                        </div>
-                        <div className="text-[13px] text-white font-medium flex items-center justify-center text-center">
-                          {getActionButtons(appointment)}
-                        </div>
-                      </div>
-                    );
-                  } else {
-                    // Render empty row for visual consistency
-                    return (
-                      <div
-                        key={`empty-row-${i}`}
-                        className="grid px-4 py-3 border-b border-white/5 items-center w-full max-w-full box-border"
-                        style={{
-                          gridTemplateColumns: "0.8fr 0.8fr 1fr 1.2fr 1fr",
-                          minHeight: 0,
-                          height: "80px",
-                          overflow: "hidden",
-                          background: "transparent",
-                        }}
-                      >
-                        <div className="text-[13px]" />
-                        <div className="text-[13px]" />
-                        <div className="text-[13px]" />
-                        <div className="text-[13px]" />
-                        <div className="text-[13px]" />
-                      </div>
-                    );
-                  }
-                })}
-              </div>
-            </>
-          )}
-        </div>
-      )}
 
-      {/* Pagination */}
-      <div
-        className="w-full flex justify-center items-center mt-[-15px]"
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          marginTop: isMobileView ? "4px" : "-15px",
-        }}
-      >
-        <button
-          className="px-3 py-1 rounded-huuk-sm bg-white/20 text-white disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(currentPage - 1)}
-          style={{ marginRight: 12, minHeight: 40 }}
-        >
-          Prev
-        </button>
-        <span
-          className="font-bold font-quicksand text-[15px]"
-          style={{
-            fontWeight: "bold",
-            fontFamily: "Quicksand, sans-serif",
-            fontSize: 15,
-          }}
-        >
-          {currentPage}/{totalPages || 1}
-        </span>
-        <button
-          className="px-3 py-1 rounded-huuk-sm bg-white/20 text-white disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={currentPage >= totalPages}
-          onClick={() => setCurrentPage(currentPage + 1)}
-          style={{ marginLeft: 12, minHeight: 40 }}
-        >
-          Next
-        </button>
+            {/* Service filter */}
+            <div className="relative">
+              <select
+                value={selectedService}
+                onChange={(e) => setSelectedService(e.target.value)}
+                className="h-[42px] w-[200px] appearance-none rounded-[10px] border border-white/15 bg-white px-4 pr-10 text-[13px] font-semibold uppercase tracking-[0.5px] text-[#171717] outline-none"
+              >
+                <option value="">BY ALL SERVICE</option>
+                {serviceOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#171717]">
+                <i className="bi bi-chevron-down text-[12px]" />
+              </span>
+            </div>
+
+            {/* Status filter */}
+            <div className="relative">
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="h-[42px] w-[180px] appearance-none rounded-[10px] border border-white/15 bg-white px-4 pr-10 text-[13px] font-semibold uppercase tracking-[0.5px] text-[#171717] outline-none"
+              >
+                <option value="">BY ALL STATUS</option>
+                {statusOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#171717]">
+                <i className="bi bi-chevron-down text-[12px]" />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Loading / error states */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center gap-2 py-10 text-white/70">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            <p className="m-0 text-[13px]">
+              Loading appointments and outlets...
+            </p>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="mb-3 rounded-[10px] border border-red-500 bg-red-600/20 px-4 py-3 text-red-300">
+            <p className="m-0 text-[13px]"><i className="bi bi-exclamation-triangle-fill mr-1" />{error}</p>
+          </div>
+        )}
+
+        {/* Appointments table */}
+        {!loading && !error && (
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed border-collapse text-left">
+              <colgroup>
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "18%" }} />
+                <col style={{ width: "22%" }} />
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "28%" }} />
+              </colgroup>
+              <thead>
+                <tr className="text-[12px] font-bold uppercase tracking-wide text-white/90">
+                  <th className="border-b border-white/15 px-3 py-3">Time</th>
+                  <th className="border-b border-white/15 px-3 py-3">
+                    Staff Name
+                  </th>
+                  <th className="border-b border-white/15 px-3 py-3">
+                    Service
+                  </th>
+                  <th className="border-b border-white/15 px-3 py-3">Status</th>
+                  <th className="border-b border-white/15 px-3 py-3 text-center">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedAppointments.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-3 py-8 text-center text-[14px] text-white/70"
+                    >
+                      No appointments found.
+                    </td>
+                  </tr>
+                ) : (
+                  Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => {
+                    const appointment = paginatedAppointments[i];
+                    if (!appointment) {
+                      return (
+                        <tr
+                          key={`empty-row-${i}`}
+                          className="text-[14px] text-white"
+                        >
+                          <td className="px-3 py-3" style={{ height: 56 }} />
+                          <td className="px-3 py-3" />
+                          <td className="px-3 py-3" />
+                          <td className="px-3 py-3" />
+                          <td className="px-3 py-3" />
+                        </tr>
+                      );
+                    }
+                    return (
+                      <tr
+                        key={appointment.id}
+                        className="text-[14px] text-white"
+                      >
+                        <td className="px-3 py-3 font-bold">
+                          {formatTimeRange(appointment)}
+                        </td>
+                        <td className="px-3 py-3 font-bold">
+                          {getStaffName(appointment)}
+                        </td>
+                        <td className="px-3 py-3 font-bold truncate">
+                          {appointment.service || "--"}
+                        </td>
+                        <td className="px-3 py-3">
+                          {renderStatusCell(appointment.status)}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center justify-center">
+                            {getActionButtons(appointment)}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && !error && (
+          <div className="mt-5 flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="min-w-[80px] rounded-md border border-white/15 bg-transparent px-4 py-1.5 text-[14px] font-bold text-white/80 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Prev
+            </button>
+
+            <span className="min-w-[48px] text-center text-[15px] font-bold text-white">
+              {currentPage}/{totalPages || 1}
+            </span>
+
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages || 1, currentPage + 1))
+              }
+              disabled={currentPage >= (totalPages || 1)}
+              className="min-w-[80px] rounded-md border border-white/15 bg-transparent px-4 py-1.5 text-[14px] font-bold text-white/80 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Reschedule Booking Modal */}
