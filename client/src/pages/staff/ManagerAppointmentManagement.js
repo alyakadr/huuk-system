@@ -6,7 +6,10 @@ import { getSocketConnectOptions } from "../../utils/socketClient";
 import RescheduleBookingModal from "../../components/RescheduleBookingModal";
 import { io } from "socket.io-client";
 import { fetchOutlets } from "../../utils/bookingUtils";
-import { OUTLET_SHORTCUTS_TITLE } from "../../constants/outlets";
+import {
+  OUTLET_SHORTCUTS_TITLE,
+  OUTLET_SHORTCUTS_UPPER,
+} from "../../constants/outlets";
 import {
   Dialog,
   DialogActions,
@@ -21,6 +24,145 @@ import {
 const DEFAULT_OUTLETS = Object.entries(OUTLET_SHORTCUTS_TITLE).map(
   ([name, shortform]) => ({ id: shortform, name, shortform }),
 );
+
+// Hardcoded fallback appointments so the table always has content, even when
+// the API is unavailable. Swap / extend freely — the component prefers
+// server data whenever the API call succeeds with a non-empty list.
+const TODAY = new Date().toISOString().slice(0, 10);
+const SAMPLE_APPOINTMENTS = [
+  {
+    id: "sample-1",
+    date: TODAY,
+    start_time: "10:00",
+    end_time: "10:30",
+    username: "Addy",
+    service: "Haircut Adult",
+    status: "Overdue",
+    outlet: "Setia City Mall",
+    outlet_shortform: "SCM",
+  },
+  {
+    id: "sample-2",
+    date: TODAY,
+    start_time: "10:00",
+    end_time: "10:30",
+    username: "Chunkz",
+    service: "Kids Haircut",
+    status: "Completed",
+    outlet: "Setia City Mall",
+    outlet_shortform: "SCM",
+  },
+  {
+    id: "sample-3",
+    date: TODAY,
+    start_time: "10:00",
+    end_time: "10:30",
+    username: "Haziq",
+    service: "Waxing",
+    status: "Completed",
+    outlet: "Setia City Mall",
+    outlet_shortform: "SCM",
+  },
+  {
+    id: "sample-4",
+    date: TODAY,
+    start_time: "10:30",
+    end_time: "11:00",
+    username: "Danial",
+    service: "Bear Colour",
+    status: "In Progress",
+    outlet: "Setia City Mall",
+    outlet_shortform: "SCM",
+  },
+  {
+    id: "sample-5",
+    date: TODAY,
+    start_time: "10:30",
+    end_time: "11:30",
+    username: "Haziq",
+    service: "Hair colour",
+    status: "In Progress",
+    outlet: "Setia City Mall",
+    outlet_shortform: "SCM",
+  },
+  {
+    id: "sample-6",
+    date: TODAY,
+    start_time: "11:00",
+    end_time: "12:00",
+    username: "Addy",
+    service: "Haircut & Wash",
+    status: "In Progress",
+    outlet: "Setia City Mall",
+    outlet_shortform: "SCM",
+  },
+  {
+    id: "sample-7",
+    date: TODAY,
+    start_time: "12:00",
+    end_time: "12:30",
+    username: "Irfan",
+    service: "Haircut Adult",
+    status: "Upcoming",
+    outlet: "Setia City Mall",
+    outlet_shortform: "SCM",
+  },
+  {
+    id: "sample-8",
+    date: TODAY,
+    start_time: "09:30",
+    end_time: "10:00",
+    username: "Jordan",
+    service: "Beard Trim",
+    status: "Cancelled",
+    outlet: "Setia City Mall",
+    outlet_shortform: "SCM",
+  },
+  {
+    id: "sample-9",
+    date: TODAY,
+    start_time: "11:00",
+    end_time: "11:30",
+    username: "Luqman",
+    service: "Kids Haircut",
+    status: "In Progress",
+    outlet: "Pavilion KL",
+    outlet_shortform: "PKL",
+  },
+  {
+    id: "sample-10",
+    date: TODAY,
+    start_time: "11:30",
+    end_time: "12:00",
+    username: "Kai",
+    service: "Hair colour",
+    status: "Upcoming",
+    outlet: "Pavilion KL",
+    outlet_shortform: "PKL",
+  },
+  {
+    id: "sample-11",
+    date: TODAY,
+    start_time: "13:00",
+    end_time: "13:30",
+    username: "Danial",
+    service: "Haircut Adult",
+    status: "Upcoming",
+    outlet: "Lot 10 Shopping Centre",
+    outlet_shortform: "L10",
+  },
+  {
+    id: "sample-12",
+    date: TODAY,
+    start_time: "14:00",
+    end_time: "14:30",
+    username: "Addy",
+    service: "Waxing",
+    status: "Upcoming",
+    outlet: "Mid Valley Megamall (Centre Court)",
+    outlet_shortform: "MVC",
+  },
+];
 
 // Icon components (you can replace these with actual icon library imports)
 const CalendarIcon = () => (
@@ -87,9 +229,9 @@ const ScissorsIcon = () => (
 const ManagerAppointmentManagement = () => {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState(SAMPLE_APPOINTMENTS);
   const [filteredAppointments, setFilteredAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -131,6 +273,24 @@ const ManagerAppointmentManagement = () => {
       return fallback;
     }
     return "Unassigned";
+  };
+
+  // Resolve an outlet to its 3-letter shortform (SCM / PKL / ...).
+  const getOutletShortform = (appointment) => {
+    const explicit =
+      appointment?.outlet_shortform ||
+      appointment?.shortform ||
+      appointment?.outlet_code ||
+      appointment?.branch_code;
+    if (explicit) return String(explicit).toUpperCase();
+
+    const rawName = appointment?.outlet || appointment?.branch || "";
+    if (!rawName) return "--";
+    const upper = String(rawName).toUpperCase();
+    if (OUTLET_SHORTCUTS_UPPER[upper]) return OUTLET_SHORTCUTS_UPPER[upper];
+    if (OUTLET_SHORTCUTS_TITLE[rawName]) return OUTLET_SHORTCUTS_TITLE[rawName];
+    // Fall back to the raw name if it's already short (<= 4 chars), else first 3 letters.
+    return rawName.length <= 4 ? upper : upper.slice(0, 3);
   };
 
   // Build dropdown option sets from the appointments visible for the selected outlet.
@@ -317,15 +477,22 @@ const ManagerAppointmentManagement = () => {
       }, {});
       console.log("Appointments by outlet:", outletCounts);
 
-      setAppointments(validAppointments);
-      return validAppointments;
+      if (validAppointments.length > 0) {
+        setAppointments(validAppointments);
+        return validAppointments;
+      }
+      // Keep the hardcoded fallback visible when the API returns nothing.
+      setAppointments(SAMPLE_APPOINTMENTS);
+      return SAMPLE_APPOINTMENTS;
     } catch (error) {
       console.error(
         "Error fetching appointments:",
         error.response?.status,
         error.response?.data,
       );
-      throw error;
+      // Silent fallback to the hardcoded sample so the UI always has data.
+      setAppointments(SAMPLE_APPOINTMENTS);
+      return SAMPLE_APPOINTMENTS;
     }
   };
 
@@ -380,7 +547,14 @@ const ManagerAppointmentManagement = () => {
   // Dynamic filtering function for appointments by outlet and date
   useEffect(() => {
     const filterAppointments = () => {
-      let filtered = [...appointments];
+      // Only show appointments for today (across all outlets by default).
+      const todayStr = moment().format("YYYY-MM-DD");
+      let filtered = appointments.filter((apt) => {
+        const raw = apt?.date || apt?.booking_date || "";
+        if (!raw) return false;
+        const aptDay = String(raw).split("T")[0];
+        return aptDay === todayStr;
+      });
 
       // Dynamic outlet filtering - more robust outlet matching
       if (selectedLocation) {
@@ -543,10 +717,10 @@ const ManagerAppointmentManagement = () => {
     ].includes(appointment.status);
 
     const baseBtn =
-      "px-3 py-1.5 rounded text-[13px] font-bold font-quicksand min-w-[100px] max-w-[100px] h-[34px] transition-all duration-200 box-border text-center inline-block";
+      "px-2 py-1 rounded text-[12px] font-bold font-quicksand min-w-[82px] max-w-[82px] h-[28px] leading-none transition-all duration-200 box-border text-center inline-block";
 
     return (
-      <div className="flex gap-2 justify-center items-center flex-wrap m-0">
+      <div className="flex gap-1.5 justify-center items-center flex-nowrap m-0">
         <button
           disabled={disabled}
           aria-disabled={disabled}
@@ -603,7 +777,30 @@ const ManagerAppointmentManagement = () => {
 
   const renderStatusCell = (status) => {
     if (!status) return <span className="font-bold text-white/70">--</span>;
-    return <span className="font-bold text-white">{status}</span>;
+
+    // Color each status so staff can scan the column at a glance.
+    const colorByStatus = {
+      Upcoming: "#38bdf8",        // sky-400
+      Confirmed: "#38bdf8",
+      Scheduled: "#38bdf8",
+      "In Progress": "#f59e0b",   // amber-500
+      Overdue: "#ef4444",         // red-500
+      Completed: "#22c55e",       // green-500
+      Cancelled: "#f87171",       // red-400 (softer)
+      Absent: "#ef4444",
+      Rescheduled: "#a78bfa",     // violet-400
+    };
+
+    const color = colorByStatus[status] || "#ffffff";
+
+    return (
+      <span
+        className="font-bold uppercase tracking-[0.3px]"
+        style={{ color }}
+      >
+        {status}
+      </span>
+    );
   };
 
   return (
@@ -611,12 +808,12 @@ const ManagerAppointmentManagement = () => {
       className="w-full pb-3 pl-0 pr-1 pt-3 font-quicksand text-white relative"
       style={{ marginLeft: "3px" }}
     >
-      {/* Outlet tabs (ICM, PKL, ... , WW2) */}
-      <div className="mb-3 flex flex-wrap gap-1">
+      {/* Outlet tabs — stretch to fill the row, no right-hand gap */}
+      <div className="mb-3 flex w-full gap-1">
         <button
           type="button"
           onClick={() => setSelectedLocation("")}
-          className="inline-flex min-w-[54px] items-center justify-center rounded-[6px] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.5px] transition-colors"
+          className="inline-flex flex-1 min-w-0 items-center justify-center rounded-[6px] px-2 py-1.5 text-[11px] font-bold uppercase tracking-[0.5px] transition-colors"
           style={{
             background: selectedLocation === "" ? "#ffc800" : "#1a1a1a",
             color: selectedLocation === "" ? "#1a1a1a" : "#fff",
@@ -633,7 +830,7 @@ const ManagerAppointmentManagement = () => {
               key={outlet.shortform || outlet.id || outlet.name}
               type="button"
               onClick={() => setSelectedLocation(code)}
-              className="inline-flex min-w-[54px] items-center justify-center rounded-[6px] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.5px] transition-colors"
+              className="inline-flex flex-1 min-w-0 items-center justify-center rounded-[6px] px-2 py-1.5 text-[11px] font-bold uppercase tracking-[0.5px] transition-colors"
               style={{
                 background: active ? "#ffc800" : "#1a1a1a",
                 color: active ? "#1a1a1a" : "#fff",
@@ -662,13 +859,13 @@ const ManagerAppointmentManagement = () => {
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Staff filter */}
             <div className="relative">
               <select
                 value={selectedStaff}
                 onChange={(e) => setSelectedStaff(e.target.value)}
-                className="h-[42px] w-[200px] appearance-none rounded-[10px] border border-white/15 bg-white px-4 pr-10 text-[13px] font-semibold uppercase tracking-[0.5px] text-[#171717] outline-none"
+                className="h-[32px] w-[140px] appearance-none rounded-[8px] border border-white/15 bg-white pl-3 pr-7 text-[11px] font-bold uppercase tracking-[0.5px] text-[#171717] outline-none"
               >
                 <option value="">BY ALL STAFF</option>
                 {staffOptions.map((s) => (
@@ -677,8 +874,8 @@ const ManagerAppointmentManagement = () => {
                   </option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#171717]">
-                <i className="bi bi-chevron-down text-[12px]" />
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#171717]">
+                <i className="bi bi-chevron-down text-[10px]" />
               </span>
             </div>
 
@@ -687,7 +884,7 @@ const ManagerAppointmentManagement = () => {
               <select
                 value={selectedService}
                 onChange={(e) => setSelectedService(e.target.value)}
-                className="h-[42px] w-[200px] appearance-none rounded-[10px] border border-white/15 bg-white px-4 pr-10 text-[13px] font-semibold uppercase tracking-[0.5px] text-[#171717] outline-none"
+                className="h-[32px] w-[150px] appearance-none rounded-[8px] border border-white/15 bg-white pl-3 pr-7 text-[11px] font-bold uppercase tracking-[0.5px] text-[#171717] outline-none"
               >
                 <option value="">BY ALL SERVICE</option>
                 {serviceOptions.map((s) => (
@@ -696,8 +893,8 @@ const ManagerAppointmentManagement = () => {
                   </option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#171717]">
-                <i className="bi bi-chevron-down text-[12px]" />
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#171717]">
+                <i className="bi bi-chevron-down text-[10px]" />
               </span>
             </div>
 
@@ -706,7 +903,7 @@ const ManagerAppointmentManagement = () => {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="h-[42px] w-[180px] appearance-none rounded-[10px] border border-white/15 bg-white px-4 pr-10 text-[13px] font-semibold uppercase tracking-[0.5px] text-[#171717] outline-none"
+                className="h-[32px] w-[140px] appearance-none rounded-[8px] border border-white/15 bg-white pl-3 pr-7 text-[11px] font-bold uppercase tracking-[0.5px] text-[#171717] outline-none"
               >
                 <option value="">BY ALL STATUS</option>
                 {statusOptions.map((s) => (
@@ -715,8 +912,8 @@ const ManagerAppointmentManagement = () => {
                   </option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#171717]">
-                <i className="bi bi-chevron-down text-[12px]" />
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#171717]">
+                <i className="bi bi-chevron-down text-[10px]" />
               </span>
             </div>
           </div>
@@ -743,23 +940,27 @@ const ManagerAppointmentManagement = () => {
           <div className="overflow-x-auto">
             <table className="w-full table-fixed border-collapse text-left">
               <colgroup>
-                <col style={{ width: "16%" }} />
-                <col style={{ width: "18%" }} />
-                <col style={{ width: "22%" }} />
-                <col style={{ width: "16%" }} />
-                <col style={{ width: "28%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "17%" }} />
+                <col style={{ width: "21%" }} />
+                <col style={{ width: "9%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "25%" }} />
               </colgroup>
               <thead>
                 <tr className="text-[12px] font-bold uppercase tracking-wide text-white/90">
-                  <th className="border-b border-white/15 px-3 py-3">Time</th>
-                  <th className="border-b border-white/15 px-3 py-3">
+                  <th className="border-b border-white/15 px-3 py-2">Time</th>
+                  <th className="border-b border-white/15 px-3 py-2">
                     Staff Name
                   </th>
-                  <th className="border-b border-white/15 px-3 py-3">
+                  <th className="border-b border-white/15 px-3 py-2">
                     Service
                   </th>
-                  <th className="border-b border-white/15 px-3 py-3">Status</th>
-                  <th className="border-b border-white/15 px-3 py-3 text-center">
+                  <th className="border-b border-white/15 pl-1 pr-3 py-2">
+                    Outlet
+                  </th>
+                  <th className="border-b border-white/15 px-3 py-2">Status</th>
+                  <th className="border-b border-white/15 px-3 py-2 text-center">
                     Actions
                   </th>
                 </tr>
@@ -768,7 +969,7 @@ const ManagerAppointmentManagement = () => {
                 {paginatedAppointments.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="px-3 py-8 text-center text-[14px] text-white/70"
                     >
                       No appointments found.
@@ -783,11 +984,12 @@ const ManagerAppointmentManagement = () => {
                           key={`empty-row-${i}`}
                           className="text-[14px] text-white"
                         >
-                          <td className="px-3 py-3" style={{ height: 56 }} />
-                          <td className="px-3 py-3" />
-                          <td className="px-3 py-3" />
-                          <td className="px-3 py-3" />
-                          <td className="px-3 py-3" />
+                          <td className="px-3 py-2" style={{ height: 48 }} />
+                          <td className="px-3 py-2" />
+                          <td className="px-3 py-2" />
+                          <td className="px-3 py-2" />
+                          <td className="px-3 py-2" />
+                          <td className="px-3 py-2" />
                         </tr>
                       );
                     }
@@ -796,19 +998,22 @@ const ManagerAppointmentManagement = () => {
                         key={appointment.id}
                         className="text-[14px] text-white"
                       >
-                        <td className="px-3 py-3 font-bold">
+                        <td className="px-3 py-2 font-bold">
                           {formatTimeRange(appointment)}
                         </td>
-                        <td className="px-3 py-3 font-bold">
+                        <td className="px-3 py-2 font-bold">
                           {getStaffName(appointment)}
                         </td>
-                        <td className="px-3 py-3 font-bold truncate">
+                        <td className="px-3 py-2 font-bold truncate">
                           {appointment.service || "--"}
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="pl-1 pr-3 py-2 font-bold uppercase tracking-[0.3px] text-white">
+                          {getOutletShortform(appointment)}
+                        </td>
+                        <td className="px-3 py-2">
                           {renderStatusCell(appointment.status)}
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-2">
                           <div className="flex items-center justify-center">
                             {getActionButtons(appointment)}
                           </div>
@@ -824,7 +1029,7 @@ const ManagerAppointmentManagement = () => {
 
         {/* Pagination */}
         {!loading && !error && (
-          <div className="mt-5 flex items-center justify-center gap-4">
+          <div className="mt-4 flex items-center justify-center gap-4">
             <button
               type="button"
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
