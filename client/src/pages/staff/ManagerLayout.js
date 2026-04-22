@@ -227,12 +227,7 @@ const ManagerLayout = () => {
             overflow: "hidden",
           }}
         >
-          <main
-            className="w-full min-w-0"
-            style={{ height: "100%", overflow: "hidden" }}
-          >
-            <Outlet />
-          </main>
+          <Outlet />
         </div>
       </div>
       <SwitchModeButton />

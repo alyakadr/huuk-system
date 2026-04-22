@@ -15,6 +15,7 @@ const client = http.create({
 
 client.interceptors.request.use(
   (config) => {
+    if (!config.headers) config.headers = {};
     // Use appropriate token based on endpoint
     const token = localStorage.getItem("token");
     const staffToken = localStorage.getItem("staff_token");
@@ -91,6 +92,7 @@ const createApiClientWithTimeout = (timeout) => {
   // Add request interceptor
   clientInstance.interceptors.request.use(
     (config) => {
+      if (!config.headers) config.headers = {};
       // Use the getAuthToken utility for more consistent token retrieval
       const token = getAuthToken();
 
@@ -144,6 +146,8 @@ const createApiClientWithTimeout = (timeout) => {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
               },
             );
+
+            if (!originalRequest.headers) originalRequest.headers = {};
 
             if (refreshResponse.data.token) {
               // Update both token keys for compatibility

@@ -117,7 +117,10 @@ const PaymentSummary = () => {
   }
 
   return (
-    <div className="w-full text-white font-quicksand space-y-4">
+    <div
+      className="w-full text-white font-quicksand space-y-4"
+      style={{ height: "100%", overflowY: "auto", overflowX: "hidden" }}
+    >
       <div className="card-dark rounded-huuk-lg">
         <h1 className="text-2xl font-bold">Payment Management</h1>
         <p className="text-sm text-huuk-muted mt-1">

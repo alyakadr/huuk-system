@@ -208,7 +208,12 @@ const StaffApproval = () => {
   return (
     <div
       className="relative w-full pb-3 pl-0 pr-1 pt-3 font-quicksand text-white"
-      style={{ marginLeft: "3px" }}
+      style={{
+        marginLeft: "3px",
+        height: "100%",
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
     >
       <div className="relative rounded-[18px] bg-[#171717] p-5 shadow-[0_10px_22px_rgba(0,0,0,0.35)]">
         {isLoading ? (

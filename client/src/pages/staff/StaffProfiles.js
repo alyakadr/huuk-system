@@ -246,7 +246,15 @@ const StaffProfiles = () => {
   }
 
   return (
-    <div className="w-full pb-3 pl-0 pr-1 pt-0 font-quicksand text-white" style={{ marginLeft: "8px" }}>
+    <div
+      className="w-full pb-3 pl-0 pr-1 pt-0 font-quicksand text-white"
+      style={{
+        marginLeft: "8px",
+        height: "100%",
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
+    >
       <div className="mb-3 flex items-start justify-between gap-4">
         <div>
           <p className="m-0 text-[18px] font-semibold leading-tight text-huuk-accent">

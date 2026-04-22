@@ -852,7 +852,7 @@ const StaffDashboard = () => {
   );
 
   return (
-    <div className="staff-dashboard min-w-0 overflow-x-hidden bg-huuk-bg text-white font-quicksand">
+    <div className="staff-dashboard min-w-0 overflow-x-hidden bg-huuk-bg pt-2 text-white font-quicksand">
       <div className="w-full min-w-0">
         <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-12 xl:items-stretch">
           <div className="xl:col-span-8 grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-4">
@@ -902,14 +902,14 @@ const StaffDashboard = () => {
           </div>
 
           <div className="flex min-w-0 flex-col gap-3 xl:col-span-4 xl:col-start-9 xl:row-span-2">
-            <div className="card-dark flex flex-col items-center justify-center gap-2 rounded-[16px] px-4 py-3">
-              <div className="flex min-w-0 items-center gap-2">
+            <div className="card-dark flex h-28 shrink-0 flex-col items-center justify-center gap-2 rounded-[16px] px-4 py-3 text-center">
+              <div className="flex min-w-0 max-w-full items-center justify-center gap-2">
                 <img
                   src={isTimeInConfirmed ? donereminder : remindreminder}
                   alt="Attendance Reminder"
-                  className="h-5 w-5 shrink-0 object-contain"
+                  className="h-8 w-8 shrink-0 object-contain sm:h-9 sm:w-9"
                 />
-                <p className="m-0 text-base font-bold leading-snug">
+                <p className="m-0 text-lg font-bold leading-snug sm:text-xl">
                   {isTimeInConfirmed
                     ? "Already Updated Time-In"
                     : "Not Yet Updated Time-In"}

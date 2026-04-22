@@ -43,7 +43,10 @@ const CustomerManagement = () => {
     );
 
   return (
-    <div className="card-dark rounded-huuk-lg min-h-[60vh]">
+    <div
+      className="card-dark rounded-huuk-lg"
+      style={{ height: "100%", overflowY: "auto", overflowX: "hidden" }}
+    >
       <h2 className="text-2xl font-bold mb-4">Customer Management</h2>
       <table className="huuk-table">
         <thead>

@@ -806,7 +806,12 @@ const ManagerAppointmentManagement = () => {
   return (
     <div
       className="w-full pb-3 pl-0 pr-1 pt-3 font-quicksand text-white relative"
-      style={{ marginLeft: "3px" }}
+      style={{
+        marginLeft: "3px",
+        height: "100%",
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
     >
       {/* Outlet tabs — stretch to fill the row, no right-hand gap */}
       <div className="mb-3 flex w-full gap-1">

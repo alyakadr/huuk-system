@@ -12,6 +12,7 @@ const api = http.create({
 
 api.interceptors.request.use(
   (config) => {
+    if (!config.headers) config.headers = {};
     // Check for both staff and customer tokens
     const staffToken = localStorage.getItem("staff_token");
     const legacyToken = localStorage.getItem("token");
@@ -100,6 +101,8 @@ api.interceptors.response.use(
               headers: refreshHeaders,
             },
           );
+
+          if (!originalRequest.headers) originalRequest.headers = {};
 
           if (refreshResponse.data.token) {
             localStorage.setItem(tokenKey, refreshResponse.data.token);

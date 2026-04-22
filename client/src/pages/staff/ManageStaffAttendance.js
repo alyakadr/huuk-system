@@ -2,13 +2,24 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
 import api from "../../utils/api";
-import { OUTLET_NAMES_TITLE } from "../../constants/outlets";
+import {
+  OUTLET_NAMES_TITLE,
+  OUTLET_SHORTCUTS_TITLE,
+  OUTLET_SHORTCUTS_UPPER,
+} from "../../constants/outlets";
+import {
+  loadAllLeaves,
+  loadLeavesForDate,
+  subscribeToLeaves,
+  updateLeave,
+} from "../../utils/leaveStore";
 
 const ITEMS_PER_PAGE = 6;
 
 // Categories staff can choose from when submitting a leave/remark.
 // The "None" option maps to rows without a remark (e.g. normal on-duty).
 const REMARK_CATEGORIES = [
+  "Annual Leave",
   "Emergency Leave",
   "Medical Leave",
   "Absent with Permission",
@@ -18,127 +29,66 @@ const REMARK_CATEGORIES = [
 
 const FILTER_OPTIONS = ["All", ...REMARK_CATEGORIES, "None"];
 
-// Hardcoded fallback so the layout renders cleanly without requiring a
-// live API. Swap / extend freely — the component will prefer server data
-// whenever the outlet+date lookup succeeds.
-// Remarks use a structured shape:
-//   { category, reason?, attachment?, submittedAt?, approvalStatus }
-// - category: one of REMARK_CATEGORIES
-// - reason: optional free-text note (staff can leave it blank when applying)
-// - attachment: optional file reference shown in the modal
-// - approvalStatus: "pending" | "approved" | "rejected"
-const SAMPLE_ATTENDANCE = [
-  {
-    id: "sample-1",
-    fullname: "Addy",
-    outlet: "Setia City Mall",
-    time_in: "09:45",
-    time_out: null,
-    remarks: {
-      category: "Medical Leave",
-      reason:
-        "MC submitted — 3-day medical cert from Klinik Mediviron. Will resume duty on Monday. Manager notified in writing on WhatsApp. Replacement shift confirmed with Fiza for Sat/Sun. Kindly file under sick leave, not no-pay.",
-      attachment: {
-        name: "medical_cert_addy.pdf",
-        url: "#",
-        type: "pdf",
-      },
-      submittedAt: "2026-04-22 09:12",
-      approvalStatus: "approved",
-    },
-  },
-  {
-    id: "sample-2",
-    fullname: "Chunkz",
-    outlet: "Setia City Mall",
-    time_in: "10:01",
-    time_out: "15:30",
-    remarks: {
-      category: "Half-day",
-      reason:
-        "Left early for dental appointment at 15:45. Manager approved verbally at 14:30.",
-      attachment: null,
-      submittedAt: "2026-04-22 14:30",
-      approvalStatus: "approved",
-    },
-  },
-  {
-    id: "sample-3",
-    fullname: "Danial",
-    outlet: "Setia City Mall",
-    time_in: null,
-    time_out: null,
-    remarks: {
-      category: "Absent with Permission",
-      reason:
-        "Attending sibling's wedding in Johor Bahru. Leave request submitted 2 weeks in advance and approved by HR.",
-      attachment: {
-        name: "leave_form_danial.pdf",
-        url: "#",
-        type: "pdf",
-      },
-      submittedAt: "2026-04-08 17:45",
-      approvalStatus: "pending",
-    },
-  },
-  {
-    id: "sample-4",
-    fullname: "Haziq",
-    outlet: "Setia City Mall",
-    time_in: "09:57",
-    time_out: null,
-    remarks: null,
-  },
-  {
-    id: "sample-5",
-    fullname: "Irfan",
-    outlet: "Setia City Mall",
-    time_in: "09:50",
-    time_out: null,
-    remarks: null,
-  },
-  {
-    id: "sample-6",
-    fullname: "Jordan",
-    outlet: "Setia City Mall",
-    time_in: "10:12",
-    time_out: "16:00",
-    remarks: {
-      category: "Half-day",
-      reason: "Personal errand in the afternoon; informed manager in person.",
-      attachment: null,
-      submittedAt: "2026-04-22 15:55",
-      approvalStatus: "pending",
-    },
-  },
-  {
-    id: "sample-7",
-    fullname: "Kai",
-    outlet: "Setia City Mall",
-    time_in: null,
-    time_out: null,
-    remarks: {
-      category: "Medical Leave",
-      reason:
-        "Food poisoning — visited Klinik 24 Jam, advised 1-day rest. MC attached.",
-      attachment: {
-        name: "mc_kai.jpg",
-        url: "#",
-        type: "image",
-      },
-      submittedAt: "2026-04-22 07:40",
-      approvalStatus: "pending",
-    },
-  },
-  {
-    id: "sample-8",
-    fullname: "Luqman",
-    outlet: "Setia City Mall",
-    time_in: "09:32",
-    time_out: null,
-    remarks: null,
-  },
-];
+// Map a full outlet name (title case or upper case) to its 3-letter shortform.
+// Falls back to the first 3 letters of the name (upper-cased) when unknown.
+const getOutletShort = (name) => {
+  if (!name) return "--";
+  const raw = String(name).trim();
+  if (!raw) return "--";
+  if (OUTLET_SHORTCUTS_TITLE[raw]) return OUTLET_SHORTCUTS_TITLE[raw];
+  const upper = raw.toUpperCase();
+  if (OUTLET_SHORTCUTS_UPPER[upper]) return OUTLET_SHORTCUTS_UPPER[upper];
+  return upper.replace(/[^A-Z0-9]/g, "").slice(0, 3) || "--";
+};
+
+const toCalendarDayKey = (value) => {
+  if (value == null || value === "") return null;
+  let m = moment(value, "YYYY-MM-DD", true);
+  if (!m.isValid()) m = moment(value, "YYYY-MM-DD HH:mm:ss", true);
+  if (!m.isValid()) m = moment(value);
+  if (!m.isValid()) return null;
+  return m.format("YYYY-MM-DD");
+};
+
+const leaveCoversDayKey = (leave, dayKey) => {
+  if (!leave?.startDate || !dayKey) return false;
+  let start = moment(leave.startDate, "YYYY-MM-DD", true);
+  if (!start.isValid()) start = moment(leave.startDate);
+  const endRaw = leave.endDate || leave.startDate;
+  let end = moment(endRaw, "YYYY-MM-DD", true);
+  if (!end.isValid()) end = moment(endRaw);
+  if (!start.isValid() || !end.isValid()) return false;
+  const d = moment(dayKey, "YYYY-MM-DD", true);
+  if (!d.isValid()) return false;
+  return d.isSameOrAfter(start, "day") && d.isSameOrBefore(end, "day");
+};
+
+const staffRowMatchesLeave = (row, leave) => {
+  const rowUserId =
+    row.staff_id || row.staffId || row.userId || row.user_id || row.id;
+  if (
+    rowUserId &&
+    leave.userId &&
+    String(rowUserId) === String(leave.userId)
+  ) {
+    return true;
+  }
+  if (
+    row.username &&
+    leave.staffUsername &&
+    String(row.username).trim().toLowerCase() ===
+      String(leave.staffUsername).trim().toLowerCase()
+  ) {
+    return true;
+  }
+  if (row.fullname && leave.staffName) {
+    return (
+      String(row.fullname).trim().toLowerCase() ===
+      String(leave.staffName).trim().toLowerCase()
+    );
+  }
+  return false;
+};
 
 // Normalise remark data (strings are accepted for backward compat).
 const normaliseRemarks = (value) => {
@@ -160,6 +110,9 @@ const normaliseRemarks = (value) => {
       attachment: value.attachment || null,
       submittedAt: value.submittedAt || null,
       approvalStatus: value.approvalStatus || "pending",
+      _leaveId: value._leaveId || null,
+      startDate: value.startDate || null,
+      endDate: value.endDate || null,
     };
   }
   return null;
@@ -368,12 +321,26 @@ const ManageStaffAttendance = () => {
   const [outlet, setOutlet] = useState("Setia City Mall");
   const [date, setDate] = useState(moment().format("YYYY-MM-DD"));
   const [outlets, setOutlets] = useState(OUTLET_NAMES_TITLE);
-  const [attendance, setAttendance] = useState(SAMPLE_ATTENDANCE);
+  const [attendance, setAttendance] = useState([]);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState("");
   const [activeRemark, setActiveRemark] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [openApprovalRowId, setOpenApprovalRowId] = useState(null);
+  // Incremented whenever the shared leave store changes; drives the
+  // `combinedRows` memo so the table re-renders on leave submit/update.
+  const [leavesVersion, setLeavesVersion] = useState(0);
+
+  useEffect(() => {
+    const bump = () => setLeavesVersion((v) => v + 1);
+    const unsubscribe = subscribeToLeaves(bump);
+    window.addEventListener("focus", bump);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("focus", bump);
+    };
+  }, []);
 
   useEffect(() => {
     if (!activeRemark) return;
@@ -422,9 +389,14 @@ const ManageStaffAttendance = () => {
     };
   }, []);
 
-  // Fetch attendance whenever outlet/date changes; fall back to sample.
+  // Fetch attendance rows from the backend.
+  //   - Both outlet & date set  → single-day view for that outlet.
+  //   - Only outlet set (date cleared) → fetch ALL dates for that outlet
+  //     so the manager can browse the entire history.
+  //   - Only date set (outlet cleared) → fetch every staff on that date.
+  //   - Neither set → clear the table.
+  // Leaves from the shared store are always merged in below.
   useEffect(() => {
-    if (!outlet || !date) return;
     let cancelled = false;
 
     const role = (() => {
@@ -435,26 +407,43 @@ const ManageStaffAttendance = () => {
       }
     })();
     if (role && role !== "manager") {
-      // Non-managers shouldn't be here; redirect silently.
       navigate("/staff");
-      return;
+      return undefined;
     }
 
+    if (!outlet && !date) {
+      setAttendance([]);
+      setPage(1);
+      setFetchError("");
+      return undefined;
+    }
+
+    const params = { page: 1 };
+    if (outlet) params.outlet = outlet;
+    if (date) params.date = date;
+    // When there's no date filter, ask the server for the full list so
+    // historical and future records all surface in one view.
+    if (!date) params.all = "true";
+
     setIsLoading(true);
+    setFetchError("");
     api
-      .get("/users/attendance", { params: { outlet, date, page: 1 } })
+      .get("/users/attendance", { params })
       .then((response) => {
         if (cancelled) return;
         const rows = response.data?.attendance;
-        setAttendance(
-          Array.isArray(rows) && rows.length > 0 ? rows : SAMPLE_ATTENDANCE,
-        );
+        setAttendance(Array.isArray(rows) ? rows : []);
         setPage(1);
       })
-      .catch(() => {
+      .catch((error) => {
         if (cancelled) return;
-        setAttendance(SAMPLE_ATTENDANCE);
+        setAttendance([]);
         setPage(1);
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to load attendance records.";
+        setFetchError(message);
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -465,15 +454,98 @@ const ManageStaffAttendance = () => {
     };
   }, [outlet, date, navigate]);
 
-  const filteredAttendance = useMemo(() => {
-    if (categoryFilter === "All") return attendance;
+  // Merge locally-submitted leaves into the attendance rows for the
+  // selected outlet/date. Leaves match on userId first, then staff name.
+  // Leaves whose staff isn't in the attendance list appear as synthetic
+  // rows so the manager can still review and approve them.
+  const combinedRows = useMemo(() => {
+    // When a date is selected, show leaves that cover it. When the
+    // date is cleared, surface every leave so the manager can browse
+    // the full history alongside attendance records. Outlet is never
+    // filtered at this layer — it's displayed on the row instead so a
+    // slightly-different outlet value never hides a submission.
+    const leaves = date ? loadLeavesForDate(date) : loadAllLeaves();
 
-    return attendance.filter((row) => {
+    const toRemarks = (leave) => ({
+      category: leave.type,
+      reason: leave.reason || "",
+      attachment: leave.attachment || null,
+      submittedAt: leave.submittedAt || null,
+      approvalStatus: leave.status || "pending",
+      _leaveId: leave.id,
+      startDate: leave.startDate || null,
+      endDate: leave.endDate || leave.startDate || null,
+    });
+
+    const pickLeaveForAttendanceRow = (row) => {
+      const dayKey = toCalendarDayKey(row.created_date);
+      if (!dayKey) return null;
+      const candidates = leaves.filter(
+        (l) => staffRowMatchesLeave(row, l) && leaveCoversDayKey(l, dayKey),
+      );
+      if (!candidates.length) return null;
+      candidates.sort((a, b) => {
+        const ta = moment(a.submittedAt || 0).valueOf();
+        const tb = moment(b.submittedAt || 0).valueOf();
+        return tb - ta;
+      });
+      return candidates[0];
+    };
+
+    const leaveOverlapsSomeAttendance = (leave) =>
+      attendance.some((row) => {
+        const dayKey = toCalendarDayKey(row.created_date);
+        return (
+          dayKey &&
+          staffRowMatchesLeave(row, leave) &&
+          leaveCoversDayKey(leave, dayKey)
+        );
+      });
+
+    const base = attendance.map((row) => {
+      const leave = pickLeaveForAttendanceRow(row);
+      if (!leave) return row;
+      return { ...row, remarks: toRemarks(leave) };
+    });
+
+    const synthetic = leaves
+      .filter((leave) => !leaveOverlapsSomeAttendance(leave))
+      .map((leave) => ({
+        id: `leave-row-${leave.id}`,
+        fullname: leave.staffName || leave.staffUsername || "Staff",
+        username: leave.staffUsername || "",
+        outlet: leave.outlet || outlet,
+        time_in: null,
+        time_out: null,
+        staff_id: leave.userId || null,
+        remarks: toRemarks(leave),
+      }));
+
+    // Pending leave submissions first so they always show up on page 1.
+    return [...synthetic, ...base];
+    // leavesVersion forces recomputation when the shared store changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attendance, outlet, date, leavesVersion]);
+
+  // Count of leave submissions surfaced as a badge so you can tell at a
+  // glance whether submissions are reaching the shared store. When a
+  // date is selected we only count leaves covering that date; with the
+  // date cleared we show the total across all dates.
+  const leavesForDateCount = useMemo(
+    () => (date ? loadLeavesForDate(date).length : loadAllLeaves().length),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [date, leavesVersion],
+  );
+
+  const filteredAttendance = useMemo(() => {
+    if (categoryFilter === "All") return combinedRows;
+
+    return combinedRows.filter((row) => {
       const remark = normaliseRemarks(row.remarks);
       if (categoryFilter === "None") return !remark;
       return remark?.category === categoryFilter;
     });
-  }, [attendance, categoryFilter]);
+  }, [combinedRows, categoryFilter]);
 
   const totalPages = Math.max(
     1,
@@ -494,17 +566,30 @@ const ManageStaffAttendance = () => {
   }, [filteredAttendance, page]);
 
   const updateApproval = (rowId, nextStatus) => {
-    setAttendance((prev) =>
-      prev.map((row) => {
-        if (row.id !== rowId) return row;
-        const remark = normaliseRemarks(row.remarks);
-        if (!remark) return row;
-        return {
-          ...row,
-          remarks: { ...remark, approvalStatus: nextStatus },
-        };
-      }),
-    );
+    // Resolve which row we're acting on so we can reach the underlying
+    // leave id from the merged `combinedRows`, then persist the new
+    // status to the shared store. The store's change event will bump
+    // `leavesVersion` and the merged rows will re-render automatically.
+    const row = combinedRows.find((r) => r.id === rowId);
+    const remark = normaliseRemarks(row?.remarks);
+    const leaveId = remark?._leaveId || row?.remarks?._leaveId;
+    if (leaveId) {
+      updateLeave(leaveId, { status: nextStatus });
+    } else {
+      // Row isn't backed by the shared leave store (pure attendance row
+      // with an inline remark). Fall back to updating local state only.
+      setAttendance((prev) =>
+        prev.map((r) => {
+          if (r.id !== rowId) return r;
+          const existing = normaliseRemarks(r.remarks);
+          if (!existing) return r;
+          return {
+            ...r,
+            remarks: { ...existing, approvalStatus: nextStatus },
+          };
+        }),
+      );
+    }
     setActiveRemark((prev) =>
       prev && prev.rowId === rowId
         ? { ...prev, approvalStatus: nextStatus }
@@ -515,7 +600,12 @@ const ManageStaffAttendance = () => {
   return (
     <div
       className="w-full pb-3 pl-0 pr-1 pt-3 font-quicksand text-white"
-      style={{ marginLeft: "3px" }}
+      style={{
+        marginLeft: "3px",
+        height: "100%",
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
     >
       <div className="rounded-[18px] bg-[#171717] p-5 shadow-[0_10px_22px_rgba(0,0,0,0.35)]">
         {/* Filter row — outlet + date selectors styled as white pills */}
@@ -538,13 +628,25 @@ const ManageStaffAttendance = () => {
             </span>
           </div>
 
-          <input
-            type="date"
-            value={date}
-            max={moment().format("YYYY-MM-DD")}
-            onChange={(event) => setDate(event.target.value)}
-            className="h-[42px] w-[200px] rounded-[10px] border border-white/15 bg-white px-4 text-[14px] font-semibold text-[#171717] outline-none [color-scheme:light]"
-          />
+          <div className="relative">
+            <input
+              type="date"
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+              className="h-[42px] w-[220px] rounded-[10px] border border-white/15 bg-white px-4 pr-10 text-[14px] font-semibold text-[#171717] outline-none [color-scheme:light]"
+            />
+            {date && (
+              <button
+                type="button"
+                onClick={() => setDate("")}
+                title="Clear date (show all dates)"
+                aria-label="Clear date"
+                className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-black/5 text-[11px] text-[#171717] hover:bg-black/10"
+              >
+                <i className="bi bi-x-lg" />
+              </button>
+            )}
+          </div>
 
           <div className="relative">
             <select
@@ -567,24 +669,53 @@ const ManageStaffAttendance = () => {
               <i className="bi bi-funnel text-[12px]" />
             </span>
           </div>
+
+          <span
+            title="Leaves covering the selected date"
+            className="inline-flex h-[42px] items-center gap-2 rounded-[10px] bg-[#3b82f6]/15 px-3 text-[13px] font-semibold text-[#93c5fd]"
+          >
+            <i className="bi bi-calendar-heart" />
+            {leavesForDateCount} leave
+            {leavesForDateCount === 1 ? "" : "s"} {date ? "on date" : "total"}
+          </span>
         </div>
+
+        {fetchError && (
+          <div className="mb-3 flex items-start gap-2 rounded-[10px] border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-2.5 text-[13px] text-[#fca5a5]">
+            <i className="bi bi-exclamation-triangle-fill mt-0.5 text-[14px]" />
+            <div>
+              <p className="m-0 font-semibold">
+                Could not load attendance from the server.
+              </p>
+              <p className="m-0 text-[12px] text-[#fca5a5]/80">
+                {fetchError} Locally-submitted leave applications are still
+                shown below.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Records table */}
         <div className="overflow-x-auto">
           <table className="w-full table-fixed border-collapse text-left">
             <colgroup>
-              <col style={{ width: "18%" }} />
+              <col style={{ width: "15%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "8%" }} />
               <col style={{ width: "9%" }} />
-              <col style={{ width: "9%" }} />
-              <col style={{ width: "10%" }} />
+              <col style={{ width: "13%" }} />
               <col style={{ width: "12%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "26%" }} />
+              <col style={{ width: "22%" }} />
             </colgroup>
             <thead>
               <tr className="text-[12px] font-bold uppercase tracking-wide text-white/90">
                 <th className="border-b border-white/15 px-3 py-3">
                   Staff Name
+                </th>
+                <th className="border-b border-white/15 px-3 py-3 text-center">
+                  Outlet
                 </th>
                 <th className="border-b border-white/15 px-3 py-3">
                   Time-In
@@ -598,7 +729,10 @@ const ManageStaffAttendance = () => {
                   Remarks
                 </th>
                 <th className="border-b border-white/15 px-3 py-3 text-center">
-                  Approval
+                  Attachment
+                </th>
+                <th className="border-b border-white/15 px-3 py-3 text-center">
+                  Action
                 </th>
               </tr>
             </thead>
@@ -606,7 +740,7 @@ const ManageStaffAttendance = () => {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     className="px-3 py-8 text-center text-[14px] text-white/70"
                   >
                     Loading attendance records...
@@ -615,7 +749,7 @@ const ManageStaffAttendance = () => {
               ) : pagedRows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     className="px-3 py-8 text-center text-[14px] text-white/70"
                   >
                     No attendance records found.
@@ -630,6 +764,9 @@ const ManageStaffAttendance = () => {
                       : "text-[#ef4444]";
                   const workingHours = computeWorkingHours(row, date);
                   const remark = normaliseRemarks(row.remarks);
+                  const leaveStoreId = remark?._leaveId || null;
+                  const leaveAttachUrl =
+                    remark?.attachment?.dataUrl || remark?.attachment?.url;
 
                   return (
                     <tr
@@ -637,7 +774,15 @@ const ManageStaffAttendance = () => {
                       className="text-[14px] text-white"
                     >
                       <td className="px-3 py-3 font-bold">
-                        {row.fullname || "--"}
+                        {row.username || row.fullname || "--"}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <span
+                          title={row.outlet || "Unknown outlet"}
+                          className="inline-flex items-center justify-center rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"
+                        >
+                          {getOutletShort(row.outlet)}
+                        </span>
                       </td>
                       <td className="px-3 py-3 font-bold">
                         {formatTime(row.time_in)}
@@ -661,6 +806,7 @@ const ManageStaffAttendance = () => {
                                 rowId: row.id,
                                 staffName: row.fullname,
                                 date,
+                                attendanceDate: row.created_date || null,
                               })
                             }
                             title={remark.reason || remark.category}
@@ -671,9 +817,44 @@ const ManageStaffAttendance = () => {
                         )}
                       </td>
                       <td className="px-3 py-3 text-center">
+                        {leaveStoreId && leaveAttachUrl ? (
+                          <a
+                            href={leaveAttachUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={remark.attachment?.name || "Attachment"}
+                            className="inline-flex max-w-[140px] items-center justify-center gap-1 truncate rounded-md border border-white/15 bg-white/5 px-2 py-1.5 text-[11px] font-bold text-[#93c5fd] hover:bg-white/10"
+                          >
+                            <i
+                              className={`bi bi-${
+                                remark.attachment?.type === "pdf"
+                                  ? "file-earmark-pdf"
+                                  : remark.attachment?.type === "image"
+                                    ? "image"
+                                    : "paperclip"
+                              } shrink-0 text-[12px]`}
+                            />
+                            <span className="truncate">
+                              {remark.attachment?.name || "File"}
+                            </span>
+                          </a>
+                        ) : leaveStoreId ? (
+                          <span
+                            className="text-[12px] italic leading-snug text-white/50"
+                            title="Staff can add an attachment later from Staff Attendance; this updates automatically."
+                          >
+                            No attachment
+                          </span>
+                        ) : (
+                          <span className="font-bold text-[14px] text-white/40">
+                            —
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-center">
                         {!remark ? (
                           <span className="font-bold text-[14px] text-white/40">
-                            --
+                            —
                           </span>
                         ) : (
                           <ApprovalSelect
@@ -781,11 +962,37 @@ const ManageStaffAttendance = () => {
                 </p>
               </div>
               <div>
-                <p className="m-0 text-white/50">Date</p>
+                <p className="m-0 text-white/50">
+                  {activeRemark.startDate ? "Leave period" : "Date"}
+                </p>
                 <p className="m-0 font-semibold text-white">
-                  {activeRemark.date
-                    ? moment(activeRemark.date).format("D MMMM YYYY")
-                    : "--"}
+                  {activeRemark.startDate
+                    ? (() => {
+                        const start = moment(
+                          activeRemark.startDate,
+                          "YYYY-MM-DD",
+                          true,
+                        );
+                        const endRaw =
+                          activeRemark.endDate || activeRemark.startDate;
+                        const end = moment(endRaw, "YYYY-MM-DD", true);
+                        if (!start.isValid())
+                          return activeRemark.startDate || "--";
+                        if (
+                          !end.isValid() ||
+                          end.isSame(start, "day")
+                        ) {
+                          return start.format("D MMMM YYYY");
+                        }
+                        return `${start.format("D MMMM YYYY")} → ${end.format("D MMMM YYYY")}`;
+                      })()
+                    : activeRemark.attendanceDate
+                      ? moment(activeRemark.attendanceDate).format(
+                          "D MMMM YYYY",
+                        )
+                      : activeRemark.date
+                        ? moment(activeRemark.date).format("D MMMM YYYY")
+                        : "--"}
                 </p>
               </div>
               {activeRemark.submittedAt && (
@@ -821,9 +1028,21 @@ const ManageStaffAttendance = () => {
               </p>
               {activeRemark.attachment ? (
                 <a
-                  href={activeRemark.attachment.url}
+                  href={
+                    activeRemark.attachment.dataUrl ||
+                    activeRemark.attachment.url ||
+                    "#"
+                  }
                   target="_blank"
                   rel="noreferrer"
+                  onClick={(event) => {
+                    if (
+                      !activeRemark.attachment.dataUrl &&
+                      !activeRemark.attachment.url
+                    ) {
+                      event.preventDefault();
+                    }
+                  }}
                   className="mt-2 inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/5 px-3 py-2 text-[13px] font-semibold text-[#3b82f6] transition-colors hover:bg-white/10"
                 >
                   <i
