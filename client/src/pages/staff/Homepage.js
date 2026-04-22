@@ -136,6 +136,25 @@ const Homepage = () => {
     }
   }, [location, profile]);
 
+  // One-shot cleanup: strip `fromLogout` / `sessionExpired` from the URL on
+  // first mount. Keeping those params around causes the profile-gate effect
+  // below to re-fire `updateProfile(null)` during the transient re-render
+  // right after a successful sign-in (profile is set, location.search hasn't
+  // caught up yet) — which wipes the fresh session and requires a second
+  // click to actually sign in.
+  useEffect(() => {
+    if (location.pathname !== "/staff-login") return;
+    const params = new URLSearchParams(location.search);
+    if (!params.has("fromLogout") && !params.has("sessionExpired")) return;
+    params.delete("fromLogout");
+    params.delete("sessionExpired");
+    const query = params.toString();
+    navigate(`${location.pathname}${query ? `?${query}` : ""}`, {
+      replace: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const validateFullName = (fullname) => {
     const regex = /^[A-Za-z\s\-'/]+$/;
     return regex.test(fullname);
@@ -176,15 +195,15 @@ const Homepage = () => {
     const fromLogout = urlParams.get("fromLogout");
     const sessionExpired = urlParams.get("sessionExpired");
 
+    // While the one-shot cleanup above strips these flags, they can still be
+    // present during the very first render after a logout redirect. We skip
+    // the redirect branch in that case but do NOT clear the profile here —
+    // the profile was already cleared by handleLogout / updateProfile(null).
+    // Clearing it again would nuke a freshly signed-in session during the
+    // transient re-render right after handleSignIn calls updateProfile +
+    // navigate (location.search hasn't caught up yet), causing the
+    // "need to click Sign In twice" bug.
     if (fromLogout === "true" || sessionExpired === "true") {
-      console.log(
-        "Clean login interface active, skipping profile-based redirect",
-      );
-      // Clear the profile if it exists to prevent redirect loops
-      if (profile) {
-        console.log("Clearing existing profile for clean login interface");
-        updateProfile(null);
-      }
       return;
     }
 

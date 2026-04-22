@@ -6,12 +6,27 @@ import { OUTLET_NAMES_TITLE } from "../../constants/outlets";
 
 const ITEMS_PER_PAGE = 6;
 
+// Categories staff can choose from when submitting a leave/remark.
+// The "None" option maps to rows without a remark (e.g. normal on-duty).
+const REMARK_CATEGORIES = [
+  "Emergency Leave",
+  "Medical Leave",
+  "Absent with Permission",
+  "Absent without Notice",
+  "Half-day",
+];
+
+const FILTER_OPTIONS = ["All", ...REMARK_CATEGORIES, "None"];
+
 // Hardcoded fallback so the layout renders cleanly without requiring a
 // live API. Swap / extend freely — the component will prefer server data
 // whenever the outlet+date lookup succeeds.
-// Remarks use a structured shape: { category, reason, attachment? }.
-// The column shows the category; clicking opens a modal with the full
-// reason and any attachment. Strings are still accepted for back-compat.
+// Remarks use a structured shape:
+//   { category, reason?, attachment?, submittedAt?, approvalStatus }
+// - category: one of REMARK_CATEGORIES
+// - reason: optional free-text note (staff can leave it blank when applying)
+// - attachment: optional file reference shown in the modal
+// - approvalStatus: "pending" | "approved" | "rejected"
 const SAMPLE_ATTENDANCE = [
   {
     id: "sample-1",
@@ -29,6 +44,7 @@ const SAMPLE_ATTENDANCE = [
         type: "pdf",
       },
       submittedAt: "2026-04-22 09:12",
+      approvalStatus: "approved",
     },
   },
   {
@@ -43,6 +59,7 @@ const SAMPLE_ATTENDANCE = [
         "Left early for dental appointment at 15:45. Manager approved verbally at 14:30.",
       attachment: null,
       submittedAt: "2026-04-22 14:30",
+      approvalStatus: "approved",
     },
   },
   {
@@ -61,6 +78,7 @@ const SAMPLE_ATTENDANCE = [
         type: "pdf",
       },
       submittedAt: "2026-04-08 17:45",
+      approvalStatus: "pending",
     },
   },
   {
@@ -90,6 +108,7 @@ const SAMPLE_ATTENDANCE = [
       reason: "Personal errand in the afternoon; informed manager in person.",
       attachment: null,
       submittedAt: "2026-04-22 15:55",
+      approvalStatus: "pending",
     },
   },
   {
@@ -108,6 +127,7 @@ const SAMPLE_ATTENDANCE = [
         type: "image",
       },
       submittedAt: "2026-04-22 07:40",
+      approvalStatus: "pending",
     },
   },
   {
@@ -126,7 +146,12 @@ const normaliseRemarks = (value) => {
   if (typeof value === "string") {
     const trimmed = value.trim();
     if (!trimmed) return null;
-    return { category: trimmed, reason: "", attachment: null };
+    return {
+      category: trimmed,
+      reason: "",
+      attachment: null,
+      approvalStatus: "pending",
+    };
   }
   if (typeof value === "object" && value.category) {
     return {
@@ -134,6 +159,7 @@ const normaliseRemarks = (value) => {
       reason: value.reason || "",
       attachment: value.attachment || null,
       submittedAt: value.submittedAt || null,
+      approvalStatus: value.approvalStatus || "pending",
     };
   }
   return null;
@@ -152,6 +178,134 @@ const deriveStatus = (row) => {
   return "Off Duty";
 };
 
+// Returns hours worked as a `5.25h` style string, or `--` when we cannot
+// compute (no time_in, no time_out, or invalid values).
+const computeWorkingHours = (row, referenceDate) => {
+  if (!row.time_in || !row.time_out) return "--";
+
+  const base = moment(referenceDate || moment(), "YYYY-MM-DD").isValid()
+    ? moment(referenceDate || moment(), "YYYY-MM-DD").format("YYYY-MM-DD")
+    : moment().format("YYYY-MM-DD");
+
+  const parse = (value) => {
+    if (/^\d{2}:\d{2}$/.test(value)) {
+      return moment(`${base} ${value}`, "YYYY-MM-DD HH:mm");
+    }
+    return moment(value);
+  };
+
+  const inMoment = parse(row.time_in);
+  const outMoment = parse(row.time_out);
+  if (!inMoment.isValid() || !outMoment.isValid()) return "--";
+
+  const diff = outMoment.diff(inMoment, "minutes") / 60;
+  if (Number.isNaN(diff) || diff <= 0) return "--";
+  return `${diff.toFixed(2).replace(/\.00$/, "").replace(/0$/, "")}h`;
+};
+
+// Pill-style approval selector. Shows the current status in a dark rounded
+// pill with a trailing indicator (chevron for Pending, coloured icon dot for
+// Approved/Rejected). Clicking opens a dropdown where the manager can switch
+// the decision. The parent owns `isOpen` so only one row is expanded at a time.
+const ApprovalSelect = ({ rowId, status, isOpen, onToggle, onSelect }) => {
+  const config = {
+    pending: {
+      label: "Pending",
+      textClass: "text-white/90",
+      icon: null,
+    },
+    approved: {
+      label: "Approved",
+      textClass: "text-white",
+      icon: (
+        <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#22c55e] text-white shadow-[0_0_0_2px_rgba(34,197,94,0.2)]">
+          <i className="bi bi-check-lg text-[11px]" />
+        </span>
+      ),
+    },
+    rejected: {
+      label: "Rejected",
+      textClass: "text-white",
+      icon: (
+        <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#ef4444] text-white shadow-[0_0_0_2px_rgba(239,68,68,0.2)]">
+          <i className="bi bi-x-lg text-[10px]" />
+        </span>
+      ),
+    },
+  }[status] || {
+    label: "Pending",
+    textClass: "text-white/90",
+    icon: null,
+  };
+
+  const options = [
+    { value: "pending", label: "Pending" },
+    { value: "approved", label: "Approved" },
+    { value: "rejected", label: "Rejected" },
+  ];
+
+  return (
+    <div
+      className="relative inline-block"
+      data-approval-menu
+      data-row-id={rowId}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`inline-flex h-[30px] min-w-[130px] items-center justify-between gap-2 rounded-full border border-white/10 bg-[#242424] pl-3.5 pr-2 text-[11px] font-bold uppercase tracking-[0.08em] shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-colors hover:bg-[#2c2c2c] focus:outline-none focus:ring-2 focus:ring-white/20 ${config.textClass}`}
+      >
+        <span>{config.label}</span>
+        {config.icon ? (
+          config.icon
+        ) : (
+          <i
+            className={`bi bi-chevron-${isOpen ? "up" : "down"} text-[11px] text-white/70`}
+          />
+        )}
+      </button>
+
+      {isOpen && (
+        <div
+          role="listbox"
+          className="absolute left-1/2 top-[calc(100%+6px)] z-30 w-[150px] -translate-x-1/2 overflow-hidden rounded-[12px] border border-white/10 bg-[#1a1a1a] p-1 shadow-[0_12px_28px_rgba(0,0,0,0.55)]"
+        >
+          {options.map((option) => {
+            const isActive = option.value === status;
+            const accent =
+              option.value === "approved"
+                ? "text-[#4ade80]"
+                : option.value === "rejected"
+                  ? "text-[#f87171]"
+                  : "text-[#fbbf24]";
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={isActive}
+                onClick={() => onSelect(option.value)}
+                className={`flex w-full items-center justify-between rounded-[8px] border-none bg-transparent px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white/90 transition-colors hover:bg-white/10 ${isActive ? "bg-white/10" : ""}`}
+              >
+                <span>{option.label}</span>
+                {option.value === "approved" ? (
+                  <i className={`bi bi-check-circle-fill text-[12px] ${accent}`} />
+                ) : option.value === "rejected" ? (
+                  <i className={`bi bi-x-circle-fill text-[12px] ${accent}`} />
+                ) : (
+                  <i className={`bi bi-hourglass-split text-[11px] ${accent}`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ManageStaffAttendance = () => {
   const navigate = useNavigate();
 
@@ -162,6 +316,8 @@ const ManageStaffAttendance = () => {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [activeRemark, setActiveRemark] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [openApprovalRowId, setOpenApprovalRowId] = useState(null);
 
   useEffect(() => {
     if (!activeRemark) return;
@@ -171,6 +327,24 @@ const ManageStaffAttendance = () => {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [activeRemark]);
+
+  useEffect(() => {
+    if (!openApprovalRowId) return;
+    const handleClickOutside = (event) => {
+      if (!event.target.closest?.("[data-approval-menu]")) {
+        setOpenApprovalRowId(null);
+      }
+    };
+    const handleKey = (event) => {
+      if (event.key === "Escape") setOpenApprovalRowId(null);
+    };
+    window.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      window.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [openApprovalRowId]);
 
   // Fetch outlets (fall back to constant list on failure — no popup).
   useEffect(() => {
@@ -235,15 +409,52 @@ const ManageStaffAttendance = () => {
     };
   }, [outlet, date, navigate]);
 
+  const filteredAttendance = useMemo(() => {
+    if (categoryFilter === "All") return attendance;
+
+    return attendance.filter((row) => {
+      const remark = normaliseRemarks(row.remarks);
+      if (categoryFilter === "None") return !remark;
+      return remark?.category === categoryFilter;
+    });
+  }, [attendance, categoryFilter]);
+
   const totalPages = Math.max(
     1,
-    Math.ceil(attendance.length / ITEMS_PER_PAGE),
+    Math.ceil(filteredAttendance.length / ITEMS_PER_PAGE),
   );
+
+  useEffect(() => {
+    setPage(1);
+  }, [categoryFilter]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const pagedRows = useMemo(() => {
     const end = page * ITEMS_PER_PAGE;
-    return attendance.slice(end - ITEMS_PER_PAGE, end);
-  }, [attendance, page]);
+    return filteredAttendance.slice(end - ITEMS_PER_PAGE, end);
+  }, [filteredAttendance, page]);
+
+  const updateApproval = (rowId, nextStatus) => {
+    setAttendance((prev) =>
+      prev.map((row) => {
+        if (row.id !== rowId) return row;
+        const remark = normaliseRemarks(row.remarks);
+        if (!remark) return row;
+        return {
+          ...row,
+          remarks: { ...remark, approvalStatus: nextStatus },
+        };
+      }),
+    );
+    setActiveRemark((prev) =>
+      prev && prev.rowId === rowId
+        ? { ...prev, approvalStatus: nextStatus }
+        : prev,
+    );
+  };
 
   return (
     <div
@@ -278,28 +489,60 @@ const ManageStaffAttendance = () => {
             onChange={(event) => setDate(event.target.value)}
             className="h-[42px] w-[200px] rounded-[10px] border border-white/15 bg-white px-4 text-[14px] font-semibold text-[#171717] outline-none [color-scheme:light]"
           />
+
+          <div className="relative">
+            <select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+              className="h-[42px] w-[220px] appearance-none rounded-[10px] border border-white/15 bg-white px-4 pr-10 text-[14px] font-semibold text-[#171717] outline-none"
+              aria-label="Filter by category"
+            >
+              {FILTER_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option === "All"
+                    ? "All categories"
+                    : option === "None"
+                      ? "No remark"
+                      : option}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#171717]">
+              <i className="bi bi-funnel text-[12px]" />
+            </span>
+          </div>
         </div>
 
         {/* Records table */}
         <div className="overflow-x-auto">
           <table className="w-full table-fixed border-collapse text-left">
             <colgroup>
-              <col style={{ width: "25%" }} />
-              <col style={{ width: "12.5%" }} />
-              <col style={{ width: "12.5%" }} />
-              <col style={{ width: "20%" }} />
-              <col style={{ width: "30%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "26%" }} />
             </colgroup>
             <thead>
               <tr className="text-[12px] font-bold uppercase tracking-wide text-white/90">
                 <th className="border-b border-white/15 px-3 py-3">
                   Staff Name
                 </th>
-                <th className="border-b border-white/15 px-3 py-3">Time-In</th>
-                <th className="border-b border-white/15 px-3 py-3">Time-Out</th>
+                <th className="border-b border-white/15 px-3 py-3">
+                  Time-In
+                </th>
+                <th className="border-b border-white/15 px-3 py-3">
+                  Time-Out
+                </th>
+                <th className="border-b border-white/15 px-3 py-3">Hours</th>
                 <th className="border-b border-white/15 px-3 py-3">Status</th>
-                <th className="border-b border-white/15 px-3 py-3 text-center">
+                <th className="border-b border-white/15 px-3 py-3">
                   Remarks
+                </th>
+                <th className="border-b border-white/15 px-3 py-3 text-center">
+                  Approval
                 </th>
               </tr>
             </thead>
@@ -307,7 +550,7 @@ const ManageStaffAttendance = () => {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={7}
                     className="px-3 py-8 text-center text-[14px] text-white/70"
                   >
                     Loading attendance records...
@@ -316,7 +559,7 @@ const ManageStaffAttendance = () => {
               ) : pagedRows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={7}
                     className="px-3 py-8 text-center text-[14px] text-white/70"
                   >
                     No attendance records found.
@@ -329,49 +572,69 @@ const ManageStaffAttendance = () => {
                     status === "On Duty"
                       ? "text-[#22c55e]"
                       : "text-[#ef4444]";
+                  const workingHours = computeWorkingHours(row, date);
+                  const remark = normaliseRemarks(row.remarks);
 
                   return (
                     <tr
                       key={row.id ?? `${row.fullname}-${row.time_in || "x"}`}
                       className="text-[14px] text-white"
                     >
-                      <td className="px-3 py-4 font-bold">
+                      <td className="px-3 py-3 font-bold">
                         {row.fullname || "--"}
                       </td>
-                      <td className="px-3 py-4 font-bold">
+                      <td className="px-3 py-3 font-bold">
                         {formatTime(row.time_in)}
                       </td>
-                      <td className="px-3 py-4 font-bold">
+                      <td className="px-3 py-3 font-bold">
                         {formatTime(row.time_out)}
                       </td>
-                      <td className={`px-3 py-4 font-bold ${statusClass}`}>
+                      <td className="px-3 py-3 font-bold">{workingHours}</td>
+                      <td className={`px-3 py-3 font-bold ${statusClass}`}>
                         {status}
                       </td>
-                      <td className="max-w-0 min-w-0 overflow-hidden px-3 py-4 text-center">
-                        {(() => {
-                          const remark = normaliseRemarks(row.remarks);
-                          if (!remark) {
-                            return (
-                              <span className="font-bold text-[14px]">--</span>
-                            );
-                          }
-                          return (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setActiveRemark({
-                                  ...remark,
-                                  staffName: row.fullname,
-                                  date,
-                                })
-                              }
-                              title={remark.reason || remark.category}
-                              className="block w-full truncate border-none bg-transparent p-0 text-center font-bold text-[14px] text-[#3b82f6] underline decoration-[#3b82f6]/50 underline-offset-2 hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-[#3b82f6]/50"
-                            >
-                              {remark.category}
-                            </button>
-                          );
-                        })()}
+                      <td className="max-w-0 min-w-0 overflow-hidden px-3 py-3">
+                        {!remark ? (
+                          <span className="font-bold text-[14px]">--</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveRemark({
+                                ...remark,
+                                rowId: row.id,
+                                staffName: row.fullname,
+                                date,
+                              })
+                            }
+                            title={remark.reason || remark.category}
+                            className="block w-full truncate border-none bg-transparent p-0 text-left font-bold text-[14px] text-[#3b82f6] underline decoration-[#3b82f6]/50 underline-offset-2 hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-[#3b82f6]/50"
+                          >
+                            {remark.category}
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        {!remark ? (
+                          <span className="font-bold text-[14px] text-white/40">
+                            --
+                          </span>
+                        ) : (
+                          <ApprovalSelect
+                            rowId={row.id}
+                            status={remark.approvalStatus}
+                            isOpen={openApprovalRowId === row.id}
+                            onToggle={() =>
+                              setOpenApprovalRowId((prev) =>
+                                prev === row.id ? null : row.id,
+                              )
+                            }
+                            onSelect={(next) => {
+                              updateApproval(row.id, next);
+                              setOpenApprovalRowId(null);
+                            }}
+                          />
+                        )}
                       </td>
                     </tr>
                   );
@@ -432,9 +695,27 @@ const ManageStaffAttendance = () => {
             <p className="m-0 text-[12px] font-semibold uppercase tracking-wider text-white/50">
               Remark
             </p>
-            <h3 className="mt-1 text-[20px] font-bold leading-tight text-[#3b82f6]">
-              {activeRemark.category}
-            </h3>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <h3 className="m-0 text-[20px] font-bold leading-tight text-[#3b82f6]">
+                {activeRemark.category}
+              </h3>
+              {activeRemark.approvalStatus === "approved" ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#22c55e]/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#22c55e]">
+                  <i className="bi bi-check-circle-fill text-[10px]" />
+                  Approved
+                </span>
+              ) : activeRemark.approvalStatus === "rejected" ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#ef4444]/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#ef4444]">
+                  <i className="bi bi-x-circle-fill text-[10px]" />
+                  Rejected
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#f59e0b]/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#f59e0b]">
+                  <i className="bi bi-hourglass-split text-[10px]" />
+                  Pending
+                </span>
+              )}
+            </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3 text-[13px]">
               <div>
@@ -467,10 +748,14 @@ const ManageStaffAttendance = () => {
 
             <div className="mt-4">
               <p className="m-0 text-[12px] font-semibold uppercase tracking-wider text-white/50">
-                Reason
+                Reason{" "}
+                <span className="text-[10px] font-medium normal-case text-white/40">
+                  (optional)
+                </span>
               </p>
               <p className="mt-1 whitespace-pre-wrap text-[14px] leading-relaxed text-white/90">
-                {activeRemark.reason || "No additional reason provided."}
+                {activeRemark.reason ||
+                  "Staff did not provide an additional reason."}
               </p>
             </div>
 
@@ -502,6 +787,48 @@ const ManageStaffAttendance = () => {
                 </p>
               )}
             </div>
+
+            {activeRemark.rowId && (
+              <div className="mt-5 flex items-center justify-end gap-2 border-t border-white/10 pt-4">
+                {activeRemark.approvalStatus === "pending" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateApproval(activeRemark.rowId, "rejected");
+                        setActiveRemark(null);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-[#ef4444]/40 bg-[#ef4444]/10 px-3 py-1.5 text-[13px] font-bold text-[#ef4444] transition-colors hover:bg-[#ef4444]/20"
+                    >
+                      <i className="bi bi-x-lg text-[12px]" />
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateApproval(activeRemark.rowId, "approved");
+                        setActiveRemark(null);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-[#22c55e]/40 bg-[#22c55e]/15 px-3 py-1.5 text-[13px] font-bold text-[#22c55e] transition-colors hover:bg-[#22c55e]/25"
+                    >
+                      <i className="bi bi-check-lg text-[14px]" />
+                      Approve
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateApproval(activeRemark.rowId, "pending");
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-[13px] font-bold text-white/80 transition-colors hover:bg-white/10"
+                  >
+                    <i className="bi bi-arrow-counterclockwise text-[13px]" />
+                    Reset to Pending
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

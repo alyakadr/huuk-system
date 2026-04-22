@@ -151,6 +151,31 @@ const StaffLayout = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Force the whole staff app to fit exactly one viewport with no
+  // page-level scrolling. Restore on unmount so other layouts (customer,
+  // booking, etc.) keep their natural scroll behaviour.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const previous = {
+      htmlOverflow: html.style.overflow,
+      htmlHeight: html.style.height,
+      bodyOverflow: body.style.overflow,
+      bodyHeight: body.style.height,
+    };
+    html.style.overflow = "hidden";
+    html.style.height = "100vh";
+    body.style.overflow = "hidden";
+    body.style.height = "100vh";
+
+    return () => {
+      html.style.overflow = previous.htmlOverflow;
+      html.style.height = previous.htmlHeight;
+      body.style.overflow = previous.bodyOverflow;
+      body.style.height = previous.bodyHeight;
+    };
+  }, []);
+
   useEffect(() => {
     if (isCompactLayout) {
       setIsSidebarMinimized(true);
@@ -271,9 +296,9 @@ const StaffLayout = () => {
     flexDirection: "column",
     flexGrow: 1,
     minWidth: 0,
-    minHeight: "100vh",
-    overflowY: "auto",
-    overflowX: "hidden",
+    height: "100vh",
+    maxHeight: "100vh",
+    overflow: "hidden",
     backgroundColor: "#0e0d0f",
     marginLeft: `${sidebarWidth}px`,
     width: `calc(100% - ${sidebarWidth}px)`,
@@ -285,7 +310,8 @@ const StaffLayout = () => {
     <div
       style={{
         display: "flex",
-        minHeight: "100vh",
+        height: "100vh",
+        maxHeight: "100vh",
         width: "100%",
         overflow: "hidden",
         boxSizing: "border-box",
@@ -317,6 +343,7 @@ const StaffLayout = () => {
             minWidth: 0,
             minHeight: 0,
             padding: mainColumnPadding,
+            overflow: "hidden",
           }}
         >
           <Outlet />
