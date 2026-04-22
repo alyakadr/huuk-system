@@ -105,6 +105,31 @@ const ManagerLayout = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Force the whole manager app to fit exactly one viewport with no
+  // page-level scrolling. Restore on unmount so other layouts (customer,
+  // booking, etc.) keep their natural scroll behaviour.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const previous = {
+      htmlOverflow: html.style.overflow,
+      htmlHeight: html.style.height,
+      bodyOverflow: body.style.overflow,
+      bodyHeight: body.style.height,
+    };
+    html.style.overflow = "hidden";
+    html.style.height = "100vh";
+    body.style.overflow = "hidden";
+    body.style.height = "100vh";
+
+    return () => {
+      html.style.overflow = previous.htmlOverflow;
+      html.style.height = previous.htmlHeight;
+      body.style.overflow = previous.bodyOverflow;
+      body.style.height = previous.bodyHeight;
+    };
+  }, []);
+
   useEffect(() => {
     if (isCompactLayout) {
       setIsSidebarMinimized(true);
@@ -147,30 +172,40 @@ const ManagerLayout = () => {
       ? "0 18px 20px 12px"
       : "0 24px 24px 10px";
 
+  const mainColumnStyles = {
+    display: "flex",
+    flexDirection: "column",
+    flexGrow: 1,
+    minWidth: 0,
+    height: "100vh",
+    maxHeight: "100vh",
+    overflow: "hidden",
+    backgroundColor: "#0e0d0f",
+    marginLeft: `${sidebarWidth}px`,
+    width: `calc(100% - ${sidebarWidth}px)`,
+    boxSizing: "border-box",
+    transition: "margin-left 0.3s ease, width 0.3s ease",
+  };
+
   return (
-    <div className="flex min-h-screen w-full overflow-hidden bg-[#0e0d0f]">
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        maxHeight: "100vh",
+        width: "100%",
+        overflow: "hidden",
+        boxSizing: "border-box",
+        backgroundColor: "#0e0d0f",
+      }}
+    >
       <Sidebar
         user={user}
         navItems={managerNavItems}
         minimized={isCompactLayout ? true : isSidebarMinimized}
         toggleSidebar={toggleSidebar}
       />
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          flexGrow: 1,
-          minWidth: 0,
-          minHeight: "100vh",
-          overflowY: "auto",
-          overflowX: "hidden",
-          backgroundColor: "#0e0d0f",
-          marginLeft: `${sidebarWidth}px`,
-          width: `calc(100% - ${sidebarWidth}px)`,
-          boxSizing: "border-box",
-          transition: "margin-left 0.3s ease, width 0.3s ease",
-        }}
-      >
+      <div style={mainColumnStyles}>
         <Header
           isMobile={isPhone}
           isTablet={isTablet}
@@ -189,9 +224,13 @@ const ManagerLayout = () => {
             minWidth: 0,
             minHeight: 0,
             padding: mainColumnPadding,
+            overflow: "hidden",
           }}
         >
-          <main className="h-full w-full min-w-0">
+          <main
+            className="w-full min-w-0"
+            style={{ height: "100%", overflow: "hidden" }}
+          >
             <Outlet />
           </main>
         </div>

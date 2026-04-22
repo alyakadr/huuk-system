@@ -6,6 +6,40 @@ import { jwtDecode } from "jwt-decode";
 import { restrictToRoles } from "../../utils/authUtils";
 import { fetchWithRetry } from "../../api/client";
 
+const getSessionToken = () => {
+  try {
+    const staffUser = JSON.parse(
+      localStorage.getItem("staff_loggedInUser") || "{}",
+    );
+    return (
+      staffUser.token ||
+      localStorage.getItem("staff_token") ||
+      localStorage.getItem("token") ||
+      null
+    );
+  } catch {
+    return (
+      localStorage.getItem("staff_token") || localStorage.getItem("token") || null
+    );
+  }
+};
+
+const getSessionUserId = () => {
+  try {
+    const staffUser = JSON.parse(
+      localStorage.getItem("staff_loggedInUser") || "{}",
+    );
+    if (staffUser && staffUser.id) return String(staffUser.id);
+  } catch {
+    /* ignore */
+  }
+  return (
+    localStorage.getItem("staff_userId") ||
+    localStorage.getItem("userId") ||
+    null
+  );
+};
+
 const StaffAttendance = () => {
   const [timeIn, setTimeIn] = useState("");
   const [timeOut, setTimeOut] = useState("");
@@ -190,7 +224,7 @@ const StaffAttendance = () => {
       storedTimeIn,
     });
 
-    const storedUserId = localStorage.getItem("userId");
+    const storedUserId = getSessionUserId();
     if (storedUserId) {
       setIsLoading(true);
       if (storedTimeInConfirmed === "true" && storedTimeIn) {
@@ -207,22 +241,13 @@ const StaffAttendance = () => {
   }, [navigate]);
 
   useEffect(() => {
-    // If staff, redirect to dashboard immediately
-    const staffUser = JSON.parse(
-      localStorage.getItem("staff_loggedInUser") || "{}",
-    );
-    if (staffUser.role === "staff") {
-      navigate("/staff");
-      return;
-    }
-
     if (!restrictToRoles(["staff", "manager"], navigate)) {
       setError("Access denied. Only staff or managers can access this page.");
       return;
     }
 
-    const token = localStorage.getItem("token");
-    const storedUserId = localStorage.getItem("userId");
+    const token = getSessionToken();
+    const storedUserId = getSessionUserId();
     if (!token || !storedUserId) {
       setError("Session expired. Please log in again.");
       navigate("/staff-login");
@@ -237,7 +262,8 @@ const StaffAttendance = () => {
         return;
       }
 
-      fetchWithRetry(() => api.get("/users/profile"))
+      const headers = { Authorization: `Bearer ${token}` };
+      fetchWithRetry(() => api.get("/users/profile", { headers }))
         .then((response) => {
           const { role, status } = response.data;
           setUserRole(role);
@@ -305,19 +331,9 @@ const StaffAttendance = () => {
   // Auto-generate new day attendance record
   useEffect(() => {
     const checkOrCreateTodayRecord = async () => {
-      // Use consistent token and user data retrieval
-      const token =
-        localStorage.getItem("staff_token") || localStorage.getItem("token");
-      const userJson =
-        localStorage.getItem("staff_loggedInUser") ||
-        localStorage.getItem("loggedInUser");
-
-      if (!token || !userJson || !userRole || !isApproved) return;
-
-      const userData = JSON.parse(userJson);
-      const userId = userData.id;
-
-      if (!userId) return;
+      const token = getSessionToken();
+      const userId = getSessionUserId();
+      if (!token || !userId || !userRole || !isApproved) return;
 
       const today = moment().format("YYYY-MM-DD");
       const existingRecord = attendanceData.find(
@@ -353,7 +369,7 @@ const StaffAttendance = () => {
   }, [attendanceData, userRole, isApproved]);
 
   const refreshAttendance = async () => {
-    const storedUserId = localStorage.getItem("userId");
+    const storedUserId = getSessionUserId();
     if (!storedUserId) {
       setError("User not authenticated.");
       return;
@@ -501,8 +517,8 @@ const StaffAttendance = () => {
   };
 
   const confirmTimeIn = async () => {
-    const userId = localStorage.getItem("userId");
-    const token = localStorage.getItem("token");
+    const userId = getSessionUserId();
+    const token = getSessionToken();
     if (!userId || !token) {
       setError("Session expired. Please log in again.");
       return;
@@ -621,8 +637,8 @@ const StaffAttendance = () => {
   };
 
   const confirmTimeOut = async () => {
-    const userId = localStorage.getItem("userId");
-    const token = localStorage.getItem("token");
+    const userId = getSessionUserId();
+    const token = getSessionToken();
     if (!userId || !token) {
       setError("Session expired. Please log in again.");
       return;
@@ -825,12 +841,27 @@ const StaffAttendance = () => {
     );
   }
 
+  const timeInPillBorder = isTimeInConfirmed
+    ? "border-white/25"
+    : "border-white";
+  const timeOutPillBorder =
+    isTimeInConfirmed && !isTimeOutConfirmed
+      ? "border-white"
+      : "border-white/25";
+
+  const timeInBtnClass = isTimeInConfirmed
+    ? "bg-white/10 text-white/50 cursor-not-allowed"
+    : "bg-huuk-blue text-white hover:opacity-90";
+  const timeOutBtnDisabled = !isTimeInConfirmed || isTimeOutConfirmed;
+  const timeOutBtnClass = timeOutBtnDisabled
+    ? "bg-white/10 text-white/50 cursor-not-allowed"
+    : "bg-huuk-blue text-white hover:opacity-90";
+
   return (
-    <div className="p-5 bg-huuk-bg text-white min-h-screen font-quicksand w-full">
-      {/* Error Message */}
+    <div className="flex h-full min-h-0 w-full flex-col gap-5 bg-huuk-bg px-1 pb-2 text-white font-quicksand">
       {error && (
-        <div className="bg-red-600 text-white p-4 rounded-huuk-sm mb-5 flex items-center gap-2.5">
-          <i className="fas fa-exclamation-triangle"></i>
+        <div className="flex items-center gap-2.5 rounded-huuk-sm bg-red-600 p-3 text-sm text-white">
+          <i className="fas fa-exclamation-triangle" />
           {error}
           {error.includes("Session expired") && (
             <a href="/staff-login" className="underline text-white">
@@ -842,43 +873,39 @@ const StaffAttendance = () => {
       )}
 
       {/* Time In/Out Section */}
-      <div className="flex gap-8 mb-6 justify-start items-center bg-huuk-card p-5 rounded-huuk-lg flex-wrap">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-bold text-white min-w-20 uppercase">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="flex items-center gap-4 rounded-huuk-md bg-huuk-card px-5 py-3">
+          <span className="min-w-[72px] text-sm font-bold uppercase tracking-wide text-white">
             TIME-IN
-          </label>
-          <input
-            type="time"
-            value={timeIn}
-            onChange={(e) => setTimeIn(e.target.value)}
-            className="px-5 py-3 border border-white rounded-[24px] bg-[#2a2a2a] text-white text-base w-[120px] text-center outline-none font-bold"
-            disabled={isTimeInConfirmed || isLoading}
-          />
+          </span>
+          <div
+            className={`flex h-10 flex-1 items-center justify-center rounded-full border ${timeInPillBorder} bg-transparent px-5 text-sm font-semibold text-white/90`}
+          >
+            {timeIn || "--:--"}
+          </div>
           <button
             onClick={confirmTimeIn}
             disabled={isTimeInConfirmed || isLoading}
-            className={`px-6 py-3 rounded-huuk-md text-sm font-bold min-w-[90px] ${isTimeInConfirmed ? "bg-green-600" : "bg-huuk-blue"} text-white disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={`h-10 min-w-[96px] rounded-huuk-sm text-sm font-bold transition-opacity ${timeInBtnClass}`}
           >
             {isTimeInConfirmed ? "Confirmed" : "Confirm"}
           </button>
         </div>
 
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-bold text-white min-w-20 uppercase">
+        <div className="flex items-center gap-4 rounded-huuk-md bg-huuk-card px-5 py-3">
+          <span className="min-w-[72px] text-sm font-bold uppercase tracking-wide text-white">
             TIME-OUT
-          </label>
-          <input
-            type="time"
-            value={timeOut}
-            onChange={(e) => setTimeOut(e.target.value)}
-            className="px-5 py-3 border border-white rounded-[24px] bg-[#2a2a2a] text-white text-base w-[120px] text-center outline-none font-bold"
-            disabled={!isTimeInConfirmed || isTimeOutConfirmed || isLoading}
-          />
+          </span>
+          <div
+            className={`flex h-10 flex-1 items-center justify-center rounded-full border ${timeOutPillBorder} bg-transparent px-5 text-sm font-semibold text-white/90`}
+          >
+            {timeOut || "--:--"}
+          </div>
           <button
             type="button"
             onClick={confirmTimeOut}
-            disabled={!isTimeInConfirmed || isTimeOutConfirmed || isLoading}
-            className={`px-6 py-3 rounded-huuk-md text-sm font-bold min-w-[90px] ${isTimeOutConfirmed ? "bg-green-600" : "bg-huuk-blue"} text-white disabled:opacity-40 disabled:cursor-not-allowed`}
+            disabled={timeOutBtnDisabled || isLoading}
+            className={`h-10 min-w-[96px] rounded-huuk-sm text-sm font-bold transition-opacity ${timeOutBtnClass}`}
           >
             {isTimeOutConfirmed ? "Confirmed" : "Confirm"}
           </button>
@@ -886,86 +913,90 @@ const StaffAttendance = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="card-dark rounded-huuk-md flex items-center gap-4 min-h-[80px]">
-          <div className="w-[45px] h-[45px] rounded-full bg-huuk-blue flex items-center justify-center text-white text-lg shrink-0">
-            <i className="fas fa-clock"></i>
-          </div>
-          <div className="flex-1">
-            <div className="text-2xl font-semibold text-white">
-              {averageWorkingHours.toFixed(1)}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {[
+          {
+            icon: "fa-clock",
+            value:
+              averageWorkingHours > 0
+                ? `${Math.floor(averageWorkingHours)
+                    .toString()
+                    .padStart(2, "0")}:${Math.round(
+                    (averageWorkingHours % 1) * 60,
+                  )
+                    .toString()
+                    .padStart(2, "0")}`
+                : "--:--",
+            label: "Average Working Hour",
+          },
+          {
+            icon: "fa-sign-in-alt",
+            value: averageInTime,
+            label: "Average In Time",
+          },
+          {
+            icon: "fa-sign-out-alt",
+            value: averageOutTime,
+            label: "Average Out Time",
+          },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className="flex flex-col items-center justify-center gap-1.5 rounded-huuk-md bg-huuk-card px-4 py-4"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-huuk-blue text-white text-sm">
+              <i className={`fas ${card.icon}`} />
             </div>
-            <div className="text-sm text-gray-400">Average Working Hour</div>
+            <div className="text-xl font-bold text-white">{card.value}</div>
+            <div className="text-xs text-white/60">{card.label}</div>
           </div>
-        </div>
-
-        <div className="card-dark rounded-huuk-md flex items-center gap-4 min-h-[80px]">
-          <div className="w-[45px] h-[45px] rounded-full bg-huuk-blue flex items-center justify-center text-white text-lg shrink-0">
-            <i className="fas fa-sign-in-alt"></i>
-          </div>
-          <div className="flex-1">
-            <div className="text-2xl font-semibold text-white">
-              {averageInTime}
-            </div>
-            <div className="text-sm text-gray-400">Average In Time</div>
-          </div>
-        </div>
-
-        <div className="card-dark rounded-huuk-md flex items-center gap-4 min-h-[80px]">
-          <div className="w-[45px] h-[45px] rounded-full bg-huuk-blue flex items-center justify-center text-white text-lg shrink-0">
-            <i className="fas fa-sign-out-alt"></i>
-          </div>
-          <div className="flex-1">
-            <div className="text-2xl font-semibold text-white">
-              {averageOutTime}
-            </div>
-            <div className="text-sm text-gray-400">Average Out Time</div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Date Range Selector */}
-      <div className="flex justify-end mb-5">
-        <select className="px-4 py-2 border border-white/20 rounded-huuk-sm bg-huuk-card text-white text-sm outline-none">
-          <option value="29/6/2025 - 5/7/2025">29/6/2025 - 5/7/2025</option>
-        </select>
+      <div className="flex justify-end">
+        <div className="relative">
+          <select className="appearance-none rounded-huuk-sm bg-huuk-card px-4 pr-9 py-2 text-sm text-white outline-none border border-white/10">
+            <option value="29/6/2025 - 5/7/2025">29/6/2025 - 5/7/2025</option>
+          </select>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/60">
+            <i className="fas fa-chevron-down text-xs" />
+          </span>
+        </div>
       </div>
 
       {/* Records Table */}
-      <div className="card-dark rounded-huuk-md overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-huuk-md bg-huuk-card">
         {isLoading ? (
-          <div className="min-h-[220px] flex flex-col items-center justify-center text-white">
-            <div className="w-10 h-10 border-4 border-white/20 border-t-huuk-blue rounded-full animate-spin mb-4"></div>
+          <div className="flex min-h-[220px] flex-col items-center justify-center text-white">
+            <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-huuk-blue"></div>
             <p>Loading attendance records...</p>
           </div>
         ) : attendanceData.length === 0 ? (
-          <div className="min-h-[220px] flex flex-col items-center justify-center text-gray-300">
-            <i className="fas fa-calendar-times"></i>
+          <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 text-white/60">
+            <i className="fas fa-calendar-times text-2xl" />
             <p>No attendance records found.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-auto max-h-[400px] rounded-huuk-sm">
+          <div className="h-full overflow-auto">
             <table className="w-full border-collapse font-quicksand bg-transparent">
               <thead>
                 <tr>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
-                    DATE
-                  </th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
-                    TIME-IN
-                  </th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
-                    TIME-OUT
-                  </th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
-                    TOTAL HOUR
-                  </th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
-                    REMARK
-                  </th>
-                  <th className="bg-[#2a2a2a] text-white px-3 py-3 text-left font-semibold border-b-2 border-white/15 text-xs uppercase sticky top-0 z-10">
-                    UPLOAD
-                  </th>
+                  {[
+                    "DATE",
+                    "TIME-IN",
+                    "TIME-OUT",
+                    "TOTAL HOUR",
+                    "REMARK",
+                    "UPLOAD",
+                  ].map((label) => (
+                    <th
+                      key={label}
+                      className="sticky top-0 z-10 bg-huuk-card px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-white/70"
+                    >
+                      {label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -979,45 +1010,53 @@ const StaffAttendance = () => {
                   const isOnDuty = data.time_in && data.time_out;
 
                   return (
-                    <tr key={data.id || index} className="hover:bg-white/5">
-                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
+                    <tr
+                      key={data.id || index}
+                      className="border-t border-white/5 transition-colors hover:bg-white/[0.03]"
+                    >
+                      <td className="px-5 py-4 text-sm font-semibold text-white">
                         {data.created_date
                           ? moment(data.created_date).format("DD MMMM YYYY")
                           : "--"}
                       </td>
-                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
+                      <td className="px-5 py-4 text-sm font-semibold text-white">
                         {data.time_in
                           ? moment(data.time_in).format("HH:mm")
                           : "--:--"}
                       </td>
-                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
+                      <td className="px-5 py-4 text-sm font-semibold text-white">
                         {data.time_out
                           ? moment(data.time_out).format("HH:mm")
                           : "--:--"}
                       </td>
-                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
+                      <td className="px-5 py-4 text-sm font-semibold text-white">
                         {getTotalHours(data)
                           ? `${getTotalHours(data)}`
                           : "--:--"}
                       </td>
-                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
+                      <td className="px-5 py-4 text-sm text-white">
                         {data.document_path ? (
-                          data.remarks || "--"
+                          <span className="font-semibold">
+                            {data.remarks || "--"}
+                          </span>
                         ) : isOnDuty ? (
-                          "-"
+                          <span className="text-white/70">-</span>
                         ) : (
-                          <span className="text-xs text-huuk-muted">
-                            Upload relevant supporting documents (valid for 3
-                            working days)
+                          <span className="block text-xs italic leading-snug text-white/60">
+                            Upload relevant supporting documents
+                            <br />
+                            (valid for 3 working days)
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-3 border-b border-white/10 text-white text-sm align-middle">
+                      <td className="px-5 py-4 text-sm">
                         {data.document_path ? (
                           <button
-                            className={`px-3 py-1.5 rounded-huuk-sm text-xs font-semibold ${
-                              !viewEnabled || isLoading ? "disabled" : ""
-                            } ${!viewEnabled || isLoading ? "bg-white/20 text-white/70 cursor-not-allowed" : "bg-huuk-blue text-white hover:bg-huuk-blue-dark"}`}
+                            className={`inline-flex items-center gap-1.5 rounded-huuk-sm px-4 py-1.5 text-xs font-semibold ${
+                              !viewEnabled || isLoading
+                                ? "bg-white/10 text-white/40 cursor-not-allowed"
+                                : "bg-[#1f1f23] text-white hover:bg-[#2a2a30]"
+                            }`}
                             disabled={!viewEnabled || isLoading}
                             onClick={() =>
                               openViewModal(
@@ -1027,17 +1066,19 @@ const StaffAttendance = () => {
                               )
                             }
                           >
-                            <i className="fas fa-eye"></i> View
+                            <i className="fas fa-eye" /> View
                           </button>
                         ) : (
                           <button
-                            className={`px-3 py-1.5 rounded-huuk-sm text-xs font-semibold ${
-                              !uploadEnabled || isLoading ? "disabled" : ""
-                            } ${!uploadEnabled || isLoading ? "bg-white/20 text-white/70 cursor-not-allowed" : "bg-huuk-accent text-huuk-card hover:opacity-90"}`}
+                            className={`inline-flex items-center gap-1.5 rounded-huuk-sm px-4 py-1.5 text-xs font-semibold ${
+                              !uploadEnabled || isLoading
+                                ? "bg-white/10 text-white/40 cursor-not-allowed"
+                                : "bg-[#1f1f23] text-white hover:bg-[#2a2a30]"
+                            }`}
                             disabled={!uploadEnabled || isLoading}
                             onClick={() => openUploadModal(data.id)}
                           >
-                            <i className="fas fa-download"></i> Add file
+                            <i className="fas fa-download" /> Add file
                           </button>
                         )}
                       </td>

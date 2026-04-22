@@ -247,14 +247,14 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
       </button>
 
       <div
-        className={`relative flex cursor-pointer flex-col items-center border-b border-white/10 px-4 text-center ${minimized ? "mt-14 pb-4 pt-2" : "mt-6 pb-5 pt-3"}`}
+        className={`relative flex cursor-pointer flex-col items-center border-b border-white/10 px-4 text-center transition-[margin,padding] duration-300 ease-in-out ${minimized ? "mt-14 pb-4 pt-2" : "mt-6 pb-5 pt-3"}`}
         onClick={handleEditProfile}
       >
         <div className="group relative inline-block">
           <img
             src={profileImageUrl}
             alt="Profile"
-            className={`${minimized ? "h-12 w-12" : "h-[108px] w-[108px]"} rounded-full object-cover transition-transform duration-300 group-hover:scale-105`}
+            className={`rounded-full object-cover transition-[width,height,transform] duration-300 ease-in-out group-hover:scale-105 ${minimized ? "h-12 w-12" : "h-[108px] w-[108px]"}`}
             onError={(event) => {
               if (event.target.src !== defaultProfile) {
                 event.target.src = defaultProfile;
@@ -267,9 +267,11 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
           </div>
         </div>
 
-        {!minimized && (
-          <>
-            <h2 className="mb-0 mt-4 text-[17px] font-bold text-white">
+        <div
+          className={`grid w-full overflow-hidden transition-[grid-template-rows,opacity,margin-top] duration-300 ease-in-out ${minimized ? "mt-0 grid-rows-[0fr] opacity-0" : "mt-4 grid-rows-[1fr] opacity-100"}`}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <h2 className="mb-0 text-[17px] font-bold text-white">
               {profile?.username || user?.username || "User"}
             </h2>
             <p className="m-0 text-sm font-semibold text-white/90">
@@ -282,8 +284,8 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                 {displayedOutlet || "Outlet not assigned"}
               </p>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
 
       <nav className="flex-1 min-h-0 overflow-y-auto pb-3 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -320,19 +322,21 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                   }}
                 >
                   <span
-                    className={`flex min-w-0 items-center gap-2.5 ${minimized ? "justify-center" : "flex-1"}`}
+                    className={`flex min-w-0 items-center ${minimized ? "justify-center" : "flex-1"}`}
                   >
                     <span className="material-icons shrink-0 text-[21px]">
                       {item.icon}
                     </span>
-                    {!minimized && (
-                      <span className="break-words leading-tight">
-                        {item.label}
-                      </span>
-                    )}
+                    <span
+                      className={`overflow-hidden whitespace-nowrap leading-tight transition-[max-width,opacity,margin-left] duration-300 ease-in-out ${minimized ? "ml-0 max-w-0 opacity-0" : "ml-2.5 max-w-[180px] opacity-100"}`}
+                    >
+                      {item.label}
+                    </span>
                   </span>
-                  {hasSubNav && !minimized && (
-                    <span className="material-icons shrink-0 text-[20px]">
+                  {hasSubNav && (
+                    <span
+                      className={`material-icons shrink-0 overflow-hidden text-[20px] transition-[max-width,opacity] duration-300 ease-in-out ${minimized ? "max-w-0 opacity-0" : "max-w-[20px] opacity-100"}`}
+                    >
                       {isOpen ? "expand_less" : "expand_more"}
                     </span>
                   )}
@@ -374,16 +378,18 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
           {footerItems.map(({ icon, label, onClick }) => (
             <li
               key={label}
-              className={`mb-0.5 flex min-h-[34px] cursor-pointer items-center gap-2.5 py-1.5 text-[15px] text-white/92 transition-all duration-150 hover:bg-huuk-accent hover:font-bold hover:text-huuk-card ${minimized ? "justify-center px-0" : "px-3"}`}
+              className={`mb-0.5 flex min-h-[34px] cursor-pointer items-center py-1.5 text-[15px] text-white/92 transition-[padding,background-color,color] duration-300 ease-in-out hover:bg-huuk-accent hover:font-bold hover:text-huuk-card ${minimized ? "justify-center px-0" : "px-3"}`}
               title={minimized ? label : undefined}
               onClick={onClick}
             >
               <span className="material-icons shrink-0 text-[21px]">
                 {icon}
               </span>
-              {!minimized && (
-                <span className="break-words leading-tight">{label}</span>
-              )}
+              <span
+                className={`overflow-hidden whitespace-nowrap leading-tight transition-[max-width,opacity,margin-left] duration-300 ease-in-out ${minimized ? "ml-0 max-w-0 opacity-0" : "ml-2.5 max-w-[180px] opacity-100"}`}
+              >
+                {label}
+              </span>
             </li>
           ))}
         </ul>

@@ -12,7 +12,6 @@ const staffNavItems = [
     icon: "check_circle",
     label: "Attendance",
     path: "/staff/attendance",
-    disabled: true,
   },
   { icon: "event_note", label: "My Schedule", path: "/staff/schedule" },
   {
@@ -264,7 +263,12 @@ const StaffLayout = () => {
     }
 
     if (user.role === "staff") {
-      const allowedPaths = ["/staff", "/staff/schedule", "/staff/appointments"];
+      const allowedPaths = [
+        "/staff",
+        "/staff/schedule",
+        "/staff/appointments",
+        "/staff/attendance",
+      ];
       const isAllowed = allowedPaths.some(
         (path) =>
           location.pathname === path ||

@@ -1016,21 +1016,18 @@ const StaffDashboard = () => {
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="m-0 text-lg font-bold leading-none">
                   <span className="inline-flex items-center gap-2">
-                    <span>My Schedule</span>
-                    <span
-                      className={`inline-block h-[8px] w-[8px] rounded-full ${hasActiveBooking ? "bg-[#00ff00]" : "bg-[#ff0000]"}`}
-                      style={{
-                        animation: "pulse 2s infinite",
-                        verticalAlign: "middle",
-                      }}
-                      title={
-                        hasActiveBooking
-                          ? "Active bookings"
-                          : "No active bookings"
-                      }
-                    />
-                    <span className="text-sm font-normal italic text-huuk-muted">
-                      Active Booking
+                    <span className="leading-none">My Schedule</span>
+                    <span className="inline-flex items-center gap-1.5 text-sm font-normal italic leading-none text-huuk-muted">
+                      <span
+                        className={`inline-block h-2 w-2 shrink-0 rounded-full ${hasActiveBooking ? "bg-[#00ff00]" : "bg-[#ff0000]"}`}
+                        style={{ animation: "pulse 2s infinite" }}
+                        title={
+                          hasActiveBooking
+                            ? "Active bookings"
+                            : "No active bookings"
+                        }
+                      />
+                      <span className="leading-none">Active Booking</span>
                     </span>
                   </span>
                 </h3>
