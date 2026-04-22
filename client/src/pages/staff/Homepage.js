@@ -67,8 +67,25 @@ const Homepage = () => {
     password: "",
     confirmPassword: "",
   });
-  const [isSignInOpen, setSignInOpen] = useState(false);
-  const [isSignUpOpen, setSignUpOpen] = useState(false);
+  // Initialise the modal state synchronously from the URL so the login
+  // modal is already open on the very first render. This avoids a flash
+  // of the bare /staff-login homepage between mount and the effect below
+  // opening the modal.
+  const shouldOpenSignUpInitially = (() => {
+    if (typeof window === "undefined") return false;
+    if (window.location.pathname !== "/staff-login") return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("signupRequired") === "true";
+  })();
+  const shouldOpenSignInInitially = (() => {
+    if (typeof window === "undefined") return false;
+    if (window.location.pathname !== "/staff-login") return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("signupRequired") !== "true";
+  })();
+
+  const [isSignInOpen, setSignInOpen] = useState(shouldOpenSignInInitially);
+  const [isSignUpOpen, setSignUpOpen] = useState(shouldOpenSignUpInitially);
   const {
     profile,
     updateProfile,
@@ -100,29 +117,22 @@ const Homepage = () => {
     }
   }, [isSignInOpen]);
 
-  // Handle clean redirect without showing modals for certain scenarios
+  // Auto-open the appropriate auth modal whenever the user is on
+  // /staff-login without an active profile. This avoids the "click
+  // Sign In twice" UX (once to open the modal, once to submit) after
+  // logout or session expiry.
   useEffect(() => {
+    if (location.pathname !== "/staff-login" || profile) {
+      return;
+    }
+
     const urlParams = new URLSearchParams(location.search);
     const signupRequired = urlParams.get("signupRequired");
-    const fromLogout = urlParams.get("fromLogout");
-    const sessionExpired = urlParams.get("sessionExpired");
 
-    if (location.pathname === "/staff-login" && !profile) {
-      // Skip modal for logout and session expiry - show clean login interface
-      if (fromLogout === "true" || sessionExpired === "true") {
-        console.log(
-          "Clean redirect detected, showing login interface without modal",
-        );
-        // Don't open any modal - user will see the clean login interface
-        return;
-      }
-
-      // Normal flow - open appropriate modal
-      if (signupRequired === "true") {
-        setSignUpOpen(true);
-      } else {
-        setSignInOpen(true);
-      }
+    if (signupRequired === "true") {
+      setSignUpOpen(true);
+    } else {
+      setSignInOpen(true);
     }
   }, [location, profile]);
 

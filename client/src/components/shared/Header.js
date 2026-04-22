@@ -10,6 +10,8 @@ const Header = ({
   mode,
   isMobile = false,
   isTablet = false,
+  /** When true, header is sticky at the top of the main scroll column (preferred). */
+  sticky = true,
   layoutLeftOffset,
   layoutWidth,
 }) => {
@@ -67,37 +69,47 @@ const Header = ({
       ? "min(32vw, 220px)"
       : "240px";
 
+  const stickyMode = Boolean(sticky);
+
   return (
     <header
-      className="box-border z-[1000]"
+      className="box-border z-[1000] w-full flex-shrink-0"
       style={{
-        position: "fixed",
+        position: stickyMode ? "sticky" : "fixed",
         top: 0,
-        left: leftOffset,
-        width: headerWidth,
-        transition: "left 0.3s ease, width 0.3s ease",
+        left: stickyMode ? undefined : leftOffset,
+        width: stickyMode ? "100%" : headerWidth,
+        transition: stickyMode ? undefined : "left 0.3s ease, width 0.3s ease",
         padding: isMobile
-          ? "12px 10px 0"
+          ? "0 10px 0 0"
           : isTablet
-            ? "18px 18px 0 16px"
-            : "22px 24px 0 18px",
+            ? "0 18px 0 0"
+            : "0 24px 0 0",
         pointerEvents: "none",
+        backgroundColor: "#0e0d0f",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
       }}
     >
       <div className="flex min-w-0 items-start justify-between gap-4">
-        <div className="pointer-events-auto flex min-w-0 flex-col items-start gap-2">
+        <div className="pointer-events-auto flex min-w-0 flex-col items-start gap-0">
           <img
             src={logo}
             alt="Company Logo"
-            className={
+            className={`m-0 block w-auto ${
               isMobile
-                ? "block h-[56px] w-auto"
+                ? "h-[96px]"
                 : isTablet
-                  ? "block h-[68px] w-auto"
-                  : "block h-[74px] w-auto"
-            }
+                  ? "h-[112px]"
+                  : "h-[130px]"
+            }`}
           />
-          <div className="min-w-0 text-left">
+          <div
+            className="min-w-0 text-left"
+            style={{
+              marginLeft: isMobile ? "10px" : isTablet ? "14px" : "18px",
+              marginTop: isMobile ? "-14px" : isTablet ? "-18px" : "-22px",
+            }}
+          >
             <h1
               className={
                 isMobile

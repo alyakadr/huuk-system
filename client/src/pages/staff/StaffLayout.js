@@ -260,24 +260,25 @@ const StaffLayout = () => {
     );
   }
 
-  const contentStyles = {
+  const mainColumnPadding = isPhone
+    ? "0 10px 14px"
+    : isTablet
+      ? "0 18px 20px"
+      : "0 24px 24px 18px";
+
+  const mainColumnStyles = {
+    display: "flex",
+    flexDirection: "column",
     flexGrow: 1,
     minWidth: 0,
     minHeight: "100vh",
     overflowY: "auto",
     overflowX: "hidden",
     backgroundColor: "#0e0d0f",
-    padding: isPhone
-      ? "120px 10px 14px"
-      : isTablet
-        ? "148px 18px 20px"
-        : "185px 24px 24px 18px",
     marginLeft: `${sidebarWidth}px`,
     width: `calc(100% - ${sidebarWidth}px)`,
     boxSizing: "border-box",
     transition: "margin-left 0.3s ease, width 0.3s ease",
-    position: "relative",
-    zIndex: 900,
   };
 
   return (
@@ -297,19 +298,29 @@ const StaffLayout = () => {
         minimized={isCompactLayout ? true : isSidebarMinimized}
         toggleSidebar={toggleSidebar}
       />
-      <Header
-        isMobile={isPhone}
-        isTablet={isTablet}
-        minimized={isCompactLayout ? true : isSidebarMinimized}
-        layoutLeftOffset={`${sidebarWidth}px`}
-        layoutWidth={`calc(100% - ${sidebarWidth}px)`}
-        username={user.username}
-        role={user.role}
-        pageTitle={getPageTitle()}
-        mode={getMode()}
-      />
-      <div style={contentStyles}>
-        <Outlet />
+      <div style={mainColumnStyles}>
+        <Header
+          isMobile={isPhone}
+          isTablet={isTablet}
+          minimized={isCompactLayout ? true : isSidebarMinimized}
+          sticky
+          layoutLeftOffset={`${sidebarWidth}px`}
+          layoutWidth={`calc(100% - ${sidebarWidth}px)`}
+          username={user.username}
+          role={user.role}
+          pageTitle={getPageTitle()}
+          mode={getMode()}
+        />
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            padding: mainColumnPadding,
+          }}
+        >
+          <Outlet />
+        </div>
       </div>
       <SwitchModeButton />
     </div>

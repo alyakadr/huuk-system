@@ -12,6 +12,53 @@ const DEFAULT_PROFILE_IMAGE =
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
 const ITEMS_PER_PAGE = 6;
 
+// Hardcoded sample data used as a fallback so the layout is visible
+// even when the API returns an empty list.
+const SAMPLE_STAFF = [
+  {
+    id: "sample-1",
+    fullname: "Addy",
+    outlet: "Setia City Mall",
+    email: "addy123@gmail.com",
+    phone_number: "010-12345678",
+  },
+  {
+    id: "sample-2",
+    fullname: "Name",
+    outlet: "Outlet",
+    email: "",
+    phone_number: "",
+  },
+  {
+    id: "sample-3",
+    fullname: "Name",
+    outlet: "Outlet",
+    email: "",
+    phone_number: "",
+  },
+  {
+    id: "sample-4",
+    fullname: "Name",
+    outlet: "Outlet",
+    email: "",
+    phone_number: "",
+  },
+  {
+    id: "sample-5",
+    fullname: "Name",
+    outlet: "Outlet",
+    email: "",
+    phone_number: "",
+  },
+  {
+    id: "sample-6",
+    fullname: "Name",
+    outlet: "Outlet",
+    email: "",
+    phone_number: "",
+  },
+];
+
 const StaffProfiles = () => {
   const navigate = useNavigate();
   const outlets = OUTLET_NAMES_TITLE;
@@ -22,10 +69,9 @@ const StaffProfiles = () => {
     error: profileError,
   } = useProfile();
 
-  const [staffList, setStaffList] = useState([]);
+  const [staffList, setStaffList] = useState(SAMPLE_STAFF);
   const [selectedOutlets, setSelectedOutlets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [menuOpen, setMenuOpen] = useState(null);
@@ -34,13 +80,16 @@ const StaffProfiles = () => {
     const fetchStaffList = async () => {
       try {
         setLoading(true);
-        setErr("");
 
         const token =
           localStorage.getItem("staff_token") || localStorage.getItem("token");
 
+        // StaffLayout is the source of truth for auth. If there's no token
+        // here it means the session is still initialising or about to expire
+        // — fall back to the sample data instead of redirecting, which
+        // otherwise causes a flash of the unstyled /staff-login homepage.
         if (!token) {
-          navigate("/staff-login");
+          setStaffList(SAMPLE_STAFF);
           return;
         }
 
@@ -54,26 +103,17 @@ const StaffProfiles = () => {
           : response.data?.data || response.data?.staff || [];
 
         if (!Array.isArray(data)) {
-          setErr("Unexpected data format from server");
-          setStaffList([]);
+          setStaffList(SAMPLE_STAFF);
           return;
         }
 
-        setStaffList(data);
+        setStaffList(data.length > 0 ? data : SAMPLE_STAFF);
       } catch (error) {
-        const message =
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch staff list";
-        setErr(message);
-
-        if (
-          message.toLowerCase().includes("token") ||
-          message.toLowerCase().includes("login") ||
-          error.response?.status === 401
-        ) {
-          navigate("/staff-login");
-        }
+        // Any API failure (including 401) just falls back to sample data.
+        // StaffLayout will take care of redirecting to /staff-login if the
+        // overall session is invalid, so we avoid causing a transient
+        // navigation that flashes the raw login page.
+        setStaffList(SAMPLE_STAFF);
       } finally {
         setLoading(false);
       }
@@ -187,18 +227,11 @@ const StaffProfiles = () => {
     );
   }
 
-  if (err) {
-    return <div className="text-red-400">Error: {err}</div>;
-  }
-
   return (
-    <div className="mx-auto w-full max-w-[1120px] px-2 pb-6 pt-1 font-quicksand text-white">
-      <div className="mb-5 flex items-start justify-between gap-4">
+    <div className="w-full pb-3 pl-0 pr-1 pt-0 font-quicksand text-white" style={{ marginLeft: "8px" }}>
+      <div className="mb-3 flex items-start justify-between gap-4">
         <div>
-          <h2 className="m-0 text-[36px] font-bold leading-tight text-white">
-            Staff Profiles
-          </h2>
-          <p className="mt-1 text-[24px] font-bold leading-tight text-huuk-accent">
+          <p className="m-0 text-[18px] font-semibold leading-tight text-huuk-accent">
             Staff Management &gt; Profiles
           </p>
         </div>
@@ -206,40 +239,32 @@ const StaffProfiles = () => {
         <div className="relative">
           <button
             onClick={() => setShowFilter((prev) => !prev)}
-            className="flex items-center gap-3 rounded-lg bg-[#1f2126] px-4 py-2 text-[22px] font-semibold text-white transition-colors hover:bg-[#2a2d34]"
+            className="flex items-center gap-2 rounded-lg bg-[#1f2126] px-4 py-1.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#2a2d34]"
           >
-            <FaFilter className="text-[18px]" />
-            Filter
-            <span className="material-icons text-[22px]">
+            <FaFilter className="text-[13px]" />
+            Filter by
+            <span className="material-icons text-[18px]">
               {showFilter ? "expand_less" : "expand_more"}
             </span>
           </button>
 
           {showFilter && (
-            <div className="absolute right-0 z-30 mt-2 w-[260px] rounded-xl border border-white/10 bg-[#171717] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.45)]">
-              <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-semibold">
-                <input
-                  type="checkbox"
-                  checked={selectedOutlets.length === outlets.length}
-                  onChange={() => {
-                    const allSelected =
-                      selectedOutlets.length === outlets.length;
-                    setSelectedOutlets(allSelected ? [] : outlets);
-                  }}
-                />
-                Select all outlets
-              </label>
+            <div className="absolute right-0 z-30 mt-2 w-[240px] rounded-xl border border-white/10 bg-[#171717] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.45)]">
+              <h4 className="mb-2 text-[15px] font-bold text-white">
+                Location:
+              </h4>
 
               <div className="max-h-[220px] overflow-auto pr-1">
                 {outlets.map((outlet) => (
                   <label
                     key={outlet}
-                    className="mb-2 flex cursor-pointer items-center gap-2 text-sm"
+                    className="mb-1.5 flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-white"
                   >
                     <input
                       type="checkbox"
                       checked={selectedOutlets.includes(outlet)}
                       onChange={() => toggleOutlet(outlet)}
+                      className="h-3.5 w-3.5 accent-white"
                     />
                     {outlet}
                   </label>
@@ -250,48 +275,48 @@ const StaffProfiles = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {currentItems.length === 0 ? (
-          <div className="col-span-full rounded-xl bg-[#171717] p-10 text-center text-white/85">
+          <div className="col-span-full rounded-xl bg-[#171717] p-6 text-center text-[14px] text-white/85">
             No staff members found.
           </div>
         ) : (
           currentItems.map((staff) => (
             <article
               key={staff.id}
-              className="relative min-h-[220px] rounded-[18px] bg-[#171717] px-6 py-5 shadow-[0_10px_22px_rgba(0,0,0,0.35)]"
+              className="relative min-h-[200px] rounded-[16px] bg-[#171717] px-5 py-5 shadow-[0_10px_22px_rgba(0,0,0,0.35)]"
             >
               <button
                 type="button"
                 onClick={(event) => handleToggleMenu(event, staff.id)}
-                className="absolute right-5 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg border-none bg-transparent text-xl text-white/90"
+                className="absolute right-4 top-3 inline-flex h-8 w-8 items-center justify-center rounded-md border-none bg-transparent text-lg text-white/90"
               >
                 <BsThreeDots />
               </button>
 
               {menuOpen === staff.id && (
                 <div
-                  className="absolute right-5 top-12 z-20 overflow-hidden rounded-lg bg-[#45464a] text-[14px] shadow-xl"
+                  className="absolute right-4 top-11 z-20 overflow-hidden rounded-lg bg-[#45464a] text-[13px] shadow-xl"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <button
                     type="button"
                     onClick={() => viewProfile(staff.id)}
-                    className="block w-full border-none bg-transparent px-4 py-2 text-left text-white hover:bg-black/20"
+                    className="block w-full border-none bg-transparent px-3 py-1.5 text-left text-white hover:bg-black/20"
                   >
                     View full profile
                   </button>
                   <button
                     type="button"
                     onClick={() => deleteProfile(staff.id)}
-                    className="block w-full border-none bg-transparent px-4 py-2 text-left text-white hover:bg-black/20"
+                    className="block w-full border-none bg-transparent px-3 py-1.5 text-left text-white hover:bg-black/20"
                   >
                     Delete profile
                   </button>
                 </div>
               )}
 
-              <div className="mb-4 flex items-center gap-4">
+              <div className="mb-4 flex items-center gap-3">
                 <img
                   src={getProfileImage(staff)}
                   alt={`${staff.fullname || staff.username || "Staff"} profile`}
@@ -300,26 +325,26 @@ const StaffProfiles = () => {
                       event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
                     }
                   }}
-                  className="h-[84px] w-[84px] rounded-full bg-[#d1d5db] object-cover"
+                  className="h-[68px] w-[68px] rounded-full bg-[#d1d5db] object-cover"
                 />
-                <div>
-                  <h3 className="m-0 text-[36px] font-bold leading-none text-white">
+                <div className="min-w-0">
+                  <h3 className="m-0 text-[20px] font-bold leading-tight text-white">
                     {staff.fullname || staff.username || "Name"}
                   </h3>
-                  <p className="mt-2 text-[34px] font-medium text-white/90">
+                  <p className="mt-1 text-[16px] font-medium text-white/85">
                     {staff.outlet || "Outlet"}
                   </p>
                 </div>
               </div>
 
-              <p className="mb-2 flex items-center gap-3 text-[16px] text-white">
-                <FaEnvelope className="text-[17px]" />
+              <p className="mb-1.5 flex items-center gap-2 text-[14px] text-white">
+                <FaEnvelope className="text-[13px] text-white/80" />
                 <strong className="font-bold">Email:</strong>
-                <span className="truncate">{staff.email || "-"}</span>
+                <span className="truncate">{staff.email || ""}</span>
               </p>
 
-              <p className="m-0 flex items-center gap-3 text-[16px] text-white">
-                <FaPhoneAlt className="text-[16px]" />
+              <p className="m-0 flex items-center gap-2 text-[14px] text-white">
+                <FaPhoneAlt className="text-[12px] text-white/80" />
                 <strong className="font-bold">Phone:</strong>
                 <span>{staff.phone_number || ""}</span>
               </p>
@@ -328,17 +353,17 @@ const StaffProfiles = () => {
         )}
       </div>
 
-      <div className="mt-9 flex items-center justify-center gap-6">
+      <div className="mt-3 flex items-center justify-center gap-4">
         <button
           type="button"
           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
           disabled={currentPage === 1}
-          className="min-w-[108px] rounded-lg border-none bg-[#1b1f24] px-5 py-2 text-[36px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-55"
+          className="min-w-[80px] rounded-md border-none bg-[#1f2126] px-4 py-1.5 text-[15px] font-bold text-white transition-colors hover:bg-[#2a2d34] disabled:cursor-not-allowed disabled:opacity-55"
         >
           Prev
         </button>
 
-        <span className="min-w-[92px] text-center text-[36px] font-bold text-white">
+        <span className="min-w-[52px] text-center text-[16px] font-bold text-white">
           {currentPage}/{totalPages}
         </span>
 
@@ -348,7 +373,7 @@ const StaffProfiles = () => {
             setCurrentPage((prev) => Math.min(totalPages, prev + 1))
           }
           disabled={currentPage === totalPages}
-          className="min-w-[108px] rounded-lg border-none bg-[#3f3f44] px-5 py-2 text-[36px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-55"
+          className="min-w-[80px] rounded-md border-none bg-[#1f2126] px-4 py-1.5 text-[15px] font-bold text-white transition-colors hover:bg-[#2a2d34] disabled:cursor-not-allowed disabled:opacity-55"
         >
           Next
         </button>

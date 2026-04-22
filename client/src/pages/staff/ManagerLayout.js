@@ -142,6 +142,12 @@ const ManagerLayout = () => {
     );
   }
 
+  const mainColumnPadding = isPhone
+    ? "0 10px 14px 6px"
+    : isTablet
+      ? "0 18px 20px 12px"
+      : "0 24px 24px 10px";
+
   return (
     <div className="flex min-h-screen w-full overflow-hidden bg-[#0e0d0f]">
       <Sidebar
@@ -150,39 +156,46 @@ const ManagerLayout = () => {
         minimized={isCompactLayout ? true : isSidebarMinimized}
         toggleSidebar={toggleSidebar}
       />
-      <Header
-        isMobile={isPhone}
-        isTablet={isTablet}
-        minimized={isCompactLayout ? true : isSidebarMinimized}
-        layoutLeftOffset={`${sidebarWidth}px`}
-        layoutWidth={`calc(100% - ${sidebarWidth}px)`}
-        username={profile?.username || user?.username || "User"}
-        role={user.role}
-        pageTitle={getPageTitle()}
-        mode={getMode()}
-      />
       <div
         style={{
+          display: "flex",
+          flexDirection: "column",
           flexGrow: 1,
           minWidth: 0,
           minHeight: "100vh",
           overflowY: "auto",
           overflowX: "hidden",
           backgroundColor: "#0e0d0f",
-          padding: isPhone
-            ? "112px 10px 14px 6px"
-            : isTablet
-              ? "138px 18px 20px 12px"
-              : "172px 24px 24px 10px",
           marginLeft: `${sidebarWidth}px`,
           width: `calc(100% - ${sidebarWidth}px)`,
           boxSizing: "border-box",
           transition: "margin-left 0.3s ease, width 0.3s ease",
         }}
       >
-        <main className="h-full w-full min-w-0">
-          <Outlet />
-        </main>
+        <Header
+          isMobile={isPhone}
+          isTablet={isTablet}
+          minimized={isCompactLayout ? true : isSidebarMinimized}
+          sticky
+          layoutLeftOffset={`${sidebarWidth}px`}
+          layoutWidth={`calc(100% - ${sidebarWidth}px)`}
+          username={profile?.username || user?.username || "User"}
+          role={user.role}
+          pageTitle={getPageTitle()}
+          mode={getMode()}
+        />
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            padding: mainColumnPadding,
+          }}
+        >
+          <main className="h-full w-full min-w-0">
+            <Outlet />
+          </main>
+        </div>
       </div>
       <SwitchModeButton />
     </div>
