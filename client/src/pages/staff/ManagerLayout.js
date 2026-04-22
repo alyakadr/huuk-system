@@ -23,7 +23,6 @@ const managerNavItems = [
     icon: "check_circle",
     label: "Staff Approvals",
     path: "/manager/staff-approval",
-    disabled: true,
   },
   {
     icon: "event",

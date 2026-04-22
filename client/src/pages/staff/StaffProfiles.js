@@ -1,7 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { BsThreeDots } from "react-icons/bs";
-import { FaEnvelope, FaFilter, FaPhoneAlt } from "react-icons/fa";
+import {
+  FaEnvelope,
+  FaFilter,
+  FaPhoneAlt,
+  FaIdBadge,
+  FaMapMarkerAlt,
+  FaUserTag,
+  FaCalendarAlt,
+} from "react-icons/fa";
+import moment from "moment";
 import { useProfile } from "../../ProfileContext";
 import { OUTLET_NAMES_TITLE } from "../../constants/outlets";
 import http from "../../utils/httpClient";
@@ -60,7 +68,6 @@ const SAMPLE_STAFF = [
 ];
 
 const StaffProfiles = () => {
-  const navigate = useNavigate();
   const outlets = OUTLET_NAMES_TITLE;
 
   const {
@@ -75,6 +82,7 @@ const StaffProfiles = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [menuOpen, setMenuOpen] = useState(null);
+  const [activeStaff, setActiveStaff] = useState(null);
 
   useEffect(() => {
     const fetchStaffList = async () => {
@@ -120,13 +128,22 @@ const StaffProfiles = () => {
     };
 
     fetchStaffList();
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     const handleOutsideClick = () => setMenuOpen(null);
     window.addEventListener("click", handleOutsideClick);
     return () => window.removeEventListener("click", handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    if (!activeStaff) return;
+    const handleKey = (event) => {
+      if (event.key === "Escape") setActiveStaff(null);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [activeStaff]);
 
   const filteredStaffList = useMemo(() => {
     if (selectedOutlets.length === 0) {
@@ -175,8 +192,9 @@ const StaffProfiles = () => {
     setMenuOpen((prev) => (prev === staffId ? null : staffId));
   };
 
-  const viewProfile = (id) => {
-    navigate(`/staff/${id}`);
+  const viewProfile = (staff) => {
+    setMenuOpen(null);
+    setActiveStaff(staff);
   };
 
   const deleteProfile = (id) => {
@@ -301,7 +319,7 @@ const StaffProfiles = () => {
                 >
                   <button
                     type="button"
-                    onClick={() => viewProfile(staff.id)}
+                    onClick={() => viewProfile(staff)}
                     className="block w-full border-none bg-transparent px-3 py-1.5 text-left text-white hover:bg-black/20"
                   >
                     View full profile
@@ -377,6 +395,146 @@ const StaffProfiles = () => {
         >
           Next
         </button>
+      </div>
+
+      {activeStaff && (
+        <StaffProfileModal
+          staff={activeStaff}
+          imageSrc={getProfileImage(activeStaff)}
+          onClose={() => setActiveStaff(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+const InfoRow = ({ icon: Icon, label, value }) => (
+  <div className="flex items-start gap-3 rounded-[10px] border border-white/5 bg-white/[0.03] px-3 py-2.5">
+    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/5 text-[12px] text-white/70">
+      <Icon />
+    </span>
+    <div className="min-w-0 flex-1">
+      <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-white/50">
+        {label}
+      </p>
+      <p
+        className="m-0 mt-0.5 truncate text-[14px] font-semibold text-white"
+        title={typeof value === "string" ? value : undefined}
+      >
+        {value || <span className="text-white/40">--</span>}
+      </p>
+    </div>
+  </div>
+);
+
+const formatMaybeDate = (value) => {
+  if (!value) return "";
+  const parsed = moment(value);
+  return parsed.isValid() ? parsed.format("D MMMM YYYY") : String(value);
+};
+
+const StaffProfileModal = ({ staff, imageSrc, onClose }) => {
+  const displayName =
+    staff.fullname || staff.username || staff.name || "Unnamed staff";
+  const role = staff.role || staff.user_role || "staff";
+  const joinedDate = formatMaybeDate(
+    staff.join_date ||
+      staff.joined_at ||
+      staff.date_joined ||
+      staff.created_at ||
+      staff.createdAt,
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="relative w-full max-w-[560px] overflow-hidden rounded-[18px] bg-[#1f2126] text-white shadow-[0_30px_60px_rgba(0,0,0,0.6)]"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Staff profile details"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border-none bg-black/30 text-[18px] text-white/80 hover:bg-white/10 hover:text-white"
+        >
+          <i className="bi bi-x-lg" />
+        </button>
+
+        <div className="flex items-center gap-4 border-b border-white/10 bg-gradient-to-r from-[#262830] to-[#1f2126] px-6 py-5">
+          <img
+            src={imageSrc}
+            alt={`${displayName} profile`}
+            onError={(event) => {
+              if (event.currentTarget.src !== DEFAULT_PROFILE_IMAGE) {
+                event.currentTarget.src = DEFAULT_PROFILE_IMAGE;
+              }
+            }}
+            className="h-[80px] w-[80px] shrink-0 rounded-full border-2 border-white/10 bg-[#d1d5db] object-cover shadow-[0_4px_14px_rgba(0,0,0,0.35)]"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
+              Staff profile
+            </p>
+            <h3 className="mt-1 truncate text-[22px] font-bold leading-tight text-white">
+              {displayName}
+            </h3>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {staff.outlet && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-0.5 text-[11px] font-semibold text-white/80">
+                  <FaMapMarkerAlt className="text-[10px]" />
+                  {staff.outlet}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#3b82f6]/30 bg-[#3b82f6]/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#60a5fa]">
+                <FaUserTag className="text-[10px]" />
+                {role}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-5">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <InfoRow
+              icon={FaIdBadge}
+              label="Full name"
+              value={staff.fullname || staff.name}
+            />
+            <InfoRow
+              icon={FaIdBadge}
+              label="Username"
+              value={staff.username}
+            />
+            <InfoRow icon={FaEnvelope} label="Email" value={staff.email} />
+            <InfoRow
+              icon={FaPhoneAlt}
+              label="Phone"
+              value={staff.phone_number || staff.phone}
+            />
+            <InfoRow
+              icon={FaMapMarkerAlt}
+              label="Outlet"
+              value={staff.outlet}
+            />
+            <InfoRow icon={FaUserTag} label="Role" value={role} />
+            {joinedDate && (
+              <div className="sm:col-span-2">
+                <InfoRow
+                  icon={FaCalendarAlt}
+                  label="Joined"
+                  value={joinedDate}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

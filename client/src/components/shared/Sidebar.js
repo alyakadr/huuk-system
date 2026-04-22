@@ -206,12 +206,13 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
 
   const navItemCls = (isActive, disabled) =>
     [
-      "mb-0.5 box-border flex w-full min-h-[34px] items-center gap-2.5 rounded-[2px] px-3 py-1.5 text-[15px] md:text-[14px] font-quicksand leading-none transition-all duration-150",
+      "mb-0.5 box-border flex w-full min-h-[34px] items-center py-1.5 text-[15px] md:text-[14px] font-quicksand transition-[padding,background-color,color] duration-300 ease-in-out",
+      minimized ? "justify-center px-0" : "px-3",
       isActive
-        ? "rounded-[2px] bg-huuk-accent font-bold text-huuk-card"
+        ? "bg-huuk-accent font-bold text-huuk-card"
         : "bg-transparent text-white/92",
       !disabled
-        ? "cursor-pointer hover:rounded-[2px] hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
+        ? "cursor-pointer hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
         : "cursor-not-allowed opacity-50",
     ].join(" ");
 
@@ -232,7 +233,7 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
   return (
     <aside
       key={location.pathname}
-      className={`fixed left-0 top-0 z-[1200] flex h-screen min-h-0 flex-col overflow-x-hidden rounded-r-[28px] bg-huuk-card font-quicksand text-white transition-all duration-300 ease-in-out ${minimized ? "w-[72px]" : "w-[248px]"}`}
+      className={`fixed left-0 top-0 z-[1200] flex h-screen min-h-0 flex-col overflow-x-hidden rounded-r-[28px] bg-huuk-card font-quicksand text-white transition-[width] duration-300 ease-in-out ${minimized ? "w-[72px]" : "w-[248px]"}`}
     >
       <button
         className="absolute left-4 top-3 z-[1300] flex h-8 w-8 items-center justify-center rounded-full border-none bg-white shadow"
@@ -285,7 +286,7 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         )}
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <nav className="flex-1 min-h-0 overflow-y-auto pb-3 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <ul className="m-0 list-none p-0">
           {navItems.map((item) => {
             const hasSubNav = !!item.subNav;
@@ -318,32 +319,32 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
                     }
                   }}
                 >
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    <span
-                      className={`material-icons shrink-0 text-[21px] ${isParentOrSelfActive ? "text-huuk-card" : "text-white/90"}`}
-                    >
+                  <span
+                    className={`flex min-w-0 items-center gap-2.5 ${minimized ? "justify-center" : "flex-1"}`}
+                  >
+                    <span className="material-icons shrink-0 text-[21px]">
                       {item.icon}
                     </span>
                     {!minimized && (
-                      <span className="truncate">{item.label}</span>
+                      <span className="break-words leading-tight">
+                        {item.label}
+                      </span>
                     )}
                   </span>
                   {hasSubNav && !minimized && (
-                    <span
-                      className={`material-icons shrink-0 text-[20px] ${isParentOrSelfActive ? "text-huuk-card" : "text-white/90"}`}
-                    >
+                    <span className="material-icons shrink-0 text-[20px]">
                       {isOpen ? "expand_less" : "expand_more"}
                     </span>
                   )}
                 </div>
 
                 {isOpen && hasSubNav && !minimized && (
-                  <ul className="mb-1 ml-[18px] mt-0.5 list-none border-l-2 border-huuk-accent pl-3">
+                  <ul className="mb-1 ml-[30px] mt-0.5 list-none border-l-2 border-huuk-accent pl-3">
                     {item.subNav.map((subItem) => (
                       <li
                         key={subItem.label}
                         className={[
-                          "my-0.5 min-h-[30px] rounded-[2px] px-3 py-1 text-[15px] leading-none transition-colors duration-150",
+                          "my-0.5 min-h-[30px] rounded-[2px] px-3 py-1 text-[15px] leading-tight break-words transition-colors duration-150",
                           subItem.path === location.pathname
                             ? "bg-huuk-accent font-bold text-huuk-card"
                             : "text-white/90 hover:rounded-[2px] hover:bg-huuk-accent hover:font-bold hover:text-huuk-card",
@@ -368,19 +369,21 @@ const Sidebar = ({ user, navItems, minimized, toggleSidebar }) => {
         </ul>
       </nav>
 
-      <nav className="mt-auto shrink-0 border-t border-white/10 px-3 pb-4 pt-5">
+      <nav className="mt-auto shrink-0 border-t border-white/10 pb-4 pt-5">
         <ul className="m-0 list-none p-0">
           {footerItems.map(({ icon, label, onClick }) => (
             <li
               key={label}
-              className="mb-0.5 flex min-h-[34px] cursor-pointer items-center gap-2.5 rounded-[2px] px-3 py-1.5 text-[15px] text-white/92 transition-all duration-150 hover:rounded-[2px] hover:bg-huuk-accent hover:font-bold hover:text-huuk-card"
+              className={`mb-0.5 flex min-h-[34px] cursor-pointer items-center gap-2.5 py-1.5 text-[15px] text-white/92 transition-all duration-150 hover:bg-huuk-accent hover:font-bold hover:text-huuk-card ${minimized ? "justify-center px-0" : "px-3"}`}
               title={minimized ? label : undefined}
               onClick={onClick}
             >
               <span className="material-icons shrink-0 text-[21px]">
                 {icon}
               </span>
-              {!minimized && <span className="truncate">{label}</span>}
+              {!minimized && (
+                <span className="break-words leading-tight">{label}</span>
+              )}
             </li>
           ))}
         </ul>

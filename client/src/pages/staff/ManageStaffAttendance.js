@@ -203,40 +203,100 @@ const computeWorkingHours = (row, referenceDate) => {
   return `${diff.toFixed(2).replace(/\.00$/, "").replace(/0$/, "")}h`;
 };
 
-// Pill-style approval selector. Shows the current status in a dark rounded
-// pill with a trailing indicator (chevron for Pending, coloured icon dot for
-// Approved/Rejected). Clicking opens a dropdown where the manager can switch
-// the decision. The parent owns `isOpen` so only one row is expanded at a time.
+// Inline SVG icons so the approval chip renders the same on every
+// machine/browser (independent of any icon-font / bootstrap-icons load).
+const CheckIcon = () => (
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 12 12"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="2.5 6.5 5 9 9.5 3.5" />
+  </svg>
+);
+
+const CrossIcon = () => (
+  <svg
+    width="9"
+    height="9"
+    viewBox="0 0 12 12"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <line x1="3" y1="3" x2="9" y2="9" />
+    <line x1="9" y1="3" x2="3" y2="9" />
+  </svg>
+);
+
+const ChevronIcon = ({ up }) => (
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 12 12"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    style={{ transform: up ? "rotate(180deg)" : "none" }}
+  >
+    <polyline points="3 4.5 6 7.5 9 4.5" />
+  </svg>
+);
+
+// Pill-style approval selector. Shows the current status in a fixed-size
+// dark rounded chip (150×30) with a coloured indicator dot trailing the
+// label. Clicking opens a dropdown where the manager can switch the
+// decision. The parent owns `isOpen` so only one row is expanded at a time.
 const ApprovalSelect = ({ rowId, status, isOpen, onToggle, onSelect }) => {
-  const config = {
-    pending: {
-      label: "Pending",
-      textClass: "text-white/90",
-      icon: null,
-    },
-    approved: {
-      label: "Approved",
-      textClass: "text-white",
-      icon: (
-        <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#22c55e] text-white shadow-[0_0_0_2px_rgba(34,197,94,0.2)]">
-          <i className="bi bi-check-lg text-[11px]" />
+  const renderIndicator = () => {
+    if (status === "approved") {
+      return (
+        <span
+          className="ml-2 inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[#22c55e] text-white"
+          aria-hidden="true"
+        >
+          <CheckIcon />
         </span>
-      ),
-    },
-    rejected: {
-      label: "Rejected",
-      textClass: "text-white",
-      icon: (
-        <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#ef4444] text-white shadow-[0_0_0_2px_rgba(239,68,68,0.2)]">
-          <i className="bi bi-x-lg text-[10px]" />
+      );
+    }
+    if (status === "rejected") {
+      return (
+        <span
+          className="ml-2 inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[#ef4444] text-white"
+          aria-hidden="true"
+        >
+          <CrossIcon />
         </span>
-      ),
-    },
-  }[status] || {
-    label: "Pending",
-    textClass: "text-white/90",
-    icon: null,
+      );
+    }
+    return (
+      <span
+        className="ml-2 inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80"
+        aria-hidden="true"
+      >
+        <ChevronIcon up={isOpen} />
+      </span>
+    );
   };
+
+  const label =
+    status === "approved"
+      ? "Approved"
+      : status === "rejected"
+        ? "Rejected"
+        : "Pending";
 
   const options = [
     { value: "pending", label: "Pending" },
@@ -255,31 +315,33 @@ const ApprovalSelect = ({ rowId, status, isOpen, onToggle, onSelect }) => {
         onClick={onToggle}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className={`inline-flex h-[30px] min-w-[130px] items-center justify-between gap-2 rounded-full border border-white/10 bg-[#242424] pl-3.5 pr-2 text-[11px] font-bold uppercase tracking-[0.08em] shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-colors hover:bg-[#2c2c2c] focus:outline-none focus:ring-2 focus:ring-white/20 ${config.textClass}`}
+        className="flex h-[30px] w-[150px] items-center justify-center rounded-[6px] border-none bg-[#0f0f0f] px-3 text-[12px] font-bold uppercase tracking-[1px] text-white transition-colors hover:bg-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-white/20"
       >
-        <span>{config.label}</span>
-        {config.icon ? (
-          config.icon
-        ) : (
-          <i
-            className={`bi bi-chevron-${isOpen ? "up" : "down"} text-[11px] text-white/70`}
-          />
-        )}
+        {label}
+        {renderIndicator()}
       </button>
 
       {isOpen && (
         <div
           role="listbox"
-          className="absolute left-1/2 top-[calc(100%+6px)] z-30 w-[150px] -translate-x-1/2 overflow-hidden rounded-[12px] border border-white/10 bg-[#1a1a1a] p-1 shadow-[0_12px_28px_rgba(0,0,0,0.55)]"
+          className="absolute left-1/2 top-[calc(100%+6px)] z-30 w-[150px] -translate-x-1/2 overflow-hidden rounded-[8px] border border-white/10 bg-[#0f0f0f] p-1 shadow-[0_12px_28px_rgba(0,0,0,0.55)]"
         >
           {options.map((option) => {
             const isActive = option.value === status;
-            const accent =
-              option.value === "approved"
-                ? "text-[#4ade80]"
-                : option.value === "rejected"
-                  ? "text-[#f87171]"
-                  : "text-[#fbbf24]";
+            const dot =
+              option.value === "approved" ? (
+                <span className="inline-flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-[#22c55e] text-white">
+                  <CheckIcon />
+                </span>
+              ) : option.value === "rejected" ? (
+                <span className="inline-flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-[#ef4444] text-white">
+                  <CrossIcon />
+                </span>
+              ) : (
+                <span className="inline-flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70">
+                  <ChevronIcon />
+                </span>
+              );
             return (
               <button
                 key={option.value}
@@ -287,16 +349,10 @@ const ApprovalSelect = ({ rowId, status, isOpen, onToggle, onSelect }) => {
                 role="option"
                 aria-selected={isActive}
                 onClick={() => onSelect(option.value)}
-                className={`flex w-full items-center justify-between rounded-[8px] border-none bg-transparent px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white/90 transition-colors hover:bg-white/10 ${isActive ? "bg-white/10" : ""}`}
+                className={`flex w-full items-center justify-between rounded-[6px] border-none bg-transparent px-3 py-1.5 text-[12px] font-bold uppercase tracking-[1px] text-white transition-colors hover:bg-white/10 ${isActive ? "bg-white/10" : ""}`}
               >
                 <span>{option.label}</span>
-                {option.value === "approved" ? (
-                  <i className={`bi bi-check-circle-fill text-[12px] ${accent}`} />
-                ) : option.value === "rejected" ? (
-                  <i className={`bi bi-x-circle-fill text-[12px] ${accent}`} />
-                ) : (
-                  <i className={`bi bi-hourglass-split text-[11px] ${accent}`} />
-                )}
+                {dot}
               </button>
             );
           })}
