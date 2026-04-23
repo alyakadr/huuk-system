@@ -14,10 +14,16 @@ import {
 } from "../utils/timeSlotUtils";
 import { fetchBookingsByPhone } from "../utils/api";
 import { debugLog } from "../utils/debugLog";
-import "./AddBookingModal.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 // Malaysia timezone constant
 const MALAYSIA_TZ = "Asia/Kuala_Lumpur";
+
+const modalFieldClass =
+  "w-full rounded-lg border border-white/15 bg-[#2a2c33] px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6]/40 disabled:opacity-50 [color-scheme:dark]";
+
+const modalLabelClass =
+  "block text-[11px] font-semibold uppercase tracking-wide text-white/50";
 
 const AddBookingModal = ({
   isOpen,
@@ -54,7 +60,28 @@ const AddBookingModal = ({
 
   // Service caching to prevent redundant API calls
   const servicesCache = useRef(new Map());
+  const servicesFetchInFlightRef = useRef(false);
   const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes cache
+
+  const getStaffAuthToken = useCallback(() => {
+    try {
+      const staffUser = JSON.parse(
+        localStorage.getItem("staff_loggedInUser") || "{}",
+      );
+      return (
+        staffUser.token ||
+        localStorage.getItem("staff_token") ||
+        localStorage.getItem("token") ||
+        null
+      );
+    } catch {
+      return (
+        localStorage.getItem("staff_token") ||
+        localStorage.getItem("token") ||
+        null
+      );
+    }
+  }, []);
 
   // Phone lookup debouncing
   const phoneDebounceRef = useRef(null);
@@ -473,7 +500,9 @@ const AddBookingModal = ({
     return startTime;
   };
 
-  // Optimized service fetching with better caching
+  // Optimized service fetching with better caching.
+  // Do not depend on loadingServices in useCallback — that recreates this function
+  // whenever loading toggles and retriggers effects, causing fetch loops and UI flicker.
   const fetchServicesForSlot = useCallback(
     async (maxDuration = null) => {
       const cacheKey = `services_${maxDuration || "all"}`;
@@ -485,17 +514,14 @@ const AddBookingModal = ({
         return;
       }
 
-      // Prevent multiple simultaneous requests
-      if (loadingServices) {
+      if (servicesFetchInFlightRef.current) {
         return;
       }
 
+      servicesFetchInFlightRef.current = true;
       setLoadingServices(true);
       try {
-        const staffUser = JSON.parse(
-          localStorage.getItem("staff_loggedInUser") || "{}",
-        );
-        const token = staffUser.token || localStorage.getItem("token");
+        const token = getStaffAuthToken();
 
         if (!token) {
           setAllServices([]);
@@ -522,8 +548,11 @@ const AddBookingModal = ({
         if (response.ok) {
           const data = await response.json();
 
-          // Ensure data is an array
-          const servicesArray = Array.isArray(data) ? data : [];
+          const servicesArray = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.services)
+              ? data.services
+              : [];
 
           // Cache the response
           servicesCache.current.set(cacheKey, {
@@ -541,10 +570,11 @@ const AddBookingModal = ({
         }
         setAllServices([]);
       } finally {
+        servicesFetchInFlightRef.current = false;
         setLoadingServices(false);
       }
     },
-    [loadingServices],
+    [getStaffAuthToken],
   );
 
   // Fetch all services (fallback method)
@@ -604,10 +634,7 @@ const AddBookingModal = ({
 
     setLoadingHistory(true);
     try {
-      const staffUser = JSON.parse(
-        localStorage.getItem("staff_loggedInUser") || "{}",
-      );
-      const token = staffUser.token || localStorage.getItem("token");
+      const token = getStaffAuthToken();
 
       // First try to find user by phone
       const userResponse = await fetch(
@@ -654,7 +681,7 @@ const AddBookingModal = ({
     } finally {
       setLoadingHistory(false);
     }
-  }, []);
+  }, [getStaffAuthToken]);
 
   // Debounced phone lookup effect
   useEffect(() => {
@@ -784,6 +811,40 @@ const AddBookingModal = ({
     [getConsecutiveAvailableSlots],
   );
 
+  // Stable keys so effects do not re-run when parents pass new array instances
+  // with the same data (was causing visible modal flicker / form resets).
+  const bookingsAvailabilityKey = useMemo(() => {
+    if (!bookings?.length) return "";
+    return bookings
+      .map((b) => {
+        const raw = b.booking_date || b.date || "";
+        const d =
+          typeof raw === "string" && raw.includes("T")
+            ? raw.split("T")[0]
+            : raw;
+        return `${b.id ?? ""}:${b.start_time ?? ""}:${b.end_time ?? ""}:${d}:${b.status ?? ""}`;
+      })
+      .sort()
+      .join("|");
+  }, [bookings]);
+
+  const blockedSlotsAvailabilityKey = useMemo(() => {
+    if (!blockedSlots?.length) return "";
+    return blockedSlots
+      .map((s) =>
+        typeof s === "string"
+          ? s
+          : `${s?.time ?? ""}~${s?.date ?? ""}~${s?.day ?? ""}`,
+      )
+      .sort()
+      .join("|");
+  }, [blockedSlots]);
+
+  const timeSlotsIdentityKey = useMemo(
+    () => (Array.isArray(timeSlots) ? timeSlots.join(",") : ""),
+    [timeSlots],
+  );
+
   // Fetch services when component mounts
   useEffect(() => {
     fetchAllServices();
@@ -791,13 +852,27 @@ const AddBookingModal = ({
 
   // Reset form when modal opens/closes and refetch services when slot changes
   useEffect(() => {
-    if (isOpen) {
-      const previousActiveElement = document.activeElement;
-      modalRef.current.focus();
-      return () => {
-        if (previousActiveElement) previousActiveElement.focus();
-      };
-    }
+    if (!isOpen) return undefined;
+    const el = modalRef.current;
+    if (!el) return undefined;
+    const previousActiveElement = document.activeElement;
+    const rafId = requestAnimationFrame(() => {
+      try {
+        el.focus({ preventScroll: true });
+      } catch {
+        el.focus();
+      }
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (previousActiveElement && typeof previousActiveElement.focus === "function") {
+        try {
+          previousActiveElement.focus({ preventScroll: true });
+        } catch {
+          previousActiveElement.focus();
+        }
+      }
+    };
   }, [isOpen]);
 
   const handleKeyDown = (event) => {
@@ -963,42 +1038,28 @@ const AddBookingModal = ({
     isOpen,
     selectedSlot,
     formData.selectedTime,
-    bookings,
-    blockedSlots,
-    timeSlots,
+    bookingsAvailabilityKey,
+    blockedSlotsAvailabilityKey,
+    timeSlotsIdentityKey,
   ]);
 
   // Debounced service fetching to prevent excessive API calls
   const debouncedFetchServicesRef = useRef(null);
 
-  // Dynamically refetch services when time changes to get duration-filtered services
+  // Load full service catalog when the slot/time context is ready. Duration limits
+  // are applied in `availableServices` (client-side) using consecutive free slots;
+  // server-side maxDuration filtering would shrink the list and break that logic.
   useEffect(() => {
     if (formData.selectedTime && selectedSlot?.day?.date) {
-      const selectedDate = selectedSlot.day?.date || selectedSlot.date;
-      const maxDuration = getMaxServiceDuration(
-        formData.selectedTime,
-        selectedDate,
-      );
-      const currentOutlet = currentUser?.outlet || "SCM";
-
-      // Clear any pending debounced fetch
       if (debouncedFetchServicesRef.current) {
         clearTimeout(debouncedFetchServicesRef.current);
       }
 
-      // Debounce the service fetching by 300ms to prevent rapid successive calls
       debouncedFetchServicesRef.current = setTimeout(() => {
-        // Only refetch if we have a meaningful max duration
-        if (maxDuration > 0) {
-          fetchServicesForSlot(maxDuration);
-        } else {
-          // If no duration available, fetch all services
-          fetchServicesForSlot();
-        }
-      }, 300); // 300ms debounce delay
+        fetchServicesForSlot();
+      }, 300);
     }
 
-    // Cleanup timeout on unmount
     return () => {
       if (debouncedFetchServicesRef.current) {
         clearTimeout(debouncedFetchServicesRef.current);
@@ -1009,8 +1070,9 @@ const AddBookingModal = ({
     selectedSlot?.day?.date,
     selectedSlot?.date,
     currentUser?.outlet,
+    currentUser?.outlet_name,
+    currentUser?.outletName,
     fetchServicesForSlot,
-    getMaxServiceDuration,
   ]);
 
   // Handle form input changes
@@ -1288,7 +1350,12 @@ const AddBookingModal = ({
       blockedSlots,
       selectedSlot.day.date,
     );
-  }, [selectedSlot, bookings, blockedSlots, timeSlots]);
+  }, [
+    selectedSlot,
+    bookingsAvailabilityKey,
+    blockedSlotsAvailabilityKey,
+    timeSlotsIdentityKey,
+  ]);
 
   // Calculate end time for display
   const getEndTime = () => {
@@ -1299,148 +1366,124 @@ const AddBookingModal = ({
 
   if (!isOpen || !selectedSlot) return null;
 
+  const outletDisplay =
+    currentUser?.outlet ||
+    currentUser?.outlet_name ||
+    currentUser?.outletName ||
+    "—";
+
   return (
+    <>
     <div
-      className="booking-details-modal"
-      role="dialog"
-      aria-labelledby="modal-title"
-      aria-modal="true"
-      tabIndex="-1"
-      ref={modalRef}
-      onKeyDown={handleKeyDown}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+      role="presentation"
     >
-      <div className="add-booking-modal-content">
-        <div className="booking-details">
-          <h3 id="modal-title">ADD NEW BOOKING</h3>
-          <button className="close-button" onClick={onClose}>
-            ×
+      <div
+        ref={modalRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-labelledby="modal-title"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+        className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-[18px] bg-[#1f2126] text-white shadow-[0_30px_60px_rgba(0,0,0,0.6)]"
+      >
+        <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-white/10 bg-[#1f2126] px-5 pb-3 pt-4">
+          <div className="min-w-0 pr-2">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-white/50">
+              Booking
+            </p>
+            <h2
+              id="modal-title"
+              className="m-0 mt-1 text-xl font-bold leading-tight text-[#3b82f6]"
+            >
+              New booking
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-none bg-transparent text-[18px] text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <i className="bi bi-x-lg" />
           </button>
+        </div>
 
-          <form onSubmit={handleSubmit} className="booking-form">
-            {/* Info Display Fields - Outlet, Barber, Date, Time in one centered row */}
-            <div className="info-display-container">
-              <div className="form-group info-display">
-                <label>Outlet</label>
-                <div className="form-value-display">SCM</div>
-              </div>
-
-              <div className="form-group info-display">
-                <label>Barber</label>
-                <div className="form-value-display">
-                  {currentUser?.username || currentUser?.name || "Addy"}
-                </div>
-              </div>
-
-              <div className="form-group info-display">
-                <label>Date</label>
-                <div className="form-value-display">
-                  {(() => {
-                    const dateStr = selectedSlot.day?.date || selectedSlot.date;
-                    if (dateStr) {
-                      // Use moment to ensure consistent formatting in Malaysia timezone
-                      return moment
-                        .tz(dateStr, MALAYSIA_TZ)
-                        .format("DD-MM-YYYY");
-                    }
-                    return moment.tz(MALAYSIA_TZ).format("DD-MM-YYYY");
-                  })()}
-                </div>
-              </div>
-
-              <div className="form-group info-display">
-                <label>Time</label>
-                <div className="form-value-display">
-                  {formData.selectedTime || selectedSlot.time}
-                </div>
-              </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 pt-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-3 text-left"
+        >
+          <div className="flex flex-wrap justify-center gap-2 text-[12px]">
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="font-semibold text-white/50">Outlet </span>
+              <span className="text-white">{outletDisplay}</span>
             </div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="font-semibold text-white/50">Staff </span>
+              <span className="text-white">
+                {currentUser?.username || currentUser?.name || "—"}
+              </span>
+            </div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="font-semibold text-white/50">Date </span>
+              <span className="text-white">
+                {(() => {
+                  const dateStr = selectedSlot.day?.date || selectedSlot.date;
+                  if (dateStr) {
+                    return moment
+                      .tz(dateStr, MALAYSIA_TZ)
+                      .format("DD-MM-YYYY");
+                  }
+                  return moment.tz(MALAYSIA_TZ).format("DD-MM-YYYY");
+                })()}
+              </span>
+            </div>
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="font-semibold text-white/50">Time </span>
+              <span className="text-white">
+                {formData.selectedTime || selectedSlot.time}
+              </span>
+            </div>
+          </div>
 
-            {slotAvailabilityMessage && (
-              <div
-                className="form-group info-display"
-                style={{
-                  marginBottom: "10px",
-                  justifyContent: "center",
-                  backgroundColor: "#fff3cd",
-                  border: "1px solid #ffeaa7",
-                  borderRadius: "4px",
-                  padding: "8px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "#856404",
-                    textAlign: "center",
-                  }}
-                >
-                  {slotAvailabilityMessage}
-                </div>
-              </div>
-            )}
+          {slotAvailabilityMessage && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-[11px] leading-snug text-amber-100">
+              {slotAvailabilityMessage}
+            </div>
+          )}
 
-            {/* Available Duration Info */}
-            {availableDuration > 0 && (
-              <div
-                className="form-group info-display"
-                style={{ marginBottom: "10px", justifyContent: "center" }}
-              >
-                <label style={{ fontSize: "12px", color: "#666" }}>
-                  Available Duration:
-                </label>
-                <div
-                  className="form-value-display"
-                  style={{
-                    fontSize: "12px",
-                    color: "#007bff",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {formatDuration(availableDuration)}
-                </div>
-              </div>
-            )}
+          {availableDuration > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100">
+              <span className="text-amber-100/80">Available duration</span>
+              <span className="font-bold text-amber-100">
+                {formatDuration(availableDuration)}
+              </span>
+            </div>
+          )}
 
-            {/* Walk-in Override Indicator */}
-            {isWalkInOverride && walkInMessage && (
-              <div
-                className="form-group info-display"
-                style={{
-                  marginBottom: "15px",
-                  justifyContent: "center",
-                  backgroundColor: "#fff3cd",
-                  border: "1px solid #ffeaa7",
-                  borderRadius: "4px",
-                  padding: "8px 12px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "#856404",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "5px",
-                  }}
-                >
-                  <span style={{ fontSize: "14px" }}>⚠️</span>
-                  {walkInMessage}
-                </div>
-              </div>
-            )}
+          {isWalkInOverride && walkInMessage && (
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-[11px] font-semibold leading-snug text-amber-100">
+              <i className="bi bi-exclamation-triangle-fill shrink-0 text-amber-300" />
+              {walkInMessage}
+            </div>
+          )}
 
-            {/* Service Selection */}
-            <div className="form-group input-field">
-              <select
-                name="service"
-                value={formData.service}
-                onChange={handleFormChange}
-                required
-                disabled={loadingServices}
-              >
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="add-booking-service" className={modalLabelClass}>
+              Service
+            </label>
+            <select
+              id="add-booking-service"
+              name="service"
+              value={formData.service}
+              onChange={handleFormChange}
+              required
+              disabled={loadingServices}
+              className={modalFieldClass}
+            >
                 <option value="">
                   {loadingServices ? "Loading services..." : "Select Service"}
                 </option>
@@ -1451,27 +1494,11 @@ const AddBookingModal = ({
                 ))}
               </select>
               {availableServices.length === 0 && !loadingServices && (
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "#dc3545",
-                    marginTop: "4px",
-                    textAlign: "center",
-                    fontStyle: "italic",
-                  }}
-                >
+                <p className="m-0 text-center text-[11px] italic text-red-300">
                   No services available for this time slot duration
-                </div>
+                </p>
               )}
-              {/* Slot availability info */}
-              <div
-                style={{
-                  fontSize: "10px",
-                  color: "#666",
-                  marginTop: "4px",
-                  textAlign: "center",
-                }}
-              >
+              <p className="m-0 text-center text-[10px] text-white/45">
                 {(() => {
                   const slots = Math.floor(
                     getMaxServiceDuration(
@@ -1485,7 +1512,7 @@ const AddBookingModal = ({
                     return "Available: 2 slots (up to 60 min services)";
                   return `Available: ${slots} slots (up to ${slots * 30} min services)`;
                 })()}
-              </div>
+              </p>
 
               {/* Available slots visualization */}
               {(() => {
@@ -1529,102 +1556,38 @@ const AddBookingModal = ({
                 }
 
                 return (
-                  <div
-                    style={{
-                      marginTop: "8px",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        color: "#666",
-                        marginBottom: "4px",
-                      }}
-                    >
-                      Available time slots:
+                  <div className="mt-2 flex flex-col items-center gap-2">
+                    <div className="text-[10px] text-white/50">
+                      Available time slots
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "4px",
-                        justifyContent: "center",
-                      }}
-                    >
+                    <div className="flex flex-wrap justify-center gap-1">
                       {availableSlotsList.map((slot, index) => (
-                        <div
+                        <span
                           key={slot}
-                          style={{
-                            fontSize: "9px",
-                            padding: "2px 5px",
-                            backgroundColor:
-                              index === 0 ? "#e3f2fd" : "#f1f8e9",
-                            border: "1px solid",
-                            borderColor: index === 0 ? "#bbdefb" : "#dcedc8",
-                            borderRadius: "3px",
-                            color: index === 0 ? "#1976d2" : "#388e3c",
-                          }}
+                          className={`rounded-md border px-1.5 py-0.5 text-[9px] font-medium ${
+                            index === 0
+                              ? "border-[#3b82f6]/40 bg-[#3b82f6]/20 text-[#93c5fd]"
+                              : "border-white/10 bg-white/5 text-white/85"
+                          }`}
                         >
                           {slot}
-                        </div>
+                        </span>
                       ))}
                       {nextUnavailableSlot && (
-                        <div
-                          style={{
-                            fontSize: "9px",
-                            padding: "2px 5px",
-                            backgroundColor: "#ffebee",
-                            border: "1px solid #ffcdd2",
-                            borderRadius: "3px",
-                            color: "#c62828",
-                            position: "relative",
-                          }}
-                        >
+                        <span className="relative rounded-md border border-red-400/40 bg-red-500/15 px-1.5 py-0.5 text-[9px] text-red-200">
                           {nextUnavailableSlot}
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: "100%",
-                                height: "1px",
-                                backgroundColor: "#c62828",
-                                transform: "rotate(-45deg)",
-                              }}
-                            ></div>
-                          </div>
-                        </div>
+                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                            <span className="h-px w-[120%] -rotate-45 bg-red-400" />
+                          </span>
+                        </span>
                       )}
                     </div>
-
-                    {/* Explanation of slot calculation */}
-                    <div
-                      style={{
-                        fontSize: "9px",
-                        color: "#666",
-                        marginTop: "8px",
-                        textAlign: "center",
-                        maxWidth: "280px",
-                        padding: "4px",
-                        backgroundColor: "#f5f5f5",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      <strong>How services are filtered:</strong> Starting from{" "}
-                      {startTime}, we found {availableSlotsList.length}{" "}
-                      consecutive available slots
+                    <div className="max-w-[280px] rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-center text-[9px] leading-snug text-white/60">
+                      <span className="font-semibold text-white/80">
+                        How services are filtered:
+                      </span>{" "}
+                      Starting from {startTime}, we found{" "}
+                      {availableSlotsList.length} consecutive available slots
                       {nextUnavailableSlot
                         ? ` (until ${nextUnavailableSlot} which is unavailable)`
                         : ""}
@@ -1636,95 +1599,60 @@ const AddBookingModal = ({
               })()}
             </div>
 
-            {/* Customer Name Input */}
-            <div className="form-group input-field">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="add-booking-customer-name" className={modalLabelClass}>
+                Customer name
+              </label>
               <input
+                id="add-booking-customer-name"
                 type="text"
                 name="customerName"
                 value={formData.customerName}
                 onChange={handleFormChange}
-                placeholder="Customer Name"
+                placeholder="Customer name"
                 autoComplete="off"
                 required
+                className={modalFieldClass}
               />
             </div>
 
-            {/* Phone Number Input */}
-            <div className="form-group input-field">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="add-booking-phone" className={modalLabelClass}>
+                Phone <span className="normal-case text-white/35">(optional)</span>
+              </label>
               <input
+                id="add-booking-phone"
                 type="tel"
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleFormChange}
-                placeholder="Phone Number (Optional)"
+                placeholder="Phone number"
+                className={modalFieldClass}
               />
               {loadingHistory && (
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "#007bff",
-                    marginTop: "4px",
-                    textAlign: "center",
-                    fontStyle: "italic",
-                  }}
-                >
+                <p className="m-0 text-center text-[11px] italic text-[#3b82f6]">
                   Looking up booking history...
-                </div>
+                </p>
               )}
             </div>
 
-            {/* Booking History Display */}
             {showHistory && bookingHistory.length > 0 && (
-              <div
-                style={{
-                  backgroundColor: "#f8f9fa",
-                  border: "1px solid #dee2e6",
-                  borderRadius: "8px",
-                  padding: "12px",
-                  marginBottom: "15px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                    color: "#495057",
-                    marginBottom: "8px",
-                    textAlign: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "5px",
-                  }}
-                >
-                  📅 Customer History ({bookingHistory.length} bookings)
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="mb-2 flex items-center justify-center gap-2 text-center text-[12px] font-bold text-white/90">
+                  <i className="bi bi-calendar3" />
+                  Customer history ({bookingHistory.length})
                 </div>
-                <div
-                  style={{
-                    maxHeight: "120px",
-                    overflowY: "auto",
-                    fontSize: "11px",
-                  }}
-                >
+                <div className="max-h-[120px] space-y-1.5 overflow-y-auto text-[11px]">
                   {bookingHistory.slice(0, 3).map((booking, index) => (
                     <div
                       key={booking.id || index}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "4px 8px",
-                        marginBottom: "4px",
-                        backgroundColor: "white",
-                        borderRadius: "4px",
-                        border: "1px solid #e9ecef",
-                      }}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#2a2c32] px-2 py-1.5"
                     >
-                      <div style={{ flex: 1 }}>
-                        <div style={{ color: "#495057", fontWeight: "500" }}>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium text-white">
                           {booking.service_name || "Service"}
                         </div>
-                        <div style={{ color: "#6c757d", fontSize: "10px" }}>
+                        <div className="text-[10px] text-white/50">
                           {moment(booking.booking_date || booking.date).format(
                             "DD/MM/YYYY",
                           )}{" "}
@@ -1732,138 +1660,82 @@ const AddBookingModal = ({
                         </div>
                       </div>
                       <div
-                        style={{
-                          fontSize: "10px",
-                          color:
-                            booking.status === "completed"
-                              ? "#28a745"
-                              : "#6c757d",
-                          textTransform: "capitalize",
-                          fontWeight: "500",
-                        }}
+                        className={`shrink-0 text-[10px] font-medium capitalize ${
+                          booking.status === "completed"
+                            ? "text-emerald-400"
+                            : "text-white/45"
+                        }`}
                       >
                         {booking.status || "N/A"}
                       </div>
                     </div>
                   ))}
                   {bookingHistory.length > 3 && (
-                    <div
-                      style={{
-                        textAlign: "center",
-                        color: "#6c757d",
-                        fontSize: "10px",
-                        fontStyle: "italic",
-                        marginTop: "8px",
-                      }}
-                    >
-                      ... and {bookingHistory.length - 3} more bookings
-                    </div>
+                    <p className="m-0 pt-1 text-center text-[10px] italic text-white/40">
+                      … and {bookingHistory.length - 3} more
+                    </p>
                   )}
                 </div>
               </div>
             )}
 
-            <button type="submit" className="submit-button compact">
+            <button
+              type="submit"
+              className="mt-1 w-full rounded-lg bg-[#3b82f6] py-3 text-sm font-bold text-white transition-colors hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/50"
+            >
               Submit
             </button>
           </form>
         </div>
       </div>
-      <div className="modal-overlay" onClick={onClose}></div>
+    </div>
 
-      {/* Override Confirmation Dialog */}
       {showOverrideConfirmation && (
-        <div className="booking-details-modal" style={{ zIndex: 10001 }}>
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 p-4"
+          role="presentation"
+          onClick={handleOverrideCancel}
+        >
           <div
-            className="add-booking-modal-content"
-            style={{ maxWidth: "400px", padding: "20px" }}
+            className="relative w-full max-w-sm rounded-[18px] bg-[#1f2126] p-6 text-white shadow-[0_30px_60px_rgba(0,0,0,0.6)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Override confirmation"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="booking-details">
-              <h3
-                style={{
-                  color: "#856404",
-                  textAlign: "center",
-                  marginBottom: "20px",
-                }}
+            <h3 className="m-0 flex items-center justify-center gap-2 text-center text-lg font-bold text-amber-200">
+              <i className="bi bi-exclamation-triangle-fill" />
+              Override confirmation
+            </h3>
+            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
+              <p className="m-0 text-sm font-semibold text-amber-100">
+                Service will start immediately at {moment().format("HH:mm")}.
+              </p>
+              <p className="m-0 mt-2 text-xs leading-relaxed text-white/60">
+                The selected time slot has already started. Do you want to
+                proceed?
+              </p>
+            </div>
+            <div className="mt-5 flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleOverrideCancel}
+                className="rounded-lg bg-gray-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-gray-500"
               >
-                ⚠️ Override Confirmation
-              </h3>
-
-              <div
-                style={{
-                  backgroundColor: "#fff3cd",
-                  border: "1px solid #ffeaa7",
-                  borderRadius: "8px",
-                  padding: "15px",
-                  marginBottom: "20px",
-                  textAlign: "center",
-                }}
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleOverrideConfirm}
+                className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-green-500"
               >
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#856404",
-                    margin: "0 0 10px 0",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Service will start immediately at {moment().format("HH:mm")}.
-                </p>
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    margin: "0",
-                  }}
-                >
-                  The selected time slot has already started. Do you want to
-                  proceed?
-                </p>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  justifyContent: "center",
-                }}
-              >
-                <button
-                  onClick={handleOverrideCancel}
-                  style={{
-                    padding: "8px 20px",
-                    backgroundColor: "#6c757d",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleOverrideConfirm}
-                  style={{
-                    padding: "8px 20px",
-                    backgroundColor: "#28a745",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Confirm
-                </button>
-              </div>
+                Confirm
+              </button>
             </div>
           </div>
-          <div className="modal-overlay" onClick={handleOverrideCancel}></div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

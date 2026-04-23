@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import BarberSalesReport from "../../components/staff/BarberSalesReport";
 import { useNavigate } from "react-router-dom";
@@ -744,6 +744,15 @@ const StaffDashboard = () => {
 
   const availableSlots = generateTimeSlots();
 
+  const addBookingBlockedSlots = useMemo(
+    () =>
+      blockedSlots.map((time) => ({
+        time,
+        date: moment().format("YYYY-MM-DD"),
+      })),
+    [blockedSlots],
+  );
+
   const todaysAppointmentBarData = {
     labels: barChartData.labels,
     datasets: [
@@ -1207,10 +1216,7 @@ const StaffDashboard = () => {
         currentUser={user}
         timeSlots={TIME_SLOTS}
         bookings={scheduleData}
-        blockedSlots={blockedSlots.map((time) => ({
-          time,
-          date: moment().format("YYYY-MM-DD"),
-        }))}
+        blockedSlots={addBookingBlockedSlots}
       />
 
       {showPaymentConfirmation && (

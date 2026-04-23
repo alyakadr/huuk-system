@@ -1,6 +1,84 @@
-/* Add Booking Modal Styles - Enhanced with Accessibility & Animations */
+/* Add Booking modal uses Tailwind in AddBookingModal.js.
+   RescheduleBookingModal still imports this file for the legacy classnames below. */
 
-/* Modal Container with Animation */
+/* --- Phone / customer lookup dropdown (reusable) --- */
+.customer-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #252730;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 20000;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+}
+
+.customer-suggestion {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  color: #ffffff;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.customer-suggestion:last-child {
+  border-bottom: none;
+}
+
+.customer-suggestion:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.customer-suggestion .customer-name {
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.customer-details {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.2;
+}
+
+.customer-suggestions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.customer-suggestions::-webkit-scrollbar-track {
+  background: #1a1c22;
+}
+
+.customer-suggestions::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.customer-suggestions::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* === Legacy: RescheduleBookingModal and similar (not used by AddBookingModal.js) === */
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+/*
+  The following were the original full-screen + white card styles. They remain so
+  RescheduleBookingModal (which still uses these class names) keeps working.
+  AddBookingModal.jsx no longer uses these classes — it uses Tailwind only.
+*/
+
 .booking-details-modal {
   position: fixed !important;
   top: 0 !important;
@@ -17,12 +95,11 @@
   box-sizing: border-box;
   margin: 0 !important;
   transform: none !important;
-  animation: modalFadeIn 0.3s ease-out;
+  animation: abm-legacy-modalFadeIn 0.3s ease-out forwards;
   backdrop-filter: blur(2px);
 }
 
-/* Fade-in animation for modal */
-@keyframes modalFadeIn {
+@keyframes abm-legacy-modalFadeIn {
   from {
     opacity: 0;
     background-color: rgba(0, 0, 0, 0);
@@ -33,8 +110,7 @@
   }
 }
 
-/* Slide-up animation for modal content */
-@keyframes modalSlideUp {
+@keyframes abm-legacy-modalSlideUp {
   from {
     opacity: 0;
     transform: translate(-50%, -40%) scale(0.9);
@@ -45,7 +121,6 @@
   }
 }
 
-/* Enhanced Add New Booking Modal - Compact Design with Accessibility */
 .add-booking-modal-content {
   background-color: #ffffff;
   border-radius: 8px;
@@ -55,7 +130,7 @@
   max-height: 70vh;
   position: fixed;
   top: 50%;
-  left: 50%; /* Centered horizontally */
+  left: 50%;
   transform: translate(-50%, -50%);
   font-family: "Glacial Indifference", sans-serif;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -64,16 +139,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: modalSlideUp 0.3s ease-out;
-  outline: none; /* Remove default focus outline - we'll use custom styling */
+  animation: abm-legacy-modalSlideUp 0.3s ease-out forwards;
+  outline: none;
 }
 
-/* Focus styling for modal content when focused */
 .add-booking-modal-content:focus-visible {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 3px rgba(0, 123, 255, 0.5);
 }
 
-/* Center the entire modal content */
 .add-booking-modal-content .booking-details {
   display: flex;
   flex-direction: column;
@@ -82,7 +155,6 @@
   width: 100%;
 }
 
-/* Add New Booking Modal specific title styling */
 .add-booking-modal-content .booking-details h3 {
   color: #000000;
   font-size: 16px;
@@ -93,7 +165,6 @@
   letter-spacing: 0.5px;
 }
 
-/* Booking Form */
 .booking-form {
   display: flex;
   flex-direction: column;
@@ -103,7 +174,6 @@
   margin: 0;
 }
 
-/* Form Groups */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -113,7 +183,6 @@
   margin: 0 0 4px 0;
 }
 
-/* Container for horizontally aligned info display fields */
 .info-display-container {
   display: flex;
   flex-direction: row;
@@ -125,7 +194,6 @@
   flex-wrap: wrap;
 }
 
-/* Info display form groups - labels and values close together */
 .add-booking-modal-content .form-group.info-display {
   display: flex !important;
   flex-direction: row !important;
@@ -168,7 +236,6 @@
   max-width: none !important;
 }
 
-/* Input field form groups - reduced spacing */
 .add-booking-modal-content .form-group.input-field {
   display: flex;
   flex-direction: column;
@@ -177,7 +244,6 @@
   width: 100%;
 }
 
-/* Form Inputs and Selects */
 .add-booking-modal-content .form-group input,
 .add-booking-modal-content .form-group select {
   padding: 6px 10px;
@@ -206,68 +272,6 @@
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
-/* Customer Autocomplete Styles */
-.customer-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: #1a1a1a;
-  border: 1px solid #444;
-  border-radius: 4px;
-  max-height: 200px;
-  overflow-y: auto;
-  z-index: 1001;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.customer-suggestion {
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  color: #ffffff;
-  font-size: 12px;
-  border-bottom: 1px solid #333;
-}
-
-.customer-suggestion:last-child {
-  border-bottom: none;
-}
-
-.customer-suggestion:hover {
-  background-color: #2a2a2a;
-}
-
-.customer-suggestion .customer-name {
-  font-weight: bold;
-  margin-bottom: 2px;
-}
-
-.customer-details {
-  font-size: 10px;
-  color: #888;
-  line-height: 1.2;
-}
-
-/* Scrollbar styles for suggestions */
-.customer-suggestions::-webkit-scrollbar {
-  width: 6px;
-}
-
-.customer-suggestions::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
-
-.customer-suggestions::-webkit-scrollbar-thumb {
-  background-color: #444;
-  border-radius: 3px;
-}
-
-.customer-suggestions::-webkit-scrollbar-thumb:hover {
-  background-color: #555;
-}
-
-/* Submit Button */
 .add-booking-modal-content .submit-button {
   background-color: #000000;
   color: #ffffff;
@@ -288,14 +292,12 @@
   background-color: #333333;
 }
 
-/* Compact submit button */
 .add-booking-modal-content .submit-button.compact {
   width: 60%;
   max-width: 200px;
   margin: 16px auto 0 auto;
 }
 
-/* Close Button */
 .add-booking-modal-content .close-button {
   position: absolute;
   top: 16px;
@@ -317,14 +319,4 @@
 .add-booking-modal-content .close-button:hover {
   background-color: #f0f0f0;
   color: #000000;
-}
-
-/* Modal Overlay */
-.modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
 }
